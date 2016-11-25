@@ -104,4 +104,3 @@
 
 #define I2C_SCL            16
 #define I2C_SDA            17
-

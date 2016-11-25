@@ -62,4 +62,3 @@ uint8_t mcp4728_simpleCommand(byte simpleCommand);
 
 #endif
 #endif
-

@@ -286,7 +286,7 @@
    *  HOTENDS      - Number of hotends, whether connected or separate
    *  E_STEPPERS   - Number of actual E stepper motors
    *  TOOL_E_INDEX - Index to use when getting/setting the tool state
-   *  
+   *
    */
   #if ENABLED(SINGLENOZZLE)             // One hotend, multi-extruder
     #define HOTENDS      1

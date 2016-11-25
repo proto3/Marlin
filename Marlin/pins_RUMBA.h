@@ -123,4 +123,3 @@
 #define BTN_ENC            43
 
 #define SERVO0_PIN         5
-

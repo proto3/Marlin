@@ -157,4 +157,3 @@ void matrix_3x3::debug(const char title[]) {
 }
 
 #endif // AUTO_BED_LEVELING_FEATURE
-

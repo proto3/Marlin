@@ -242,4 +242,3 @@ void L6470_init() {
   #endif
 }
 #endif
-
