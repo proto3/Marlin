@@ -42,7 +42,7 @@ applet/
 *.i
 *.ii
 *.swp
-
+tmp
 
 #
 # C++
@@ -114,3 +114,7 @@ applet/
 # Debug files
 *.dSYM/
 *.su
+
+#Python
+__pycache__
+env
