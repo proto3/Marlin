@@ -180,6 +180,11 @@ enum TempState {
 enum LsAction { LS_SerialPrint, LS_Count, LS_GetFilename };
 
 /**
+ * Machine State
+ */
+enum MachineState { waiting_file, running, pause_pending, suspended };
+
+/**
  * Ultra LCD
  */
 enum LCDViewAction {

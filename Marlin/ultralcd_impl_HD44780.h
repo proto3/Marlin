@@ -667,7 +667,7 @@ static void lcd_implementation_status_screen() {
       #if ENABLED(SDSUPPORT)
         lcd.setCursor(0, 2);
         lcd_printPGM(PSTR("SD"));
-        if (IS_SD_PRINTING)
+        if (IS_RUNNING)
           lcd.print(itostr3(card.percentDone()));
         else
           lcd_printPGM(PSTR("---"));
@@ -723,7 +723,7 @@ static void lcd_implementation_status_screen() {
 
       lcd.setCursor(7, 2);
       lcd_printPGM(PSTR("SD"));
-      if (IS_SD_PRINTING)
+      if (IS_RUNNING)
         lcd.print(itostr3(card.percentDone()));
       else
         lcd_printPGM(PSTR("---"));

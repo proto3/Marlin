@@ -62,6 +62,7 @@
 #include "nozzle.h"
 #include "duration_t.h"
 #include "types.h"
+#include "state.h"
 
 #if ENABLED(USE_WATCHDOG)
   #include "watchdog.h"
@@ -133,18 +134,12 @@
  * M21  - Init SD card
  * M22  - Release SD card
  * M23  - Select SD file (M23 filename.g)
- * M24  - Start/resume SD print
- * M25  - Pause SD print
  * M26  - Set SD position in bytes (M26 S12345)
  * M27  - Report SD print status
  * M28  - Start SD write (M28 filename.g)
  * M29  - Stop SD write
  * M30  - Delete file from SD (M30 filename.g)
  * M31  - Output time since last M109 or SD card start to serial
- * M32  - Select file and start SD print (Can be used _while_ printing from SD card files):
- *        syntax "M32 /path/filename#", or "M32 S<startpos bytes> !filename#"
- *        Call gcode file : "M32 P !filename#" and return to caller file after finishing (similar to #include).
- *        The '#' is necessary when calling from within sd files, as it stops buffer prereading
  * M33  - Get the longname version of a path
  * M42  - Change pin status via gcode Use M42 Px Sy to set pin x to value y, when omitting Px the onboard led will be used.
  * M48  - Measure Z_Probe repeatability. M48 [P # of points] [X position] [Y position] [V_erboseness #] [E_ngage Probe] [L # of legs of travel]
@@ -291,7 +286,7 @@ bool axis_homed[3] = { false };
 static long gcode_N, gcode_LastN, Stopped_gcode_LastN = 0;
 
 static char command_queue[BUFSIZE][MAX_CMD_SIZE];
-static char* current_command, *current_command_args;
+static char* cmd, *cmd_args;
 static uint8_t cmd_queue_index_r = 0,
                cmd_queue_index_w = 0,
                commands_in_queue = 0;
@@ -559,8 +554,7 @@ static bool send_ok[BUFSIZE];
 
 void stop();
 
-void get_available_commands();
-void process_next_command();
+void process_command(char* cmd);
 void prepare_move_to_destination();
 void set_current_from_steppers_for_axis(AxisEnum axis);
 
@@ -992,51 +986,26 @@ void setup() {
  *  - Call endstop manager
  *  - Call LCD update
  */
-void loop() {
-  if (commands_in_queue < BUFSIZE) get_available_commands();
-
-  #if ENABLED(SDSUPPORT)
-    card.checkautostart(false);
-  #endif
-
-  if (commands_in_queue) {
-
-    #if ENABLED(SDSUPPORT)
-
-      if (card.saving) {
-        char* command = command_queue[cmd_queue_index_r];
-        if (strstr_P(command, PSTR("M29"))) {
-          // M29 closes the file
-          card.closefile();
-          SERIAL_PROTOCOLLNPGM(MSG_FILE_SAVED);
-          ok_to_send();
+void loop()
+{
+    while(stateManager.get_state() != waiting_file)
+    {
+        char cmd[MAX_CMD_SIZE];
+        if(card.get_next_command(cmd))
+        {
+            process_command(cmd);
+            endstops.report_state();
+            idle();
         }
-        else {
-          // Write the string from the read buffer to SD
-          card.write_command(command);
-          if (card.logging)
-            process_next_command(); // The card is saving because it's logging
-          else
-            ok_to_send();
+        else
+        {
+            stepper.synchronize();
+            if(stateManager.stop())
+                lcd_setstatus("Done.");
         }
-      }
-      else
-        process_next_command();
-
-    #else
-
-      process_next_command();
-
-    #endif // SDSUPPORT
-
-    // The queue may be reset by a command handler or by code invoked by idle() within a handler
-    if (commands_in_queue) {
-      --commands_in_queue;
-      cmd_queue_index_r = (cmd_queue_index_r + 1) % BUFSIZE;
     }
-  }
-  endstops.report_state();
-  idle();
+    endstops.report_state();
+    idle();
 }
 
 void gcode_line_error(const char* err, bool doFlush = true) {
@@ -1178,86 +1147,6 @@ inline void get_serial_commands() {
   } // queue has space, serial has data
 }
 
-#if ENABLED(SDSUPPORT)
-
-  inline void get_sdcard_commands() {
-    static bool stop_buffering = false,
-                sd_comment_mode = false;
-
-    if (!card.sdprinting) return;
-
-    /**
-     * '#' stops reading from SD to the buffer prematurely, so procedural
-     * macro calls are possible. If it occurs, stop_buffering is triggered
-     * and the buffer is run dry; this character _can_ occur in serial com
-     * due to checksums, however, no checksums are used in SD printing.
-     */
-
-    if (commands_in_queue == 0) stop_buffering = false;
-
-    uint16_t sd_count = 0;
-    bool card_eof = card.eof();
-    while (commands_in_queue < BUFSIZE && !card_eof && !stop_buffering) {
-      int16_t n = card.get();
-      char sd_char = (char)n;
-      card_eof = card.eof();
-      if (card_eof || n == -1
-          || sd_char == '\n' || sd_char == '\r'
-          || ((sd_char == '#' || sd_char == ':') && !sd_comment_mode)
-      ) {
-        if (card_eof) {
-          SERIAL_PROTOCOLLNPGM(MSG_FILE_PRINTED);
-          card.printingHasFinished();
-          card.checkautostart(true);
-        }
-        else if (n == -1) {
-          SERIAL_ERROR_START;
-          SERIAL_ECHOLNPGM(MSG_SD_ERR_READ);
-        }
-        if (sd_char == '#') stop_buffering = true;
-
-        sd_comment_mode = false; //for new command
-
-        if (!sd_count) continue; //skip empty lines
-
-        command_queue[cmd_queue_index_w][sd_count] = '\0'; //terminate string
-        sd_count = 0; //clear buffer
-
-        _commit_command(false);
-      }
-      else if (sd_count >= MAX_CMD_SIZE - 1) {
-        /**
-         * Keep fetching, but ignore normal characters beyond the max length
-         * The command will be injected when EOL is reached
-         */
-      }
-      else {
-        if (sd_char == ';') sd_comment_mode = true;
-        if (!sd_comment_mode) command_queue[cmd_queue_index_w][sd_count++] = sd_char;
-      }
-    }
-  }
-
-#endif // SDSUPPORT
-
-/**
- * Add to the circular command queue the next command from:
- *  - The command-injection queue (queued_commands_P)
- *  - The active serial input (usually USB)
- *  - The SD card file being actively printed
- */
-void get_available_commands() {
-
-  // if any immediate commands remain, don't get other commands yet
-  if (drain_queued_commands_P()) return;
-
-  get_serial_commands();
-
-  #if ENABLED(SDSUPPORT)
-    get_sdcard_commands();
-  #endif
-}
-
 inline bool code_has_value() {
   int i = 1;
   char c = seen_pointer[i];
@@ -1358,7 +1247,7 @@ FORCE_INLINE millis_t code_value_millis() { return code_value_ulong(); }
 inline millis_t code_value_millis_from_seconds() { return code_value_float() * 1000; }
 
 bool code_seen(char code) {
-  seen_pointer = strchr(current_command_args, code);
+  seen_pointer = strchr(cmd_args, code);
   return (seen_pointer != NULL); // Return TRUE if the code-letter was found
 }
 
@@ -2607,7 +2496,7 @@ void gcode_get_destination() {
 void unknown_command_error() {
   SERIAL_ECHO_START;
   SERIAL_ECHOPGM(MSG_UNKNOWN_COMMAND);
-  SERIAL_ECHO(current_command);
+  SERIAL_ECHO(cmd);
   SERIAL_ECHOLNPGM("\"");
 }
 
@@ -3912,7 +3801,7 @@ inline void gcode_G92() {
    * M1: Conditional stop   - Wait for user button press on LCD
    */
   inline void gcode_M0_M1() {
-    char* args = current_command_args;
+    char* args = cmd_args;
 
     millis_t codenum = 0;
     bool hasP = false, hasS = false;
@@ -3950,7 +3839,7 @@ inline void gcode_G92() {
       while (!lcd_clicked()) idle();
       KEEPALIVE_STATE(IN_HANDLER);
     }
-    if (IS_SD_PRINTING)
+    if (IS_RUNNING)
       LCD_MESSAGEPGM(MSG_RESUMING);
     else
       LCD_MESSAGEPGM(WELCOME_MSG);
@@ -3995,22 +3884,7 @@ inline void gcode_M17() {
    * M23: Open a file
    */
   inline void gcode_M23() {
-    card.openFile(current_command_args, true);
-  }
-
-  /**
-   * M24: Start SD Print
-   */
-  inline void gcode_M24() {
-    card.startFileprint();
-    print_job_timer.start();
-  }
-
-  /**
-   * M25: Pause SD Print
-   */
-  inline void gcode_M25() {
-    card.pauseSDPrint();
+    card.openFile(cmd_args, true);
   }
 
   /**
@@ -4025,14 +3899,14 @@ inline void gcode_M17() {
    * M27: Get SD Card status
    */
   inline void gcode_M27() {
-    card.getStatus();
+    card.printStatus();
   }
 
   /**
    * M28: Start SD Write
    */
   inline void gcode_M28() {
-    card.openFile(current_command_args, false);
+    card.openFile(cmd_args, false);
   }
 
   /**
@@ -4049,7 +3923,7 @@ inline void gcode_M17() {
   inline void gcode_M30() {
     if (card.cardOK) {
       card.closefile();
-      card.removeFile(current_command_args);
+      card.removeFile(cmd_args);
     }
   }
 
@@ -4074,34 +3948,6 @@ inline void gcode_M31() {
 
 #if ENABLED(SDSUPPORT)
 
-  /**
-   * M32: Select file and start SD Print
-   */
-  inline void gcode_M32() {
-    if (card.sdprinting)
-      stepper.synchronize();
-
-    char* namestartpos = strchr(current_command_args, '!');  // Find ! to indicate filename string start.
-    if (!namestartpos)
-      namestartpos = current_command_args; // Default name position, 4 letters after the M
-    else
-      namestartpos++; //to skip the '!'
-
-    bool call_procedure = code_seen('P') && (seen_pointer < namestartpos);
-
-    if (card.cardOK) {
-      card.openFile(namestartpos, true, call_procedure);
-
-      if (code_seen('S') && seen_pointer < namestartpos) // "S" (must occur _before_ the filename!)
-        card.setIndex(code_value_long());
-
-      card.startFileprint();
-
-      // Procedure calls count as normal print time.
-      if (!call_procedure) print_job_timer.start();
-    }
-  }
-
   #if ENABLED(LONG_FILENAME_HOST_SUPPORT)
 
     /**
@@ -4117,7 +3963,7 @@ inline void gcode_M31() {
      *   /Miscellaneous/Armchair/Armchair.gcode
      */
     inline void gcode_M33() {
-      card.printLongPath(current_command_args);
+      card.printLongPath(cmd_args);
     }
 
   #endif
@@ -4126,7 +3972,7 @@ inline void gcode_M31() {
    * M928: Start SD Write
    */
   inline void gcode_M928() {
-    card.openLogFile(current_command_args);
+    card.openLogFile(cmd_args);
   }
 
 #endif // SDSUPPORT
@@ -5097,6 +4943,7 @@ inline void gcode_M18_M84() {
       #endif
     }
   }
+  print_job_timer.stop();
 }
 
 /**
@@ -5183,7 +5030,7 @@ inline void gcode_M115() {
  * M117: Set LCD Status Message
  */
 inline void gcode_M117() {
-  lcd_setstatus(current_command_args);
+  lcd_setstatus(cmd_args);
 }
 
 /**
@@ -6059,6 +5906,11 @@ void quickstop_stepper() {
     LOOP_XYZ(i) set_current_from_steppers_for_axis((AxisEnum)i);
     SYNC_PLAN_POSITION_KINEMATIC();
   #endif
+}
+
+void autohome()
+{
+  gcode_G28();
 }
 
 #if ENABLED(MESH_BED_LEVELING)
@@ -6978,28 +6830,26 @@ inline void gcode_T(uint8_t tmp_extruder) {
  * Process a single command and dispatch it to its handler
  * This is called from the main loop()
  */
-void process_next_command() {
-  current_command = command_queue[cmd_queue_index_r];
-
+void process_command(char* cmd) {
   if (DEBUGGING(ECHO)) {
     SERIAL_ECHO_START;
-    SERIAL_ECHOLN(current_command);
+    SERIAL_ECHOLN(cmd);
   }
 
-  // Sanitize the current command:
+  // Sanitize the command:
   //  - Skip leading spaces
   //  - Bypass N[-0-9][0-9]*[ ]*
   //  - Overwrite * with nul to mark the end
-  while (*current_command == ' ') ++current_command;
-  if (*current_command == 'N' && NUMERIC_SIGNED(current_command[1])) {
-    current_command += 2; // skip N[-0-9]
-    while (NUMERIC(*current_command)) ++current_command; // skip [0-9]*
-    while (*current_command == ' ') ++current_command; // skip [ ]*
+  while (*cmd == ' ') ++cmd;
+  if (*cmd == 'N' && NUMERIC_SIGNED(cmd[1])) {
+    cmd += 2; // skip N[-0-9]
+    while (NUMERIC(*cmd)) ++cmd; // skip [0-9]*
+    while (*cmd == ' ') ++cmd; // skip [ ]*
   }
-  char* starpos = strchr(current_command, '*');  // * should always be the last parameter
+  char* starpos = strchr(cmd, '*');  // * should always be the last parameter
   if (starpos) while (*starpos == ' ' || *starpos == '*') *starpos-- = '\0'; // nullify '*' and ' '
 
-  char *cmd_ptr = current_command;
+  char *cmd_ptr = cmd;
 
   // Get the command code, which must be G, M, or T
   char command_code = *cmd_ptr++;
@@ -7023,7 +6873,7 @@ void process_next_command() {
   while (*cmd_ptr == ' ') cmd_ptr++;
 
   // The command's arguments (if any) start here, for sure!
-  current_command_args = cmd_ptr;
+  cmd_args = cmd_ptr;
 
   KEEPALIVE_STATE(IN_HANDLER);
 
@@ -7149,10 +6999,6 @@ void process_next_command() {
           gcode_M22(); break;
         case 23: //M23 - Select file
           gcode_M23(); break;
-        case 24: //M24 - Start SD print
-          gcode_M24(); break;
-        case 25: //M25 - Pause SD print
-          gcode_M25(); break;
         case 26: //M26 - Set SD index
           gcode_M26(); break;
         case 27: //M27 - Get SD status
@@ -7163,8 +7009,6 @@ void process_next_command() {
           gcode_M29(); break;
         case 30: //M30 <filename> Delete File
           gcode_M30(); break;
-        case 32: //M32 - Select file and start SD print
-          gcode_M32(); break;
 
         #if ENABLED(LONG_FILENAME_HOST_SUPPORT)
           case 33: //M33 - Get the long full path to a file or folder
@@ -8454,6 +8298,12 @@ void idle(
     bool no_stepper_sleep/*=false*/
   #endif
 ) {
+  if(stateManager.get_state() != waiting_file && !card.is_inserted())
+  {
+      if(stateManager.stop())
+        lcd_setstatus("Aborted, card removed");
+  }
+
   lcd_update();
   host_keepalive();
   manage_inactivity(
@@ -8488,11 +8338,9 @@ void idle(
 void manage_inactivity(bool ignore_stepper_queue/*=false*/) {
 
   #if ENABLED(FILAMENT_RUNOUT_SENSOR)
-    if ((IS_SD_PRINTING || print_job_timer.isRunning()) && !(READ(FIL_RUNOUT_PIN) ^ FIL_RUNOUT_INVERTING))
+    if ((IS_RUNNING || print_job_timer.isRunning()) && !(READ(FIL_RUNOUT_PIN) ^ FIL_RUNOUT_INVERTING))
       handle_filament_runout();
   #endif
-
-  if (commands_in_queue < BUFSIZE) get_available_commands();
 
   millis_t ms = millis();
 
@@ -8659,6 +8507,8 @@ void kill(const char* lcd_msg) {
   #else
     UNUSED(lcd_msg);
   #endif
+
+  stateManager.stop();
 
   for (int i = 5; i--;) delay(100); // Wait a short time
 

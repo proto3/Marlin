@@ -43,18 +43,15 @@ public:
   //files auto[0-9].g on the sd card are performed in a row
   //this is to delay autostart and hence the initialisaiton of the sd card to some seconds after the normal init, so the device is available quick after a reset
 
-  void checkautostart(bool x);
-  void openFile(char* name, bool read, bool push_current=false);
+  bool openFile(char* name, bool read, bool push_current=false);
   void openLogFile(char* name);
   void removeFile(char* name);
   void closefile(bool store_location=false);
   void release();
   void openAndPrintFile(const char *name);
-  void startFileprint();
-  void pauseSDPrint();
-  void stopSDPrint();
-  void getStatus();
-  void printingHasFinished();
+  void printStatus();
+  bool is_inserted();
+  bool get_next_command(char* cmd);
 
   #if ENABLED(LONG_FILENAME_HOST_SUPPORT)
     void printLongPath(char *path);
@@ -78,7 +75,7 @@ public:
   FORCE_INLINE char* getWorkDirName() { workDir.getFilename(filename); return filename; }
 
 public:
-  bool saving, logging, sdprinting, cardOK, filenameIsDir;
+  bool saving, logging, cardOK, filenameIsDir;
   char filename[FILENAME_LENGTH], longFilename[LONG_FILENAME_LENGTH];
   int autostart_index;
 private:
@@ -107,8 +104,6 @@ private:
 
 extern CardReader card;
 
-#define IS_SD_PRINTING (card.sdprinting)
-
 #if PIN_EXISTS(SD_DETECT)
   #if ENABLED(SD_DETECT_INVERTED)
     #define IS_SD_INSERTED (READ(SD_DETECT_PIN) != 0)
@@ -122,7 +117,7 @@ extern CardReader card;
 
 #else
 
-#define IS_SD_PRINTING (false)
+#define card.state == printing (false)
 
 #endif //SDSUPPORT
 

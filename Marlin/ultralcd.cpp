@@ -28,6 +28,7 @@
 #include "temperature.h"
 #include "stepper.h"
 #include "configuration_store.h"
+#include "state.h"
 
 #if ENABLED(PRINTCOUNTER)
   #include "printcounter.h"
@@ -250,9 +251,9 @@ uint8_t lcdDrawUpdate = LCDVIEW_CLEAR_CALL_REDRAW; // Set when the LCD needs to 
    *     lcd_implementation_drawmenu_back(sel, row, PSTR(MSG_WATCH))
    *     menu_action_back()
    *
-   *   MENU_ITEM(function, MSG_PAUSE_PRINT, lcd_sdcard_pause)
-   *     lcd_implementation_drawmenu_function(sel, row, PSTR(MSG_PAUSE_PRINT), lcd_sdcard_pause)
-   *     menu_action_function(lcd_sdcard_pause)
+   *   MENU_ITEM(function, MSG_PAUSE_PRINT, lcd_suspend)
+   *     lcd_implementation_drawmenu_function(sel, row, PSTR(MSG_PAUSE_PRINT), lcd_suspend)
+   *     menu_action_function(lcd_suspend)
    *
    *   MENU_ITEM_EDIT(int3, MSG_SPEED, &feedrate_percentage, 10, 999)
    *   MENU_ITEM(setting_edit_int3, MSG_SPEED, PSTR(MSG_SPEED), &feedrate_percentage, 10, 999)
@@ -443,7 +444,7 @@ static void lcd_status_screen() {
         #if ENABLED(SDSUPPORT)
           if (card.isFileOpen()) {
             // Expire the message when printing is active
-            if (IS_SD_PRINTING) {
+            if (IS_RUNNING) {
               if (ELAPSED(ms, expire_status_ms)) {
                 lcd_status_message[0] = '\0';
                 expire_status_ms = 0;
@@ -554,23 +555,17 @@ void kill_screen(const char* lcd_msg) {
 
   #if ENABLED(SDSUPPORT)
 
-    static void lcd_sdcard_pause() {
-      card.pauseSDPrint();
-      print_job_timer.pause();
+    static void lcd_suspend() {
+      stateManager.suspend();
     }
 
-    static void lcd_sdcard_resume() {
-      card.startFileprint();
-      print_job_timer.start();
+    static void lcd_resume() {
+      stateManager.resume();
+      menu_action_back();
     }
 
-    static void lcd_sdcard_stop() {
-      card.stopSDPrint();
-      clear_command_queue();
-      quickstop_stepper();
-      print_job_timer.stop();
-      thermalManager.autotempShutdown();
-      wait_for_heatup = false;
+    static void lcd_stop() {
+      stateManager.stop();
       lcd_setstatus(MSG_PRINT_ABORTED, true);
     }
 
@@ -585,7 +580,7 @@ void kill_screen(const char* lcd_msg) {
   static void lcd_main_menu() {
     START_MENU();
     MENU_ITEM(back, MSG_WATCH);
-    if (planner.movesplanned() || IS_SD_PRINTING) {
+    if (planner.movesplanned() || IS_RUNNING) {
       MENU_ITEM(submenu, MSG_TUNE, lcd_tune_menu);
     }
     else {
@@ -598,12 +593,20 @@ void kill_screen(const char* lcd_msg) {
 
     #if ENABLED(SDSUPPORT)
       if (card.cardOK) {
-        if (card.isFileOpen()) {
-          if (card.sdprinting)
-            MENU_ITEM(function, MSG_PAUSE_PRINT, lcd_sdcard_pause);
+        if (IS_RUNNING || IS_PAUSE_PENDING || IS_SUSPENDED) {
+          if (IS_RUNNING)
+          {
+              MENU_ITEM(function, MSG_PAUSE_PRINT, lcd_suspend);
+          }
+          else if(IS_PAUSE_PENDING)
+          {
+            MENU_ITEM(function, "Pause pending...", NULL);
+          }
           else
-            MENU_ITEM(function, MSG_RESUME_PRINT, lcd_sdcard_resume);
-          MENU_ITEM(function, MSG_STOP_PRINT, lcd_sdcard_stop);
+          {
+            MENU_ITEM(function, MSG_RESUME_PRINT, lcd_resume);
+          }
+          MENU_ITEM(function, MSG_STOP_PRINT, lcd_stop);
         }
         else {
           MENU_ITEM(submenu, MSG_CARD_MENU, lcd_sdcard_menu);
@@ -969,7 +972,6 @@ void kill_screen(const char* lcd_msg) {
     static void lcd_autostart_sd() {
       card.autostart_index = 0;
       card.setroot();
-      card.checkautostart(true);
     }
 
   #endif
@@ -1185,7 +1187,7 @@ void kill_screen(const char* lcd_msg) {
     //
     // Auto Home
     //
-    MENU_ITEM(gcode, MSG_AUTO_HOME, PSTR("G28"));
+    MENU_ITEM(function, MSG_AUTO_HOME, autohome);
     #if ENABLED(INDIVIDUAL_AXIS_HOMING_MENU)
       MENU_ITEM(gcode, MSG_AUTO_HOME_X, PSTR("G28 X"));
       MENU_ITEM(gcode, MSG_AUTO_HOME_Y, PSTR("G28 Y"));
@@ -2357,7 +2359,7 @@ void kill_screen(const char* lcd_msg) {
 
     static void menu_action_sdfile(const char* filename, char* longFilename) {
       UNUSED(longFilename);
-      card.openAndPrintFile(filename);
+      stateManager.start(filename);
       lcd_return_to_status();
     }
 

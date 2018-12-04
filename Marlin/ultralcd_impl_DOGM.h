@@ -377,7 +377,7 @@ static void lcd_implementation_status_screen() {
     u8g.drawFrame(54, 49, 73, 4 - (TALL_FONT_CORRECTION));
 
     // SD Card Progress bar and clock
-    if (IS_SD_PRINTING) {
+    if (IS_RUNNING || IS_SUSPENDED) {
       // Progress bar solid part
       u8g.drawBox(55, 50, (unsigned int)(71 * card.percentDone() * 0.01), 2 - (TALL_FONT_CORRECTION));
     }

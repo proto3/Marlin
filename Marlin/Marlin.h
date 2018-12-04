@@ -227,6 +227,7 @@ void reset_bed_level();
 void kill(const char*);
 
 void quickstop_stepper();
+void autohome();
 
 #if ENABLED(FILAMENT_RUNOUT_SENSOR)
   void handle_filament_runout();
