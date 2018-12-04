@@ -68,9 +68,9 @@
   #define X_MAX_PIN         2
 #endif
 #define Y_MIN_PIN          14
-#define Y_MAX_PIN          15
-#define Z_MIN_PIN          18
-#define Z_MAX_PIN          19
+#define Y_MAX_PIN          41
+#define Z_MIN_PIN          15
+#define Z_MAX_PIN          18
 #ifndef Z_MIN_PROBE_PIN
   #define Z_MIN_PROBE_PIN  32
 #endif
@@ -221,7 +221,7 @@
       #define BTN_ENC 35
 
       #define SD_DETECT_PIN 49
-      #define KILL_PIN 41
+      #define KILL_PIN 19
 
       #if ENABLED(BQ_LCD_SMART_CONTROLLER)
         #define LCD_PIN_BL 39

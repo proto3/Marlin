@@ -372,16 +372,16 @@
   #define MSG_TUNE                            "Tune"
 #endif
 #ifndef MSG_PAUSE_PRINT
-  #define MSG_PAUSE_PRINT                     "Pause print"
+  #define MSG_PAUSE_PRINT                     "Pause"
 #endif
 #ifndef MSG_RESUME_PRINT
-  #define MSG_RESUME_PRINT                    "Resume print"
+  #define MSG_RESUME_PRINT                    "Resume"
 #endif
 #ifndef MSG_STOP_PRINT
-  #define MSG_STOP_PRINT                      "Stop print"
+  #define MSG_STOP_PRINT                      "Stop"
 #endif
 #ifndef MSG_CARD_MENU
-  #define MSG_CARD_MENU                       "Print from SD"
+  #define MSG_CARD_MENU                       "Run from SD"
 #endif
 #ifndef MSG_NO_CARD
   #define MSG_NO_CARD                         "No SD card"
@@ -486,7 +486,7 @@
   #define MSG_ERR_MINTEMP_BED                 "Err: MINTEMP BED"
 #endif
 #ifndef MSG_HALTED
-  #define MSG_HALTED                          "PRINTER HALTED"
+  #define MSG_HALTED                          "MACHINE HALTED"
 #endif
 #ifndef MSG_PLEASE_RESET
   #define MSG_PLEASE_RESET                    "Please reset"
