@@ -1,4 +1,5 @@
 #include "state.h"
+#include "plasma.h"
 #include "cardreader.h"
 
 MachineState State::state = waiting_file;
@@ -14,6 +15,7 @@ bool State::start(const char *name)
   }
 
   print_job_timer.start();
+  plasmaManager.unlock();
   state = running;
 
   CRITICAL_SECTION_END
@@ -29,6 +31,7 @@ bool State::stop()
     return false;
   }
 
+  plasmaManager.lock();
   quickstop_stepper();
   print_job_timer.stop();
   card.closefile(false);
@@ -47,6 +50,7 @@ bool State::suspend()
     return false;
   }
 
+  plasmaManager.lock();
   print_job_timer.pause();
   state = suspended;
 
@@ -63,6 +67,7 @@ bool State::resume()
     return false;
   }
 
+  plasmaManager.unlock();
   print_job_timer.start();
   state = running;
 

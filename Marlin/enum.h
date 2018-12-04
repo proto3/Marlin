@@ -105,6 +105,17 @@ enum TempState {
   StartupDelay // Startup, delay initial temp reading a tiny bit so the hardware can settle
 };
 
+/**
+ * Plasma states
+ */
+ enum PlasmaState {
+   Locked,
+   Off,
+   Ignition,
+   Established,
+   Lost
+ };
+
 #if ENABLED(EMERGENCY_PARSER)
   enum e_parser_state {
     state_RESET,

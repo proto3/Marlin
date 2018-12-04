@@ -1324,4 +1324,18 @@
   //#define FILAMENT_LCD_DISPLAY
 #endif
 
+//=============================================================================
+//=================================== Plasma ==================================
+//=============================================================================
+
+#define PLASMA_CONTROL_PIN  40
+#define PLASMA_TRANSFER_PIN 42
+
+#define PLASMA_CONTROL_INVERTING  true // set to true to invert the plasma logic.
+#define PLASMA_TRANSFER_INVERTING true // set to true to invert the transfer logic.
+
+#define PLASMA_TRANSFER_TIMEOUT_MS 3000
+
+#define PLASMA_VOLTAGE_PROBE_PIN 13
+
 #endif // CONFIGURATION_H

@@ -63,6 +63,7 @@
 #include "duration_t.h"
 #include "types.h"
 #include "state.h"
+#include "plasma.h"
 
 #if ENABLED(USE_WATCHDOG)
   #include "watchdog.h"
@@ -128,6 +129,8 @@
  *
  * M0   - Unconditional stop - Wait for user to press a button on the LCD (Only if ULTRA_LCD is enabled)
  * M1   - Same as M0
+ * M3   - Start plasma torch and wait for arc transfer
+ * M5   - Stop plasma torch
  * M17  - Enable/Power all stepper motors
  * M18  - Disable all stepper motors; same as M84
  * M20  - List SD card
@@ -914,6 +917,8 @@ void setup() {
   SYNC_PLAN_POSITION_KINEMATIC();
 
   thermalManager.init();    // Initialize temperature loop
+
+  plasmaManager.init();
 
   #if ENABLED(USE_WATCHDOG)
     watchdog_init();
@@ -3848,6 +3853,71 @@ inline void gcode_G92() {
 #endif // ULTIPANEL
 
 /**
+ * M3: Start plasma torch and wait for arc transfer
+ */
+inline void gcode_M3() {
+  stepper.synchronize();
+
+  while(true) {
+      refresh_cmd_timeout();
+      millis_t transfer_timeout = PLASMA_TRANSFER_TIMEOUT_MS;
+      transfer_timeout += previous_cmd_ms;
+
+      if(!plasmaManager.start())
+        return;
+
+      KEEPALIVE_STATE(PAUSED_FOR_INPUT);
+      while (PENDING(millis(), transfer_timeout)) {
+        PlasmaState plasma_state = plasmaManager.update_state();
+        if(IS_WAITING_FILE)
+        {
+          return;
+        }
+        if(plasma_state == Established)
+        {
+          lcd_setstatus("Running...");
+          return;
+        }
+        if(IS_SUSPENDED)
+          break;
+        idle();
+      }
+      plasmaManager.stop();
+
+      if(stateManager.suspend())
+        lcd_setstatus("Paused, plasma error.");
+
+      while (IS_SUSPENDED) idle();
+      if(IS_WAITING_FILE)
+        return;
+
+      lcd_setstatus("Retry ignition...");
+  }
+}
+
+/**
+ * M5: Stop plasma torch
+ */
+inline void gcode_M5() {
+  stepper.synchronize();
+
+  if(plasmaManager.get_state() == Lost)
+  {
+    lcd_setstatus("Paused, plasma stopped.");
+    stateManager.suspend();
+  }
+
+  if(stateManager.suspend_if_pending())
+  {
+    lcd_setstatus("Paused.");
+  }
+
+  while (IS_SUSPENDED) idle();
+  plasmaManager.stop();
+  lcd_setstatus("Running...");
+}
+
+/**
  * M17: Enable power on all stepper motors
  */
 inline void gcode_M17() {
@@ -4880,6 +4950,7 @@ inline void gcode_M140() {
  *      This code should ALWAYS be available for EMERGENCY SHUTDOWN!
  */
 inline void gcode_M81() {
+  plasmaManager.lock();
   thermalManager.disable_all_heaters();
   stepper.finish_and_disable();
   #if FAN_COUNT > 0
@@ -4917,7 +4988,7 @@ inline void gcode_M82() { axis_relative_modes[E_AXIS] = false; }
 inline void gcode_M83() { axis_relative_modes[E_AXIS] = true; }
 
 /**
- * M18, M84: Disable all stepper motors
+ * M18, M84: Disable all stepper motors and plasma
  */
 inline void gcode_M18_M84() {
   if (code_seen('S')) {
@@ -4943,6 +5014,7 @@ inline void gcode_M18_M84() {
       #endif
     }
   }
+  plasmaManager.lock();
   print_job_timer.stop();
 }
 
@@ -6986,6 +7058,12 @@ void process_command(char* cmd) {
           break;
       #endif // ULTIPANEL
 
+      case 3: //Start plasma torch and wait for arc transfer
+        gcode_M3();
+        break;
+      case 5: //Stop plasma torch
+        gcode_M5();
+        break;
       case 17:
         gcode_M17();
         break;
@@ -8602,6 +8680,7 @@ void kill(const char* lcd_msg) {
 #endif // FAST_PWM_FAN
 
 void stop() {
+  plasmaManager.lock();
   thermalManager.disable_all_heaters();
   if (IsRunning()) {
     Running = false;

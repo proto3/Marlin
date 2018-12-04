@@ -29,6 +29,7 @@
 #include "stepper.h"
 #include "configuration_store.h"
 #include "state.h"
+#include "plasma.h"
 
 #if ENABLED(PRINTCOUNTER)
   #include "printcounter.h"
@@ -556,7 +557,14 @@ void kill_screen(const char* lcd_msg) {
   #if ENABLED(SDSUPPORT)
 
     static void lcd_suspend() {
-      stateManager.suspend();
+      if(plasmaManager.get_state() == Established)
+      {
+        stateManager.set_pending_pause();
+      }
+      else
+      {
+        stateManager.suspend();
+      }
     }
 
     static void lcd_resume() {

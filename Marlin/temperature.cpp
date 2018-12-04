@@ -29,6 +29,7 @@
 #include "temperature.h"
 #include "thermistortables.h"
 #include "language.h"
+#include "plasma.h"
 #if ENABLED(BABYSTEPPING)
   #include "stepper.h"
 #endif
@@ -1617,6 +1618,10 @@ void Temperature::isr() {
   #else
     #define START_ADC(pin) ADCSRB = 0; SET_ADMUX_ADCSRA(pin)
   #endif
+
+  // Run transfer monitoring at 1kHz when plasma is established
+  if(plasmaManager.get_state() == Established)
+    plasmaManager.update_state();
 
   // Prepare or measure a sensor, each one every 12th frame
   switch (temp_state) {
