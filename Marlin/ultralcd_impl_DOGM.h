@@ -46,6 +46,7 @@
 #include "ultralcd_st7920_u8glib_rrd.h"
 #include "dogm_bitmaps.h"
 #include "duration_t.h"
+#include "plasma.h"
 
 #include <U8glib.h>
 
@@ -354,14 +355,12 @@ static void lcd_implementation_status_screen() {
 
   bool blink = lcd_blink();
 
-  // Symbols menu graphics, animated fan
-  u8g.drawBitmapP(9, 1, STATUS_SCREENBYTEWIDTH, STATUS_SCREENHEIGHT,
-    #if HAS_FAN0
-      blink && fanSpeeds[0] ? status_screen0_bmp : status_screen1_bmp
-    #else
-      status_screen0_bmp
-    #endif
-  );
+  // Symbols menu graphics
+  PlasmaState plasma_state = plasmaManager.get_state();
+  if(plasma_state == Ignition || plasma_state == Established)
+    u8g.drawBitmapP(5, 3, STATUS_SCREENBYTEWIDTH, STATUS_SCREENHEIGHT, status_screen0_bmp);
+  else
+    u8g.drawBitmapP(5, 3, STATUS_SCREENBYTEWIDTH, STATUS_SCREENHEIGHT, status_screen1_bmp);
 
   // Status Menu Font for SD info, Heater status, Fan, XYZ
   lcd_setFont(FONT_STATUSMENU);
@@ -382,17 +381,17 @@ static void lcd_implementation_status_screen() {
       u8g.drawBox(55, 50, (unsigned int)(71 * card.percentDone() * 0.01), 2 - (TALL_FONT_CORRECTION));
     }
 
-    u8g.setPrintPos(80,48);
+    u8g.setPrintPos(67,48);
 
     char buffer[10];
     duration_t elapsed = print_job_timer.duration();
-    elapsed.toDigital(buffer);
+    elapsed.toDigitalSeconds(buffer);
     lcd_print(buffer);
 
   #endif
 
   // Extruders
-  HOTEND_LOOP() _draw_heater_status(5 + e * 25, e);
+  //HOTEND_LOOP() _draw_heater_status(5 + e * 25, e);
 
   // Heated bed
   #if HOTENDS < 4 && HAS_TEMP_BED
@@ -400,14 +399,14 @@ static void lcd_implementation_status_screen() {
   #endif
 
   // Fan
-  u8g.setPrintPos(104, 27);
-  #if HAS_FAN0
-    int per = ((fanSpeeds[0] + 1) * 100) / 256;
-    if (per) {
-      lcd_print(itostr3(per));
-      lcd_print('%');
-    }
-  #endif
+  // u8g.setPrintPos(104, 27);
+  // #if HAS_FAN0
+  //   int per = ((fanSpeeds[0] + 1) * 100) / 256;
+  //   if (per) {
+  //     lcd_print(itostr3(per));
+  //     lcd_print('%');
+  //   }
+  // #endif
 
   // X, Y, Z-Coordinates
   // Before homing the axis letters are blinking 'X' <-> '?'.

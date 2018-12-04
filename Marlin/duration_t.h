@@ -150,6 +150,20 @@ struct duration_t {
 
     sprintf_P(buffer, PSTR("%02i:%02i"), h, m);
   }
+
+  /**
+   * @brief Formats the duration as a string
+   * @details String will be formated to hh:mm:ss
+   *
+   * @param buffer The array pointed to must be able to accommodate 9 bytes
+   */
+  void toDigitalSeconds(char *buffer) const {
+    int h = (this->hour() % 24) % 99,
+        m = this->minute() % 60,
+        s = this->second() % 60;
+
+    sprintf_P(buffer, PSTR("%02i:%02i:%02i"), h, m, s);
+  }
 };
 
 #endif // __DURATION_T__
