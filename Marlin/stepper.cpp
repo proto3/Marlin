@@ -980,7 +980,7 @@ void Stepper::endstop_triggered(AxisEnum axis) {
 
   #else // !COREXY && !COREXZ && !COREYZ
 
-    endstops_trigsteps[axis] = count_position[axis];
+    endstops_trigsteps[axis] = count_position[axis] + count_direction[axis];
 
   #endif // !COREXY && !COREXZ && !COREYZ
 

@@ -118,7 +118,7 @@
  * G21 - Set input units to millimeters
  * G28 - Home one or more axes
  * G29 - Detailed Z probe, probes the bed at 3 or more points.  Will fail if you haven't homed yet.
- * G30 - Single Z probe, probes bed at current XY location.
+ * G30 - Do a Z ohmic probe at the current XY.
  * G31 - Dock sled (Z_PROBE_SLED only)
  * G32 - Undock sled (Z_PROBE_SLED only)
  * G90 - Use Absolute Coordinates
@@ -3730,32 +3730,34 @@ inline void gcode_G28() {
 
 #endif //AUTO_BED_LEVELING_FEATURE
 
-#if HAS_BED_PROBE
-
   /**
-   * G30: Do a single Z probe at the current XY
+   * G30: Do a Z ohmic probe at the current XY
    */
   inline void gcode_G30() {
 
-    setup_for_endstop_or_probe_move();
+    stepper.synchronize();
+    endstops.enable(true);
+    line_to_axis_pos(Z_AXIS, 0, HOMING_FEEDRATE_Z);
 
-    // TODO: clear the leveling matrix or the planner will be set incorrectly
-    float measured_z = probe_pt(current_position[X_AXIS] + X_PROBE_OFFSET_FROM_EXTRUDER,
-                                current_position[Y_AXIS] + Y_PROBE_OFFSET_FROM_EXTRUDER,
-                                true, 1);
+    stepper.synchronize();
+    if(TEST(endstops.endstop_hit_bits, Z_MIN))
+      current_position[Z_AXIS] = stepper.triggered_position_mm(Z_AXIS);
+    else
+      current_position[Z_AXIS] = 0;
+    sync_plan_position();
 
-    SERIAL_PROTOCOLPGM("Bed X: ");
-    SERIAL_PROTOCOL(current_position[X_AXIS] + X_PROBE_OFFSET_FROM_EXTRUDER + 0.0001);
-    SERIAL_PROTOCOLPGM(" Y: ");
-    SERIAL_PROTOCOL(current_position[Y_AXIS] + Y_PROBE_OFFSET_FROM_EXTRUDER + 0.0001);
-    SERIAL_PROTOCOLPGM(" Z: ");
-    SERIAL_PROTOCOL(measured_z + 0.0001);
-    SERIAL_EOL;
+    endstops.not_homing();
+    endstops.hit_on_purpose();
 
-    clean_up_after_endstop_or_probe_move();
-
-    report_current_position();
+    // retract
+    if(code_seen('R'))
+    {
+      destination[Z_AXIS] = code_value_float() + current_position[Z_AXIS];
+      prepare_move_to_destination();
+    }
   }
+
+#if HAS_BED_PROBE
 
   #if ENABLED(Z_PROBE_SLED)
 
@@ -7021,11 +7023,11 @@ void process_command(char* cmd) {
           break;
       #endif // AUTO_BED_LEVELING_FEATURE
 
-      #if HAS_BED_PROBE
+      case 30: // G30 Do a ohmic probe
+        gcode_G30();
+        break;
 
-        case 30: // G30 Single Z probe
-          gcode_G30();
-          break;
+      #if HAS_BED_PROBE
 
         #if ENABLED(Z_PROBE_SLED)
 
@@ -7044,7 +7046,10 @@ void process_command(char* cmd) {
         relative_mode = false;
         break;
       case 91: // G91
-        relative_mode = true;
+        if(code_seen('Z'))
+          axis_relative_modes[Z_AXIS] = true;
+        else
+          relative_mode = true;
         break;
 
       case 92: // G92
