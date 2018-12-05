@@ -224,6 +224,7 @@ void FlushSerialRequestResend();
 void ok_to_send();
 
 void reset_bed_level();
+void kill_pin_handler();
 void kill(const char*);
 
 void quickstop_stepper();

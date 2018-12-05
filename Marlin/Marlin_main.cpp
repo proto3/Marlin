@@ -736,6 +736,9 @@ void setup_killpin() {
   #if HAS_KILL
     SET_INPUT(KILL_PIN);
     WRITE(KILL_PIN, HIGH);
+    #if (digitalPinToInterrupt(KILL_PIN) != NOT_AN_INTERRUPT)
+      attachInterrupt(digitalPinToInterrupt(KILL_PIN), kill_pin_handler, FALLING);
+    #endif
   #endif
 }
 
@@ -8450,24 +8453,6 @@ void manage_inactivity(bool ignore_stepper_queue/*=false*/) {
     }
   #endif
 
-  #if HAS_KILL
-
-    // Check if the kill button was pressed and wait just in case it was an accidental
-    // key kill key press
-    // -------------------------------------------------------------------------------
-    static int killCount = 0;   // make the inactivity button a bit less responsive
-    const int KILL_DELAY = 750;
-    if (!READ(KILL_PIN))
-      killCount++;
-    else if (killCount > 0)
-      killCount--;
-
-    // Exceeded threshold and we can confirm that it was not accidental
-    // KILL the machine
-    // ----------------------------------------------------------------
-    if (killCount >= KILL_DELAY) kill(PSTR(MSG_KILLED));
-  #endif
-
   #if HAS_HOME
     // Check to see if we have to home, use poor man's debouncer
     // ---------------------------------------------------------
@@ -8576,7 +8561,13 @@ void manage_inactivity(bool ignore_stepper_queue/*=false*/) {
   planner.check_axes_activity();
 }
 
+void kill_pin_handler() {
+  kill("Kill switch pressed.");
+}
+
 void kill(const char* lcd_msg) {
+  stateManager.stop();
+
   SERIAL_ERROR_START;
   SERIAL_ERRORLNPGM(MSG_ERR_KILLED);
 
@@ -8585,8 +8576,6 @@ void kill(const char* lcd_msg) {
   #else
     UNUSED(lcd_msg);
   #endif
-
-  stateManager.stop();
 
   for (int i = 5; i--;) delay(100); // Wait a short time
 

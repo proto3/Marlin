@@ -532,7 +532,7 @@ static void lcd_status_screen() {
  */
 void kill_screen(const char* lcd_msg) {
   lcd_init();
-  lcd_setalertstatuspgm(lcd_msg);
+  lcd_setstatus(lcd_msg);
   #if ENABLED(DOGLCD)
     u8g.firstPage();
     do {
