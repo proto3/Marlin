@@ -278,6 +278,7 @@
 #endif
 
 bool Running = true;
+bool M5_pending = false;
 
 uint8_t marlin_debug_flags = DEBUG_NONE;
 
@@ -1003,7 +1004,6 @@ void loop()
         {
             process_command(cmd);
             endstops.report_state();
-            idle();
         }
         else
         {
@@ -2615,7 +2615,7 @@ inline void gcode_G4() {
 
   if (!lcd_hasstatus()) LCD_MESSAGEPGM(MSG_DWELL);
 
-  while (PENDING(millis(), dwell_ms)) idle();
+  while (PENDING(millis(), dwell_ms)) idle(! PENDING(millis(), dwell_ms - 80));
 }
 
 #if ENABLED(BEZIER_CURVE_SUPPORT)
@@ -3885,7 +3885,7 @@ inline void gcode_M3() {
         }
         if(IS_SUSPENDED)
           break;
-        idle();
+        idle(true);
       }
       plasmaManager.stop();
 
@@ -3904,7 +3904,9 @@ inline void gcode_M3() {
  * M5: Stop plasma torch
  */
 inline void gcode_M5() {
+  M5_pending = true;
   stepper.synchronize();
+  M5_pending = false;
 
   if(plasmaManager.get_state() == Lost)
   {
@@ -8379,9 +8381,9 @@ void disable_all_steppers() {
 /**
  * Standard idle routine keeps the machine alive
  */
-void idle(
+void idle(bool fast
   #if ENABLED(FILAMENT_CHANGE_FEATURE)
-    bool no_stepper_sleep/*=false*/
+    , bool no_stepper_sleep/*=false*/
   #endif
 ) {
   if(stateManager.get_state() != waiting_file && !card.is_inserted())
@@ -8390,7 +8392,7 @@ void idle(
         lcd_setstatus("Aborted, card removed");
   }
 
-  lcd_update();
+  lcd_update(fast);
   host_keepalive();
   manage_inactivity(
     #if ENABLED(FILAMENT_CHANGE_FEATURE)

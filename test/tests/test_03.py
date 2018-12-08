@@ -24,21 +24,21 @@ class Test:
         assert decoder.plasma_is_always(slice, 'off')
 
         # plasma fired all along
-        slice = decoder.from_to(self.timeline, self.plasma_start + 4, self.plasma_stop)
+        slice = decoder.from_to(self.timeline, self.plasma_start + 5, self.plasma_stop)
         assert decoder.plasma_is_always(slice, 'on')
 
         # no plasma after cut off
-        slice = decoder.from_to(self.timeline, self.plasma_stop + 15, decoder.end(timeline))
+        slice = decoder.from_to(self.timeline, self.plasma_stop + 2, decoder.end(timeline))
         assert decoder.plasma_is_always(slice, 'off')
 
         # no move during G4
-        slice = decoder.from_to(self.timeline, self.events[9] + 3, self.events[9] + 495)
+        slice = decoder.from_to(self.timeline, self.events[9] + 5, self.events[9] + 500 - 5)
         assert decoder.move_cumul(slice, 1) == 0
         assert decoder.move_cumul(slice, 2) == 0
         assert decoder.move_cumul(slice, 3) == 0
 
         # move after G4
-        slice = decoder.from_to(self.timeline, self.events[9] + 505, self.events[9] + 520)
+        slice = decoder.from_to(self.timeline, self.events[9] + 500 + 5, self.events[9] + 520)
         assert decoder.move_cumul(slice, 1) > 0
 
 export_basename = 'tmp/' + os.path.splitext(os.path.basename(__file__))[0]

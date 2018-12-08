@@ -32,7 +32,7 @@
 
   int lcd_strlen(const char* s);
   int lcd_strlen_P(const char* s);
-  void lcd_update();
+  void lcd_update(bool fast=false);
   void lcd_init();
   bool lcd_hasstatus();
   void lcd_setstatus(const char* message, const bool persist=false);

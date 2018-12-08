@@ -20,11 +20,11 @@ class Test:
         assert self.plasma_stop != -1
 
         # plasma during 3sec
-        slice = decoder.from_to(self.timeline, self.plasma_start + 4, self.plasma_start + 2990)
+        slice = decoder.from_to(self.timeline, self.plasma_start + 5, self.plasma_start + 1000 - 5)
         assert decoder.plasma_is_always(slice, 'on')
 
         # plasma stop when timeout
-        slice = decoder.from_to(self.timeline,self.plasma_start + 3010, self.plasma_start + 4000)
+        slice = decoder.from_to(self.timeline,self.plasma_start + 1000 + 5, self.plasma_start + 2000)
         assert decoder.plasma_is_always(slice, 'off')
 
         # plasma restart on resume
@@ -32,7 +32,7 @@ class Test:
         assert decoder.plasma_is_always(slice, 'on')
 
         # plasma stop after cutoff
-        slice = decoder.from_to(self.timeline, self.plasma_stop + 1, decoder.end(timeline))
+        slice = decoder.from_to(self.timeline, self.plasma_stop + 2, decoder.end(timeline))
         assert decoder.plasma_is_always(slice, 'off')
 
 
@@ -46,7 +46,7 @@ p.move_down()
 p.click()
 p.move_down()
 p.click()
-p.wait_ms(3100)
+p.wait_ms(1100)
 p.click()
 p.move_down()
 p.move_down()

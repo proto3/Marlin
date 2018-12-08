@@ -25,11 +25,11 @@ class Test:
         assert decoder.plasma_is_always(slice, 'off')
 
         # plasma fired all along
-        slice = decoder.from_to(self.timeline, self.plasma_start + 4, self.plasma_stop)
+        slice = decoder.from_to(self.timeline, self.plasma_start + 5, self.plasma_stop)
         assert decoder.plasma_is_always(slice, 'on')
 
         # no plasma after cut off
-        slice = decoder.from_to(self.timeline, self.plasma_stop + 15, decoder.end(timeline))
+        slice = decoder.from_to(self.timeline, self.plasma_stop + 2, decoder.end(timeline))
         assert decoder.plasma_is_always(slice, 'off')
 
 export_basename = 'tmp/' + os.path.splitext(os.path.basename(__file__))[0]

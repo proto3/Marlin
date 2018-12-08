@@ -2532,7 +2532,7 @@ bool lcd_blink() {
  *
  * No worries. This function is only called from the main thread.
  */
-void lcd_update() {
+void lcd_update(bool fast) {
 
   #if ENABLED(ULTIPANEL)
     static millis_t return_to_status_ms = 0;
@@ -2679,23 +2679,26 @@ void lcd_update() {
           break;
       }
 
-      #if ENABLED(DOGLCD)  // Changes due to different driver architecture of the DOGM display
-        static int8_t dot_color = 0;
-        dot_color = 1 - dot_color;
-        u8g.firstPage();
-        do {
-          lcd_setFont(FONT_MENU);
-          u8g.setPrintPos(125, 0);
-          u8g.setColorIndex(dot_color); // Set color for the alive dot
-          u8g.drawPixel(127, 63); // draw alive dot
-          u8g.setColorIndex(1); // black on white
+      if(!fast)
+      {
+        #if ENABLED(DOGLCD)  // Changes due to different driver architecture of the DOGM display
+          static int8_t dot_color = 0;
+          dot_color = 1 - dot_color;
+          u8g.firstPage();
+          do {
+            lcd_setFont(FONT_MENU);
+            u8g.setPrintPos(125, 0);
+            u8g.setColorIndex(dot_color); // Set color for the alive dot
+            u8g.drawPixel(127, 63); // draw alive dot
+            u8g.setColorIndex(1); // black on white
+            (*currentScreen)();
+          } while (u8g.nextPage());
+        #elif ENABLED(ULTIPANEL)
           (*currentScreen)();
-        } while (u8g.nextPage());
-      #elif ENABLED(ULTIPANEL)
-        (*currentScreen)();
-      #else
-        lcd_status_screen();
-      #endif
+        #else
+          lcd_status_screen();
+        #endif
+      }
     }
 
     #if ENABLED(ULTIPANEL)

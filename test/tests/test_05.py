@@ -24,7 +24,7 @@ class Test:
         assert self.plasma_stop != -1
 
         # plasma on until tranfer loss
-        slice = decoder.from_to(self.timeline, self.plasma_start_1 + 4, events[11])
+        slice = decoder.from_to(self.timeline, self.plasma_start_1 + 5, events[11])
         assert decoder.plasma_is_always(slice, 'on')
 
         # plasma off at tranfer loss
@@ -32,11 +32,11 @@ class Test:
         assert decoder.plasma_is_always(slice, 'off')
 
         # plasma restart on resume
-        slice = decoder.from_to(self.timeline, self.plasma_start_2 + 4, self.plasma_stop)
+        slice = decoder.from_to(self.timeline, self.plasma_start_2 + 5, self.plasma_stop)
         assert decoder.plasma_is_always(slice, 'on')
 
         # plasma stop after cutoff
-        slice = decoder.from_to(self.timeline, self.plasma_stop + 20, decoder.end(timeline))
+        slice = decoder.from_to(self.timeline, self.plasma_stop + 2, decoder.end(timeline))
         assert decoder.plasma_is_always(slice, 'off')
 
 

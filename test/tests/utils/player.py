@@ -21,6 +21,7 @@ class Player:
         self.output_basename = output_basename
         self.events = list()
         self.next_slot = 0
+        self.nb_step_loaded = -1
 
         # try to connect on serial port
         try:
@@ -54,6 +55,8 @@ class Player:
 
         # prepare event file
         self.event_file = open(self.output_basename + '.event', "w")
+
+        self.nb_step_loaded = 0
 
     def _send(self, str):
         self.ser.write((str+'\n').encode('utf-8'))
@@ -96,6 +99,8 @@ class Player:
         joy_x    = None,
         joy_y    = None,
         thc      = None):
+        self.nb_step_loaded += 1
+
         self._set_pin(Port.K, 0, rot_push)
         self._set_pin(Port.K, 1, rot_a)
         self._set_pin(Port.K, 2, rot_b)
@@ -134,7 +139,9 @@ class Player:
         #leave some time for capture to start
         time.sleep(0.5)
 
+        self.ser.reset_input_buffer()
         self._send("start")
+        assert self.nb_step_loaded == int(self._receive())
 
         time.sleep(duration)
 
@@ -189,7 +196,7 @@ class Player:
     def click(self):
         self.add_event("click")
         self._add_step(self.next_slot,   rot_push=0)
-        self._add_step(self.next_slot+10, rot_push=1)
+        self._add_step(self.next_slot+20, rot_push=1)
         self.next_slot += 30
 
     def move_up(self):

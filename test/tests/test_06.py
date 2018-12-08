@@ -20,7 +20,7 @@ class Test:
         assert decoder.plasma_is_always(slice, 'off')
 
         # plasma fired all along
-        slice = decoder.from_to(self.timeline, self.plasma_start + 4, events[8])
+        slice = decoder.from_to(self.timeline, self.plasma_start + 5, events[8])
         assert decoder.plasma_is_always(slice, 'on')
 
         # everything has stopped after kill

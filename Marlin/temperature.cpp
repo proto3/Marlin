@@ -1621,7 +1621,12 @@ void Temperature::isr() {
 
   // Run transfer monitoring at 1kHz when plasma is established
   if(plasmaManager.get_state() == Established)
-    plasmaManager.update_state();
+  {
+    if(M5_pending && !planner.blocks_queued())
+      plasmaManager.stop();
+    else
+      plasmaManager.update_state();
+  }
 
   // Prepare or measure a sensor, each one every 12th frame
   switch (temp_state) {

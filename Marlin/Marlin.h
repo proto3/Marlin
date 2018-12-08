@@ -109,9 +109,9 @@ FORCE_INLINE void serialprintPGM(const char* str) {
   }
 }
 
-void idle(
+void idle(bool fast = false
   #if ENABLED(FILAMENT_CHANGE_FEATURE)
-    bool no_stepper_sleep = false  // pass true to keep steppers from disabling on timeout
+    , bool no_stepper_sleep = false  // pass true to keep steppers from disabling on timeout
   #endif
 );
 
@@ -238,6 +238,7 @@ extern uint8_t marlin_debug_flags;
 #define DEBUGGING(F) (marlin_debug_flags & (DEBUG_## F))
 
 extern bool Running;
+extern bool M5_pending;
 inline bool IsRunning() { return  Running; }
 inline bool IsStopped() { return !Running; }
 

@@ -1334,7 +1334,7 @@
 #define PLASMA_CONTROL_INVERTING  true // set to true to invert the plasma logic.
 #define PLASMA_TRANSFER_INVERTING true // set to true to invert the transfer logic.
 
-#define PLASMA_TRANSFER_TIMEOUT_MS 3000
+#define PLASMA_TRANSFER_TIMEOUT_MS 1000
 
 #define PLASMA_VOLTAGE_PROBE_PIN 13
 
