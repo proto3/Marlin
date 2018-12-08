@@ -7641,6 +7641,25 @@ void clamp_to_software_endstops(float target[3]) {
   }
 }
 
+#define IS_BELOW_SOFT_END(v,a) (v[a] < sw_endstop_min[a])
+#define IS_ABOVE_SOFT_END(v,a) (v[a] > sw_endstop_max[a])
+
+bool breach_software_endstops(float target[3])
+{
+  bool breach = false;
+
+  LOOP_XYZ(axis) breach |= IS_BELOW_SOFT_END(target, axis);
+  LOOP_XYZ(axis) breach |= IS_ABOVE_SOFT_END(target, axis);
+
+  if(breach)
+  {
+    lcd_setstatus("Aborted : softend breach.");
+    stateManager.stop();
+  }
+
+  return breach;
+}
+
 #if ENABLED(DELTA)
 
   void recalc_delta_settings(float radius, float diagonal_rod) {
@@ -8030,7 +8049,9 @@ void mesh_line_to_destination(float fr_mm_m, uint8_t x_splits = 0xff, uint8_t y_
  *  smaller moves into the planner for DELTA or SCARA.)
  */
 void prepare_move_to_destination() {
-  clamp_to_software_endstops(destination);
+  if(breach_software_endstops(destination))
+    return;
+
   refresh_cmd_timeout();
 
   #if ENABLED(PREVENT_DANGEROUS_EXTRUDE)

@@ -248,6 +248,7 @@ void enqueue_and_echo_commands_P(const char* cmd); //put one or many ASCII comma
 void clear_command_queue();
 
 void clamp_to_software_endstops(float target[3]);
+bool breach_software_endstops(float target[3]);
 
 extern millis_t previous_cmd_ms;
 inline void refresh_cmd_timeout() { previous_cmd_ms = millis(); }
