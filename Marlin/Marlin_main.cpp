@@ -2546,6 +2546,8 @@ void unknown_command_error() {
  */
 inline void gcode_G0_G1() {
   if (IsRunning()) {
+    ABORT_IF_UNHOMED;
+
     gcode_get_destination(); // For X Y Z E F
 
     #if ENABLED(FWRETRACT)
@@ -2758,7 +2760,11 @@ inline void gcode_G4() {
  *
  */
 inline void gcode_G28() {
+  autohome(code_seen('X'), code_seen('Y'), code_seen('Z'));
+}
 
+void autohome(bool homeX, bool homeY, bool homeZ)
+{
   #if ENABLED(DEBUG_LEVELING_FEATURE)
     if (DEBUGGING(LEVELING)) SERIAL_ECHOLNPGM(">>> gcode_G28");
   #endif
@@ -2844,8 +2850,6 @@ inline void gcode_G28() {
     #endif
 
   #else // NOT DELTA
-
-    bool homeX = code_seen('X'), homeY = code_seen('Y'), homeZ = code_seen('Z');
 
     home_all_axis = (!homeX && !homeY && !homeZ) || (homeX && homeY && homeZ);
 
@@ -3734,6 +3738,7 @@ inline void gcode_G28() {
    * G30: Do a Z ohmic probe at the current XY
    */
   inline void gcode_G30() {
+    ABORT_IF_UNHOMED;
 
     stepper.synchronize();
     endstops.enable(true);
@@ -5985,11 +5990,6 @@ void quickstop_stepper() {
     LOOP_XYZ(i) set_current_from_steppers_for_axis((AxisEnum)i);
     SYNC_PLAN_POSITION_KINEMATIC();
   #endif
-}
-
-void autohome()
-{
-  gcode_G28();
 }
 
 #if ENABLED(MESH_BED_LEVELING)

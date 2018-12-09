@@ -217,6 +217,13 @@ void manage_inactivity(bool ignore_stepper_queue = false);
  */
 #define _AXIS(AXIS) AXIS ##_AXIS
 
+#define ABORT_IF_UNHOMED if(!axis_known_position[X_AXIS] || \
+                            !axis_known_position[Y_AXIS] || \
+                            !axis_known_position[Z_AXIS]) { \
+                           lcd_setstatus("Abort : unhomed move."); \
+                           stateManager.stop(); \
+                           return; }
+
 void enable_all_steppers();
 void disable_all_steppers();
 
@@ -228,7 +235,7 @@ void kill_pin_handler();
 void kill(const char*);
 
 void quickstop_stepper();
-void autohome();
+void autohome(bool x, bool y, bool z);
 
 #if ENABLED(FILAMENT_RUNOUT_SENSOR)
   void handle_filament_runout();

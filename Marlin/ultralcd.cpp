@@ -1184,6 +1184,11 @@ void kill_screen(const char* lcd_msg) {
    *
    */
 
+   static void autohome_all_axis()
+   {
+     autohome(true, true,true);
+   }
+
   static void lcd_prepare_menu() {
     START_MENU();
 
@@ -1195,12 +1200,7 @@ void kill_screen(const char* lcd_msg) {
     //
     // Auto Home
     //
-    MENU_ITEM(function, MSG_AUTO_HOME, autohome);
-    #if ENABLED(INDIVIDUAL_AXIS_HOMING_MENU)
-      MENU_ITEM(gcode, MSG_AUTO_HOME_X, PSTR("G28 X"));
-      MENU_ITEM(gcode, MSG_AUTO_HOME_Y, PSTR("G28 Y"));
-      MENU_ITEM(gcode, MSG_AUTO_HOME_Z, PSTR("G28 Z"));
-    #endif
+    MENU_ITEM(function, MSG_AUTO_HOME, autohome_all_axis);
 
     //
     // Set Home Offsets
