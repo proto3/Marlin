@@ -11,6 +11,9 @@ class Test:
         self.timeline = timeline
 
     def test_transfer_loss(self):
+        # shift positions according to autohome
+        decoder.apply_autohome(self.timeline, events[15] + 2)
+
         # motors reach firing position
         self.plasma_start_1 = decoder.when_is_position_reached(timeline, 500, 500, 0)
         assert self.plasma_start_1 != -1
@@ -24,21 +27,20 @@ class Test:
         assert self.plasma_stop != -1
 
         # plasma on until tranfer loss
-        slice = decoder.from_to(self.timeline, self.plasma_start_1 + 5, events[11])
+        slice = decoder.from_to(self.timeline, self.plasma_start_1 + 5, events[17])
         assert decoder.plasma_is_always(slice, 'on')
 
         # plasma off at tranfer loss
-        slice = decoder.from_to(self.timeline, events[11] + 2, events[16])
+        slice = decoder.from_to(self.timeline, events[17] + 2, events[22])
         assert decoder.plasma_is_always(slice, 'off')
 
         # plasma restart on resume
-        slice = decoder.from_to(self.timeline, self.plasma_start_2 + 5, self.plasma_stop)
+        slice = decoder.from_to(self.timeline, self.plasma_start_2 + 70, self.plasma_stop)
         assert decoder.plasma_is_always(slice, 'on')
 
         # plasma stop after cutoff
         slice = decoder.from_to(self.timeline, self.plasma_stop + 2, decoder.end(timeline))
         assert decoder.plasma_is_always(slice, 'off')
-
 
 export_basename = 'tmp/' + os.path.splitext(os.path.basename(__file__))[0]
 p = player.Player(export_basename)
@@ -53,6 +55,18 @@ p.move_down()
 p.move_down()
 p.move_down()
 p.click()
+p.endstop_z()
+p.wait_ms(300)
+p.endstop_z()
+p.wait_ms(100)
+p.endstop_x()
+p.wait_ms(300)
+p.endstop_x()
+p.wait_ms(100)
+p.endstop_y()
+p.wait_ms(300)
+p.endstop_y()
+p.wait_ms(100)
 p.transfer_on()
 p.wait_ms(400)
 p.transfer_off()

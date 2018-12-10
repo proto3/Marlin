@@ -22,6 +22,7 @@ class Player:
         self.events = list()
         self.next_slot = 0
         self.nb_step_loaded = -1
+        self.event_count = 0
 
         # try to connect on serial port
         try:
@@ -172,7 +173,8 @@ class Player:
 
     def add_event(self, event):
         self.events.append(self.next_slot * 10)
-        self.event_file.write(str(self.next_slot) + " " + event + "\n")
+        self.event_file.write(str(self.next_slot) + " [" + str(self.event_count) + "] " + event + "\n")
+        self.event_count += 1
 
     def wait_ms(self, t):
         self.next_slot += int(t / self.clock_period_ms)

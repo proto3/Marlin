@@ -11,6 +11,8 @@ class Test:
         self.timeline = timeline
 
     def test_plasma_timeout(self):
+        # shift positions according to autohome
+        decoder.apply_autohome(self.timeline, events[12] + 2)
         # motors reach firing position
         self.plasma_start = decoder.when_is_position_reached(timeline, 500, 500, 0)
         assert self.plasma_start != -1
@@ -28,13 +30,12 @@ class Test:
         assert decoder.plasma_is_always(slice, 'off')
 
         # plasma restart on resume
-        slice = decoder.from_to(self.timeline, events[12], self.plasma_stop)
+        slice = decoder.from_to(self.timeline, events[18], self.plasma_stop)
         assert decoder.plasma_is_always(slice, 'on')
 
         # plasma stop after cutoff
         slice = decoder.from_to(self.timeline, self.plasma_stop + 2, decoder.end(timeline))
         assert decoder.plasma_is_always(slice, 'off')
-
 
 export_basename = 'tmp/' + os.path.splitext(os.path.basename(__file__))[0]
 p = player.Player(export_basename)
@@ -46,7 +47,18 @@ p.move_down()
 p.click()
 p.move_down()
 p.click()
-p.wait_ms(1100)
+p.endstop_z()
+p.wait_ms(300)
+p.endstop_z()
+p.wait_ms(100)
+p.endstop_x()
+p.wait_ms(300)
+p.endstop_x()
+p.wait_ms(100)
+p.endstop_y()
+p.wait_ms(300)
+p.endstop_y()
+p.wait_ms(1200)
 p.click()
 p.move_down()
 p.move_down()

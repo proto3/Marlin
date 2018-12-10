@@ -11,35 +11,43 @@ class Test:
         self.timeline = timeline
 
     def test_ohmic_probe(self):
-        # z move up
-        slice = decoder.from_to(self.timeline, self.events[10], self.events[11])
-        assert decoder.move_cumul_up(slice, 3) > 100
-        assert decoder.move_cumul_down(slice, 3) == 0
-
-        # z move back
-        slice = decoder.from_to(self.timeline, self.events[11] + 2, self.events[12])
-        assert decoder.move_cumul_down(slice, 3) == 500
-        assert decoder.move_cumul_up(slice, 3) > 100
+        # shift positions according to autohome
+        decoder.apply_autohome(self.timeline, events[16] + 2)
+        self.timeline[3] += 10000
 
         # z move down
-        slice = decoder.from_to(self.timeline, self.events[16] + 2, self.events[17])
+        slice = decoder.from_to(self.timeline, self.events[16], self.events[17])
         assert decoder.move_cumul_down(slice, 3) > 100
         assert decoder.move_cumul_up(slice, 3) == 0
 
-        # z move back 3mm
-        slice = decoder.from_to(self.timeline, self.events[17] + 2, self.events[17] +300)
-        assert decoder.move_cumul_up(slice, 3) == 300
+        # z stopped
+        slice = decoder.from_to(self.timeline, self.events[17] + 2, self.events[17] + 100)
         assert decoder.move_cumul_down(slice, 3) == 0
 
-        # z stop on home pos when moving up
-        z_home = decoder.from_to(self.timeline, self.events[13], self.events[14])[3][0]
-        z_home_return = decoder.from_to(self.timeline, self.events[18], decoder.end(self.timeline))[3][0]
-        assert z_home == z_home_return
+        # z move 3mm up
+        slice = decoder.from_to(self.timeline, self.events[17] + 2, self.events[17] + 200)
+        assert decoder.move_cumul_up(slice, 3) == 300
 
-        # z to 280mm
-        z_min = decoder.min_pos(timeline, 3)
-        z_min == z_home - 2000
+        # z move down to 80mm and up to 100mm
+        slice = decoder.from_to(self.timeline, self.events[17], self.events[17] + 700)
+        assert decoder.min_pos(slice, 3) == 8000
+        assert decoder.max_pos(slice, 3) == 10000
 
+        # z reach 0
+        slice = decoder.from_to(self.timeline, self.events[17], decoder.end(self.timeline))
+        assert decoder.min_pos(slice, 3) == 0
+
+        # z stop at 0
+        z_zero = decoder.when_is_position_reached(self.timeline, 0, 0, 0)
+        assert z_zero != -1
+
+        # z move 3mm up
+        slice = decoder.from_to(self.timeline, z_zero, z_zero + 100)
+        assert decoder.move_cumul_up(slice, 3) == 300
+
+        # z move to 20mm
+        slice = decoder.from_to(self.timeline, z_zero + 100, decoder.end(self.timeline))
+        assert decoder.move_cumul_up(slice, 3) == 1700
 
 export_basename = 'tmp/' + os.path.splitext(os.path.basename(__file__))[0]
 p = player.Player(export_basename)
@@ -69,7 +77,7 @@ p.endstop_y()
 p.wait_ms(200)
 p.ohmic_probe()
 
-p.wait_ms(2000)
+p.wait_ms(3000)
 p.transfer_off()
 
 events = p.run()

@@ -11,6 +11,9 @@ class Test:
         self.timeline = timeline
 
     def test_M3_G4(self):
+        # shift positions according to autohome
+        decoder.apply_autohome(self.timeline, events[14] + 2)
+
         # motors reach firing position
         self.plasma_start = decoder.when_is_position_reached(timeline, 500, 500, 0)
         assert self.plasma_start != -1
@@ -32,13 +35,13 @@ class Test:
         assert decoder.plasma_is_always(slice, 'off')
 
         # no move during G4
-        slice = decoder.from_to(self.timeline, self.events[9] + 5, self.events[9] + 500 - 5)
+        slice = decoder.from_to(self.timeline, self.events[15] + 5, self.events[15] + 500 - 5)
         assert decoder.move_cumul(slice, 1) == 0
         assert decoder.move_cumul(slice, 2) == 0
         assert decoder.move_cumul(slice, 3) == 0
 
         # move after G4
-        slice = decoder.from_to(self.timeline, self.events[9] + 500 + 5, self.events[9] + 520)
+        slice = decoder.from_to(self.timeline, self.events[15] + 500 + 5, self.events[15] + 520)
         assert decoder.move_cumul(slice, 1) > 0
 
 export_basename = 'tmp/' + os.path.splitext(os.path.basename(__file__))[0]
@@ -53,6 +56,18 @@ p.move_down()
 p.move_down()
 p.move_down()
 p.click()
+p.endstop_z()
+p.wait_ms(300)
+p.endstop_z()
+p.wait_ms(100)
+p.endstop_x()
+p.wait_ms(300)
+p.endstop_x()
+p.wait_ms(100)
+p.endstop_y()
+p.wait_ms(300)
+p.endstop_y()
+p.wait_ms(100)
 p.transfer_on()
 p.wait_ms(900)
 p.transfer_off()

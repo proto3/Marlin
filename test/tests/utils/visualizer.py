@@ -60,6 +60,7 @@ if __name__ == '__main__':
     for line in event_file:
         words = line.split(' ', 1)
         words[1] = words[1].replace("\n", "")
+        words[1] = words[1].replace(" ", "\n")
         events.append(words)
     event_file.close()
 

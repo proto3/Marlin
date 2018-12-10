@@ -153,6 +153,10 @@ def when_is_position_reached(timeline, x, y, z):
     else:
         return timeline[0][np.argmax(valid)] / 1000
 
+def get_position(timeline, t):
+    index = np.argmax(timeline[0] > t * 1000) - 1
+    return (timeline[1][index], timeline[2][index], timeline[3][index])
+
 def plasma_is_always(timeline, state):
     val = -1
     if(state == 'on'):
@@ -164,3 +168,8 @@ def plasma_is_always(timeline, state):
 
     plasma = np.take(timeline, 4, axis=0)
     return np.all(plasma == val)
+
+def apply_autohome(timeline, t):
+    timeline[1] -= get_position(timeline, t)[0]
+    timeline[2] -= get_position(timeline, t)[1]
+    timeline[3] -= get_position(timeline, t)[2]

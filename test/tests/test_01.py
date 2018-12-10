@@ -11,6 +11,9 @@ class Test:
         self.timeline = timeline
 
     def test_M3_M5(self):
+        # shift positions according to autohome
+        decoder.apply_autohome(self.timeline, events[12] + 2)
+
         # motors reach firing position
         self.plasma_start = decoder.when_is_position_reached(timeline, 500, 500, 0)
         assert self.plasma_start != -1
@@ -41,6 +44,18 @@ p.move_down()
 p.click()
 p.move_down()
 p.click()
+p.endstop_z()
+p.wait_ms(300)
+p.endstop_z()
+p.wait_ms(100)
+p.endstop_x()
+p.wait_ms(300)
+p.endstop_x()
+p.wait_ms(100)
+p.endstop_y()
+p.wait_ms(300)
+p.endstop_y()
+p.wait_ms(100)
 p.transfer_on()
 p.wait_ms(350)
 p.transfer_off()
