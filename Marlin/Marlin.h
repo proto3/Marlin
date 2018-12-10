@@ -126,7 +126,7 @@ void manage_inactivity(bool ignore_stepper_queue = false);
   #define disable_x() do{ X_ENABLE_WRITE(!X_ENABLE_ON); X2_ENABLE_WRITE(!X_ENABLE_ON); axis_known_position[X_AXIS] = false; }while(0)
 #elif HAS_X_ENABLE
   #define  enable_x() X_ENABLE_WRITE( X_ENABLE_ON)
-  #define disable_x() do{ X_ENABLE_WRITE(!X_ENABLE_ON); axis_known_position[X_AXIS] = false; }while(0)
+  #define disable_x() do{ X_ENABLE_WRITE(!X_ENABLE_ON); axis_known_position[X_AXIS] = false; axis_homed[X_AXIS] = false; }while(0)
 #else
   #define  enable_x() NOOP
   #define disable_x() NOOP
@@ -137,7 +137,7 @@ void manage_inactivity(bool ignore_stepper_queue = false);
   #define disable_y() do{ Y_ENABLE_WRITE(!Y_ENABLE_ON); Y2_ENABLE_WRITE(!Y_ENABLE_ON); axis_known_position[Y_AXIS] = false; }while(0)
 #elif HAS_Y_ENABLE
   #define  enable_y() Y_ENABLE_WRITE( Y_ENABLE_ON)
-  #define disable_y() do{ Y_ENABLE_WRITE(!Y_ENABLE_ON); axis_known_position[Y_AXIS] = false; }while(0)
+  #define disable_y() do{ Y_ENABLE_WRITE(!Y_ENABLE_ON); axis_known_position[Y_AXIS] = false; axis_homed[Y_AXIS] = false; }while(0)
 #else
   #define  enable_y() NOOP
   #define disable_y() NOOP
@@ -145,7 +145,7 @@ void manage_inactivity(bool ignore_stepper_queue = false);
 
 #if HAS_Z2_ENABLE
   #define  enable_z() do{ Z_ENABLE_WRITE( Z_ENABLE_ON); Z2_ENABLE_WRITE(Z_ENABLE_ON); }while(0)
-  #define disable_z() do{ Z_ENABLE_WRITE(!Z_ENABLE_ON); Z2_ENABLE_WRITE(!Z_ENABLE_ON); axis_known_position[Z_AXIS] = false; }while(0)
+  #define disable_z() do{ Z_ENABLE_WRITE(!Z_ENABLE_ON); Z2_ENABLE_WRITE(!Z_ENABLE_ON); axis_known_position[Z_AXIS] = false; axis_homed[Z_AXIS] = false; }while(0)
 #elif HAS_Z_ENABLE
   #define  enable_z() Z_ENABLE_WRITE( Z_ENABLE_ON)
   #define disable_z() do{ Z_ENABLE_WRITE(!Z_ENABLE_ON); axis_known_position[Z_AXIS] = false; }while(0)
@@ -220,7 +220,7 @@ void manage_inactivity(bool ignore_stepper_queue = false);
 #define ABORT_IF_UNHOMED if(!axis_known_position[X_AXIS] || \
                             !axis_known_position[Y_AXIS] || \
                             !axis_known_position[Z_AXIS]) { \
-                           lcd_setstatus("Abort : unhomed move."); \
+                           lcd_setstatus("Stop: unhomed move."); \
                            stateManager.stop(); \
                            return; }
 

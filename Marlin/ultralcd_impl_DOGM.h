@@ -482,31 +482,27 @@ static void lcd_implementation_mark_as_selected(uint8_t row, bool isSelected) {
   u8g.setPrintPos((START_COL) * (DOG_CHAR_WIDTH), (row + 1) * (DOG_CHAR_HEIGHT));
 }
 
-#if ENABLED(LCD_INFO_MENU) || ENABLED(FILAMENT_CHANGE_FEATURE)
+static void lcd_implementation_drawmenu_static(uint8_t row, const char* pstr, bool center=true, bool invert=false, const char* valstr=NULL) {
 
-  static void lcd_implementation_drawmenu_static(uint8_t row, const char* pstr, bool center=true, bool invert=false, const char* valstr=NULL) {
+  lcd_implementation_mark_as_selected(row, invert);
 
-    lcd_implementation_mark_as_selected(row, invert);
+  char c;
+  int8_t n = LCD_WIDTH - (START_COL);
 
-    char c;
-    int8_t n = LCD_WIDTH - (START_COL);
-
-    if (center && !valstr) {
-      int8_t pad = (LCD_WIDTH - lcd_strlen_P(pstr)) / 2;
-      while (--pad >= 0) { lcd_print(' '); n--; }
-    }
-    while (n > 0 && (c = pgm_read_byte(pstr))) {
-      n -= lcd_print(c);
-      pstr++;
-    }
-    if (valstr) while (n > 0 && (c = *valstr)) {
-      n -= lcd_print(c);
-      valstr++;
-    }
-    while (n-- > 0) lcd_print(' ');
+  if (center && !valstr) {
+    int8_t pad = (LCD_WIDTH - lcd_strlen_P(pstr)) / 2;
+    while (--pad >= 0) { lcd_print(' '); n--; }
   }
-
-#endif // LCD_INFO_MENU || FILAMENT_CHANGE_FEATURE
+  while (n > 0 && (c = pgm_read_byte(pstr))) {
+    n -= lcd_print(c);
+    pstr++;
+  }
+  if (valstr) while (n > 0 && (c = *valstr)) {
+    n -= lcd_print(c);
+    valstr++;
+  }
+  while (n-- > 0) lcd_print(' ');
+}
 
 static void lcd_implementation_drawmenu_generic(bool isSelected, uint8_t row, const char* pstr, char pre_char, char post_char) {
   UNUSED(pre_char);

@@ -579,6 +579,18 @@ void kill_screen(const char* lcd_msg) {
 
   #endif //SDSUPPORT
 
+  static void autohome_all_axis()
+  {
+    autohome(true, true,true);
+  }
+
+  void lcd_disable_all_steppers()
+  {
+    disable_x();
+    disable_y();
+    disable_z();
+  }
+
   /**
    *
    * "Main" menu
@@ -587,17 +599,11 @@ void kill_screen(const char* lcd_msg) {
 
   static void lcd_main_menu() {
     START_MENU();
-    MENU_ITEM(back, MSG_WATCH);
-    if (planner.movesplanned() || IS_RUNNING) {
-      MENU_ITEM(submenu, MSG_TUNE, lcd_tune_menu);
+    MENU_ITEM(back, "Return");
+    if (!planner.movesplanned() && !IS_RUNNING) {
+        MENU_ITEM(submenu, "Control", lcd_control_menu);
     }
-    else {
-      MENU_ITEM(submenu, MSG_PREPARE, lcd_prepare_menu);
-      #if ENABLED(DELTA_CALIBRATION_MENU)
-        MENU_ITEM(submenu, MSG_DELTA_CALIBRATE, lcd_delta_calibrate_menu);
-      #endif
-    }
-    MENU_ITEM(submenu, MSG_CONTROL, lcd_control_menu);
+    MENU_ITEM(submenu, "Settings", lcd_control_motion_menu);
 
     #if ENABLED(SDSUPPORT)
       if (card.cardOK) {
@@ -1184,90 +1190,6 @@ void kill_screen(const char* lcd_msg) {
    *
    */
 
-   static void autohome_all_axis()
-   {
-     autohome(true, true,true);
-   }
-
-  static void lcd_prepare_menu() {
-    START_MENU();
-
-    //
-    // ^ Main
-    //
-    MENU_ITEM(back, MSG_MAIN);
-
-    //
-    // Auto Home
-    //
-    MENU_ITEM(function, MSG_AUTO_HOME, autohome_all_axis);
-
-    //
-    // Set Home Offsets
-    //
-    MENU_ITEM(function, MSG_SET_HOME_OFFSETS, lcd_set_home_offsets);
-    //MENU_ITEM(gcode, MSG_SET_ORIGIN, PSTR("G92 X0 Y0 Z0"));
-
-    //
-    // Level Bed
-    //
-    #if ENABLED(AUTO_BED_LEVELING_FEATURE)
-      MENU_ITEM(gcode, MSG_LEVEL_BED,
-        axis_homed[X_AXIS] && axis_homed[Y_AXIS] ? PSTR("G29") : PSTR("G28\nG29")
-      );
-    #elif ENABLED(MANUAL_BED_LEVELING)
-      MENU_ITEM(submenu, MSG_LEVEL_BED, lcd_level_bed);
-    #endif
-
-    //
-    // Move Axis
-    //
-    MENU_ITEM(submenu, MSG_MOVE_AXIS, lcd_move_menu);
-
-    //
-    // Disable Steppers
-    //
-    MENU_ITEM(gcode, MSG_DISABLE_STEPPERS, PSTR("M84"));
-
-    //
-    // Preheat PLA
-    // Preheat ABS
-    //
-    #if TEMP_SENSOR_0 != 0
-      #if TEMP_SENSOR_1 != 0 || TEMP_SENSOR_2 != 0 || TEMP_SENSOR_3 != 0 || TEMP_SENSOR_BED != 0
-        MENU_ITEM(submenu, MSG_PREHEAT_1, lcd_preheat_pla_menu);
-        MENU_ITEM(submenu, MSG_PREHEAT_2, lcd_preheat_abs_menu);
-      #else
-        MENU_ITEM(function, MSG_PREHEAT_1, lcd_preheat_pla0);
-        MENU_ITEM(function, MSG_PREHEAT_2, lcd_preheat_abs0);
-      #endif
-    #endif
-
-    //
-    // Cooldown
-    //
-    MENU_ITEM(function, MSG_COOLDOWN, lcd_cooldown);
-
-    //
-    // Switch power on/off
-    //
-    #if HAS_POWER_SWITCH
-      if (powersupply)
-        MENU_ITEM(gcode, MSG_SWITCH_PS_OFF, PSTR("M81"));
-      else
-        MENU_ITEM(gcode, MSG_SWITCH_PS_ON, PSTR("M80"));
-    #endif
-
-    //
-    // Autostart
-    //
-    #if ENABLED(SDSUPPORT) && ENABLED(MENU_ADDAUTOSTART)
-      MENU_ITEM(function, MSG_AUTOSTART, lcd_autostart_sd);
-    #endif
-
-    END_MENU();
-  }
-
   #if ENABLED(DELTA_CALIBRATION_MENU)
 
     static void lcd_delta_calibrate_menu() {
@@ -1419,25 +1341,6 @@ void kill_screen(const char* lcd_msg) {
 
     if (move_menu_scale < 10.0) {
       if (_MOVE_XYZ_ALLOWED) MENU_ITEM(submenu, MSG_MOVE_Z, lcd_move_z);
-
-      #if ENABLED(SWITCHING_EXTRUDER)
-        if (active_extruder)
-          MENU_ITEM(gcode, MSG_SELECT MSG_E1, PSTR("T0"));
-        else
-          MENU_ITEM(gcode, MSG_SELECT MSG_E2, PSTR("T1"));
-      #endif
-
-      MENU_ITEM(submenu, MSG_MOVE_E, lcd_move_e);
-      #if E_MANUAL > 1
-        MENU_ITEM(submenu, MSG_MOVE_E MSG_MOVE_E1, lcd_move_e0);
-        MENU_ITEM(submenu, MSG_MOVE_E MSG_MOVE_E2, lcd_move_e1);
-        #if E_MANUAL > 2
-          MENU_ITEM(submenu, MSG_MOVE_E MSG_MOVE_E3, lcd_move_e2);
-          #if E_MANUAL > 3
-            MENU_ITEM(submenu, MSG_MOVE_E MSG_MOVE_E4, lcd_move_e3);
-          #endif
-        #endif
-      #endif
     }
     END_MENU();
   }
@@ -1465,43 +1368,30 @@ void kill_screen(const char* lcd_msg) {
     START_MENU();
     MENU_ITEM(back, MSG_PREPARE);
 
-    if (_MOVE_XYZ_ALLOWED)
-      MENU_ITEM(submenu, MSG_MOVE_10MM, lcd_move_menu_10mm);
+    if(axis_known_position[X_AXIS] && axis_known_position[Y_AXIS] && axis_known_position[Z_AXIS])
+    {
+      if (_MOVE_XYZ_ALLOWED)
+        MENU_ITEM(submenu, MSG_MOVE_10MM, lcd_move_menu_10mm);
 
-    MENU_ITEM(submenu, MSG_MOVE_1MM, lcd_move_menu_1mm);
-    MENU_ITEM(submenu, MSG_MOVE_01MM, lcd_move_menu_01mm);
-    //TODO:X,Y,Z,E
+      MENU_ITEM(submenu, MSG_MOVE_1MM, lcd_move_menu_1mm);
+      MENU_ITEM(submenu, MSG_MOVE_01MM, lcd_move_menu_01mm);
+    }
+    else
+    {
+      STATIC_ITEM("Homing required...", false, false);
+    }
+
     END_MENU();
   }
-
-  /**
-   *
-   * "Control" submenu
-   *
-   */
 
   static void lcd_control_menu() {
     START_MENU();
-    MENU_ITEM(back, MSG_MAIN);
-    MENU_ITEM(submenu, MSG_TEMPERATURE, lcd_control_temperature_menu);
-    MENU_ITEM(submenu, MSG_MOTION, lcd_control_motion_menu);
-    MENU_ITEM(submenu, MSG_VOLUMETRIC, lcd_control_volumetric_menu);
-
-    #if HAS_LCD_CONTRAST
-      //MENU_ITEM_EDIT(int3, MSG_CONTRAST, &lcd_contrast, 0, 63);
-      MENU_ITEM(submenu, MSG_CONTRAST, lcd_set_contrast);
-    #endif
-    #if ENABLED(FWRETRACT)
-      MENU_ITEM(submenu, MSG_RETRACT, lcd_control_retract_menu);
-    #endif
-    #if ENABLED(EEPROM_SETTINGS)
-      MENU_ITEM(function, MSG_STORE_EPROM, Config_StoreSettings);
-      MENU_ITEM(function, MSG_LOAD_EPROM, Config_RetrieveSettings);
-    #endif
-    MENU_ITEM(function, MSG_RESTORE_FAILSAFE, Config_ResetDefault);
+    MENU_ITEM(back, "Return");
+    MENU_ITEM(function, MSG_AUTO_HOME, autohome_all_axis);
+    MENU_ITEM(submenu, MSG_MOVE_AXIS, lcd_move_menu);
+    MENU_ITEM(function, MSG_DISABLE_STEPPERS, lcd_disable_all_steppers);
     END_MENU();
   }
-
   /**
    *
    * "Temperature" submenu
@@ -1768,7 +1658,7 @@ void kill_screen(const char* lcd_msg) {
    */
   static void lcd_control_motion_menu() {
     START_MENU();
-    MENU_ITEM(back, MSG_CONTROL);
+    MENU_ITEM(back, "Return");
     #if HAS_BED_PROBE
       MENU_ITEM_EDIT(float32, MSG_ZPROBE_ZOFFSET, &zprobe_zoffset, Z_PROBE_OFFSET_RANGE_MIN, Z_PROBE_OFFSET_RANGE_MAX);
     #endif
@@ -1783,18 +1673,14 @@ void kill_screen(const char* lcd_msg) {
     #else
       MENU_ITEM_EDIT(float52, MSG_VZ_JERK, &planner.max_z_jerk, 0.1, 990);
     #endif
-    MENU_ITEM_EDIT(float3, MSG_VE_JERK, &planner.max_e_jerk, 1, 990);
     MENU_ITEM_EDIT(float3, MSG_VMAX MSG_X, &planner.max_feedrate_mm_s[X_AXIS], 1, 999);
     MENU_ITEM_EDIT(float3, MSG_VMAX MSG_Y, &planner.max_feedrate_mm_s[Y_AXIS], 1, 999);
     MENU_ITEM_EDIT(float3, MSG_VMAX MSG_Z, &planner.max_feedrate_mm_s[Z_AXIS], 1, 999);
-    MENU_ITEM_EDIT(float3, MSG_VMAX MSG_E, &planner.max_feedrate_mm_s[E_AXIS], 1, 999);
     MENU_ITEM_EDIT(float3, MSG_VMIN, &planner.min_feedrate_mm_s, 0, 999);
     MENU_ITEM_EDIT(float3, MSG_VTRAV_MIN, &planner.min_travel_feedrate_mm_s, 0, 999);
     MENU_ITEM_EDIT_CALLBACK(long5, MSG_AMAX MSG_X, &planner.max_acceleration_mm_per_s2[X_AXIS], 100, 99000, _reset_acceleration_rates);
     MENU_ITEM_EDIT_CALLBACK(long5, MSG_AMAX MSG_Y, &planner.max_acceleration_mm_per_s2[Y_AXIS], 100, 99000, _reset_acceleration_rates);
     MENU_ITEM_EDIT_CALLBACK(long5, MSG_AMAX MSG_Z, &planner.max_acceleration_mm_per_s2[Z_AXIS], 10, 99000, _reset_acceleration_rates);
-    MENU_ITEM_EDIT_CALLBACK(long5, MSG_AMAX MSG_E, &planner.max_acceleration_mm_per_s2[E_AXIS], 100, 99000, _reset_acceleration_rates);
-    MENU_ITEM_EDIT(float5, MSG_A_RETRACT, &planner.retract_acceleration, 100, 99000);
     MENU_ITEM_EDIT(float5, MSG_A_TRAVEL, &planner.travel_acceleration, 100, 99000);
     MENU_ITEM_EDIT_CALLBACK(float52, MSG_XSTEPS, &planner.axis_steps_per_mm[X_AXIS], 5, 9999, _planner_refresh_positioning);
     MENU_ITEM_EDIT_CALLBACK(float52, MSG_YSTEPS, &planner.axis_steps_per_mm[Y_AXIS], 5, 9999, _planner_refresh_positioning);
@@ -1803,7 +1689,6 @@ void kill_screen(const char* lcd_msg) {
     #else
       MENU_ITEM_EDIT_CALLBACK(float51, MSG_ZSTEPS, &planner.axis_steps_per_mm[Z_AXIS], 5, 9999, _planner_refresh_positioning);
     #endif
-    MENU_ITEM_EDIT_CALLBACK(float51, MSG_ESTEPS, &planner.axis_steps_per_mm[E_AXIS], 5, 9999, _planner_refresh_positioning);
     #if ENABLED(ABORT_ON_ENDSTOP_HIT_FEATURE_ENABLED)
       MENU_ITEM_EDIT(bool, MSG_ENDSTOP_ABORT, &stepper.abort_on_endstop_hit);
     #endif
@@ -1916,35 +1801,39 @@ void kill_screen(const char* lcd_msg) {
     void lcd_sdcard_menu() {
       ENCODER_DIRECTION_MENUS();
       if (lcdDrawUpdate == 0 && LCD_CLICKED == 0) return; // nothing to do (so don't thrash the SD card)
-      uint16_t fileCnt = card.getnrfilenames();
+
       START_MENU();
-      MENU_ITEM(back, MSG_MAIN);
-      card.getWorkDirName();
-      if (card.filename[0] == '/') {
-        #if !PIN_EXISTS(SD_DETECT)
-          MENU_ITEM(function, LCD_STR_REFRESH MSG_REFRESH, lcd_sd_refresh);
-        #endif
-      }
-      else {
-        MENU_ITEM(function, LCD_STR_FOLDER "..", lcd_sd_updir);
-      }
+      MENU_ITEM(back, "Return");
 
-      for (uint16_t i = 0; i < fileCnt; i++) {
-        if (_menuLineNr == _thisItemNr) {
-          card.getfilename(
-             #if ENABLED(SDCARD_RATHERRECENTFIRST)
-               fileCnt-1 -
-             #endif
-             i
-          );
-
-          if (card.filenameIsDir)
-            MENU_ITEM(sddirectory, MSG_CARD_MENU, card.filename, card.longFilename);
-          else
-            MENU_ITEM(sdfile, MSG_CARD_MENU, card.filename, card.longFilename);
+      if(card.cardOK) {
+        uint16_t fileCnt = card.getnrfilenames();
+        card.getWorkDirName();
+        if (card.filename[0] == '/') {
+          #if !PIN_EXISTS(SD_DETECT)
+            MENU_ITEM(function, LCD_STR_REFRESH MSG_REFRESH, lcd_sd_refresh);
+          #endif
         }
         else {
-          MENU_ITEM_DUMMY();
+          MENU_ITEM(function, LCD_STR_FOLDER "..", lcd_sd_updir);
+        }
+
+        for (uint16_t i = 0; i < fileCnt; i++) {
+          if (_menuLineNr == _thisItemNr) {
+            card.getfilename(
+               #if ENABLED(SDCARD_RATHERRECENTFIRST)
+                 fileCnt-1 -
+               #endif
+               i
+            );
+
+            if (card.filenameIsDir)
+              MENU_ITEM(sddirectory, MSG_CARD_MENU, card.filename, card.longFilename);
+            else
+              MENU_ITEM(sdfile, MSG_CARD_MENU, card.filename, card.longFilename);
+          }
+          else {
+            MENU_ITEM_DUMMY();
+          }
         }
       }
       END_MENU();

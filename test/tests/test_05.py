@@ -31,7 +31,7 @@ class Test:
         assert decoder.plasma_is_always(slice, 'on')
 
         # plasma off at tranfer loss
-        slice = decoder.from_to(self.timeline, events[17] + 2, events[22])
+        slice = decoder.from_to(self.timeline, events[17] + 2, events[21])
         assert decoder.plasma_is_always(slice, 'off')
 
         # plasma restart on resume
@@ -72,7 +72,6 @@ p.wait_ms(400)
 p.transfer_off()
 p.wait_ms(400)
 p.click()
-p.move_down()
 p.move_down()
 p.move_down()
 p.click()

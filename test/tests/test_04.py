@@ -30,7 +30,7 @@ class Test:
         assert decoder.plasma_is_always(slice, 'off')
 
         # plasma restart on resume
-        slice = decoder.from_to(self.timeline, events[18], self.plasma_stop)
+        slice = decoder.from_to(self.timeline, events[17], self.plasma_stop)
         assert decoder.plasma_is_always(slice, 'on')
 
         # plasma stop after cutoff
@@ -60,7 +60,6 @@ p.wait_ms(300)
 p.endstop_y()
 p.wait_ms(1200)
 p.click()
-p.move_down()
 p.move_down()
 p.move_down()
 p.click()

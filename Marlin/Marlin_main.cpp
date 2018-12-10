@@ -7653,7 +7653,7 @@ bool breach_software_endstops(float target[3])
 
   if(breach)
   {
-    lcd_setstatus("Aborted : softend breach.");
+    lcd_setstatus("Stop: limit overrun.");
     stateManager.stop();
   }
 
@@ -8410,7 +8410,7 @@ void idle(bool fast
   if(stateManager.get_state() != waiting_file && !card.is_inserted())
   {
       if(stateManager.stop())
-        lcd_setstatus("Aborted, card removed");
+        lcd_setstatus("Stop: card removed.");
   }
 
   lcd_update(fast);
