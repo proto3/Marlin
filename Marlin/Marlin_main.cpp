@@ -64,6 +64,8 @@
 #include "types.h"
 #include "state.h"
 #include "plasma.h"
+#include "twi.h"
+#include "ADS1015.h"
 
 #if ENABLED(USE_WATCHDOG)
   #include "watchdog.h"
@@ -983,6 +985,25 @@ void setup() {
       for (uint8_t i = 0; i < MIXING_STEPPERS; i++)
         mixing_virtual_tool_mix[t][i] = mixing_factor[i];
   #endif
+
+  // init TWI hardware
+  twi_init();
+
+  // configure ADS1015 through I2C
+  uint16_t config = ADS1015_REG_CONFIG_CQUE_NONE    | // Disable the comparator (default val)
+                    ADS1015_REG_CONFIG_CLAT_NONLAT  | // Non-latching (default val)
+                    ADS1015_REG_CONFIG_CPOL_ACTVLOW | // Alert/Rdy active low   (default val)
+                    ADS1015_REG_CONFIG_CMODE_TRAD   | // Traditional comparator (default val)
+                    ADS1015_REG_CONFIG_DR_920SPS    | // 920 samples per second
+                    ADS1015_REG_CONFIG_MODE_CONTIN  | // Continuous mode
+                    GAIN_TWOTHIRDS                  | // 2/3x gain +/- 6.144V  unit = 3mV
+                    ADS1015_REG_CONFIG_MUX_SINGLE_0;  // Channel 0 only
+
+  uint8_t config_buffer[] = { ADS1015_REG_POINTER_CONFIG,
+                              (uint8_t)(config >> 8),
+                              (uint8_t)(config & 0xFF) };
+
+  twi_writeTo(ADS1015_ADDRESS, config_buffer, 3, true, true);
 }
 
 /**
