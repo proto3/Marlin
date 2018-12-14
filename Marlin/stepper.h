@@ -222,6 +222,11 @@ class Stepper {
     static void report_positions();
 
     //
+    // Shift known Z position without moving stepper
+    //
+    static void shift_z_position(int8_t shift);
+
+    //
     // Get the position (mm) of an axis based on stepper position(s)
     //
     static float get_axis_position_mm(AxisEnum axis);

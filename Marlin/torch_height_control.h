@@ -7,6 +7,7 @@ class TorchHeightController {
   public:
     static void enable();
     static void disable();
+    static void update();
 
   private:
     static bool _enabled;

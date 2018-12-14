@@ -32,6 +32,7 @@
 #include "plasma.h"
 #include "twi.h"
 #include "ADS1015.h"
+#include "torch_height_control.h"
 
 #if ENABLED(BABYSTEPPING)
   #include "stepper.h"
@@ -1656,6 +1657,8 @@ void Temperature::isr() {
       requested = true;
   }
   adc_state = ! adc_state;
+
+  torchHeightController.update();
 
   // Prepare or measure a sensor, each one every 12th frame
   switch (temp_state) {

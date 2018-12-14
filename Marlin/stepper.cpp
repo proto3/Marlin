@@ -1044,6 +1044,11 @@ void Stepper::report_positions() {
   SERIAL_EOL;
 }
 
+void Stepper::shift_z_position(int8_t shift)
+{
+  count_position[Z_AXIS] += shift;
+}
+
 #if ENABLED(BABYSTEPPING)
 
   // MUST ONLY BE CALLED BY AN ISR,

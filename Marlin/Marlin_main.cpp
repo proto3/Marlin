@@ -3963,6 +3963,7 @@ inline void gcode_M6() {
  * M7: Switch Torch Height Control off.
  */
 inline void gcode_M7() {
+  stepper.synchronize();
   torchHeightController.disable();
 }
 

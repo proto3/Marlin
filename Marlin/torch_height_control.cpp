@@ -16,3 +16,15 @@ void TorchHeightController::disable()
   stepper.take_control_on(Z_AXIS);
 }
 //----------------------------------------------------------------------------//
+void TorchHeightController::update()
+{
+  if(_enabled)
+  {
+    Z_DIR_WRITE(INVERT_Z_DIR ^ 1);
+    Z_STEP_WRITE(!INVERT_Z_STEP_PIN);
+    delayMicroseconds(2);
+    Z_STEP_WRITE(INVERT_Z_STEP_PIN);
+    stepper.shift_z_position(1);
+  }
+}
+//----------------------------------------------------------------------------//
