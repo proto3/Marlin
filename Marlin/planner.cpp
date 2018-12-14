@@ -1175,6 +1175,14 @@ void Planner::set_e_position_mm(const float& e) {
   previous_speed[E_AXIS] = 0.0;
 }
 
+/**
+ * Directly set the planner Z position.
+ */
+void Planner::set_z_position_step(const long& z) {
+  position[Z_AXIS] = z;
+  previous_speed[Z_AXIS] = 0.0;
+}
+
 // Recalculate the steps/s^2 acceleration rates, based on the mm/s^2
 void Planner::reset_acceleration_rates() {
   LOOP_XYZE(i)

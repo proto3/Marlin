@@ -114,6 +114,8 @@ long Stepper::acceleration_time, Stepper::deceleration_time;
 volatile long Stepper::count_position[NUM_AXIS] = { 0 };
 volatile signed char Stepper::count_direction[NUM_AXIS] = { 1, 1, 1, 1 };
 
+bool Stepper::axis_locked[NUM_AXIS] = {false, false, false, false};
+
 #if ENABLED(MIXING_EXTRUDER)
   long Stepper::counter_M[MIXING_STEPPERS];
 #endif
@@ -280,13 +282,15 @@ void Stepper::wake_up() {
 void Stepper::set_directions() {
 
   #define SET_STEP_DIR(AXIS) \
-    if (motor_direction(AXIS ##_AXIS)) { \
-      AXIS ##_APPLY_DIR(INVERT_## AXIS ##_DIR, false); \
-      count_direction[AXIS ##_AXIS] = -1; \
-    } \
-    else { \
-      AXIS ##_APPLY_DIR(!INVERT_## AXIS ##_DIR, false); \
-      count_direction[AXIS ##_AXIS] = 1; \
+    if(!axis_locked[AXIS ##_AXIS]) { \
+      if (motor_direction(AXIS ##_AXIS)) { \
+        AXIS ##_APPLY_DIR(INVERT_## AXIS ##_DIR, false); \
+        count_direction[AXIS ##_AXIS] = -1; \
+      } \
+      else { \
+        AXIS ##_APPLY_DIR(!INVERT_## AXIS ##_DIR, false); \
+        count_direction[AXIS ##_AXIS] = 1; \
+      } \
     }
 
   SET_STEP_DIR(X); // A
@@ -445,7 +449,9 @@ void Stepper::isr() {
 
       #define STEP_ADD(AXIS) \
         _COUNTER(AXIS) += current_block->steps[_AXIS(AXIS)]; \
-        if (_COUNTER(AXIS) > 0) { _APPLY_STEP(AXIS)(!_INVERT_STEP_PIN(AXIS),0); }
+        if (_COUNTER(AXIS) > 0 && !axis_locked[_AXIS(AXIS)]) { \
+          _APPLY_STEP(AXIS)(!_INVERT_STEP_PIN(AXIS),0); \
+        }
 
       STEP_ADD(X);
       STEP_ADD(Y);
@@ -470,8 +476,10 @@ void Stepper::isr() {
       #define STEP_IF_COUNTER(AXIS) \
         if (_COUNTER(AXIS) > 0) { \
           _COUNTER(AXIS) -= current_block->step_event_count; \
-          count_position[_AXIS(AXIS)] += count_direction[_AXIS(AXIS)]; \
-          _APPLY_STEP(AXIS)(_INVERT_STEP_PIN(AXIS),0); \
+          if (!axis_locked[_AXIS(AXIS)]) { \
+            count_position[_AXIS(AXIS)] += count_direction[_AXIS(AXIS)]; \
+            _APPLY_STEP(AXIS)(_INVERT_STEP_PIN(AXIS),0); \
+          } \
         }
 
       STEP_IF_COUNTER(X);
@@ -630,6 +638,7 @@ void Stepper::isr() {
 
     // If current block is finished, reset pointer
     if (step_events_completed >= current_block->step_event_count) {
+      refresh_cmd_timeout();
       current_block = NULL;
       planner.discard_current_block();
     }
@@ -873,6 +882,23 @@ void Stepper::init() {
  * Block until all buffered steps are executed
  */
 void Stepper::synchronize() { while (planner.blocks_queued()) idle(); }
+
+/**
+ * Leave axis pins untouched for external controller to use it
+ */
+void Stepper::leave_control_on(AxisEnum axis)
+{
+  axis_locked[axis] = true;
+}
+
+/**
+ * Take control back on axis pins
+ */
+void Stepper::take_control_on(AxisEnum axis)
+{
+  axis_locked[axis] = false;
+  set_directions();
+}
 
 /**
  * Set the stepper positions directly in steps

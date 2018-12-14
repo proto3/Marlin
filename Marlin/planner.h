@@ -243,6 +243,11 @@ class Planner {
     static void set_e_position_mm(const float& e);
 
     /**
+     * Set the Z position (steps) of the planner
+     */
+    static void set_z_position_step(const long& z);
+
+    /**
      * Does the buffer have any blocks queued?
      */
     static bool blocks_queued() { return (block_buffer_head != block_buffer_tail); }

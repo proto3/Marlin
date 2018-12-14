@@ -66,6 +66,7 @@
 #include "plasma.h"
 #include "twi.h"
 #include "ADS1015.h"
+#include "torch_height_control.h"
 
 #if ENABLED(USE_WATCHDOG)
   #include "watchdog.h"
@@ -133,6 +134,8 @@
  * M1   - Same as M0
  * M3   - Start plasma torch and wait for arc transfer
  * M5   - Stop plasma torch
+ * M6   - Switch Torch Height Control on.
+ * M7   - Switch Torch Height Control off.
  * M17  - Enable/Power all stepper motors
  * M18  - Disable all stepper motors; same as M84
  * M20  - List SD card
@@ -3949,6 +3952,21 @@ inline void gcode_M5() {
 }
 
 /**
+ * M6: Switch Torch Height Control on.
+ */
+inline void gcode_M6() {
+  stepper.synchronize();
+  torchHeightController.enable();
+}
+
+/**
+ * M7: Switch Torch Height Control off.
+ */
+inline void gcode_M7() {
+  torchHeightController.disable();
+}
+
+/**
  * M17: Enable power on all stepper motors
  */
 inline void gcode_M17() {
@@ -7023,6 +7041,14 @@ void process_command(char* cmd) {
 
       case 5: //Stop plasma torch
         gcode_M5();
+        break;
+
+      case 6: //Torch Heigth control on
+        gcode_M6();
+        break;
+
+      case 7: //Torch Heigth control off
+        gcode_M7();
         break;
 
       case 75: // Start print timer

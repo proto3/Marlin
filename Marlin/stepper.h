@@ -149,6 +149,11 @@ class Stepper {
     static volatile signed char count_direction[NUM_AXIS];
 
     //
+    // When an axis is locked, stepper won't touch it's pins
+    //
+    static bool axis_locked[NUM_AXIS];
+
+    //
     // Mixing extruder mix counters
     //
     #if ENABLED(MIXING_EXTRUDER)
@@ -184,6 +189,16 @@ class Stepper {
     // Block until all buffered steps are executed
     //
     static void synchronize();
+
+    //
+    // Leave axis pins untouched for external controller to use it
+    //
+    static void leave_control_on(AxisEnum axis);
+
+    //
+    // Take control back on axis pins
+    //
+    static void take_control_on(AxisEnum axis);
 
     //
     // Set the current position in steps
