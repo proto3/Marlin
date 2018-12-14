@@ -1622,14 +1622,7 @@ void Temperature::isr() {
     #define START_ADC(pin) ADCSRB = 0; SET_ADMUX_ADCSRA(pin)
   #endif
 
-  // Run transfer monitoring at 1kHz when plasma is established
-  if(plasmaManager.get_state() == Established)
-  {
-    if(M5_pending && !planner.blocks_queued())
-      plasmaManager.stop();
-    else
-      plasmaManager.update_state();
-  }
+  plasmaManager.update();
 
   static bool requested = false;
   static bool adc_state = false;

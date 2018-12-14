@@ -280,7 +280,6 @@
 #endif
 
 bool Running = true;
-bool M5_pending = false;
 
 uint8_t marlin_debug_flags = DEBUG_NONE;
 
@@ -3899,7 +3898,7 @@ inline void gcode_M3() {
 
       KEEPALIVE_STATE(PAUSED_FOR_INPUT);
       while (PENDING(millis(), transfer_timeout)) {
-        PlasmaState plasma_state = plasmaManager.update_state();
+        PlasmaState plasma_state = plasmaManager.get_state();
         if(IS_WAITING_FILE)
         {
           return;
@@ -3930,9 +3929,8 @@ inline void gcode_M3() {
  * M5: Stop plasma torch
  */
 inline void gcode_M5() {
-  M5_pending = true;
+  plasmaManager.stop_after_move();
   stepper.synchronize();
-  M5_pending = false;
 
   if(plasmaManager.get_state() == Lost)
   {

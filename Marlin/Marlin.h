@@ -245,7 +245,6 @@ extern uint8_t marlin_debug_flags;
 #define DEBUGGING(F) (marlin_debug_flags & (DEBUG_## F))
 
 extern bool Running;
-extern bool M5_pending;
 inline bool IsRunning() { return  Running; }
 inline bool IsStopped() { return !Running; }
 
