@@ -1623,8 +1623,7 @@ void Temperature::isr() {
     #define START_ADC(pin) ADCSRB = 0; SET_ADMUX_ADCSRA(pin)
   #endif
 
-  plasmaManager.update();
-
+  //-------------------------------------------------------//
   static bool requested = false;
   static bool adc_state = false;
   static uint16_t adc_val;
@@ -1657,8 +1656,10 @@ void Temperature::isr() {
       requested = true;
   }
   adc_state = ! adc_state;
+  //-------------------------------------------------------//
 
-  torchHeightController.update();
+  PlasmaState plasma_state = plasmaManager.update();
+  torchHeightController.update(plasma_state == Established);
 
   // Prepare or measure a sensor, each one every 12th frame
   switch (temp_state) {

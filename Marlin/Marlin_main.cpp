@@ -1006,6 +1006,8 @@ void setup() {
                               (uint8_t)(config & 0xFF) };
 
   twi_writeTo(ADS1015_ADDRESS, config_buffer, 3, true, true);
+
+  torchHeightController.init();
 }
 
 /**
@@ -2569,6 +2571,7 @@ void unknown_command_error() {
  */
 inline void gcode_G0_G1() {
   if (IsRunning()) {
+    while(torchHeightController.is_disabling()) { idle(); }
     ABORT_IF_UNHOMED;
 
     gcode_get_destination(); // For X Y Z E F
@@ -2783,6 +2786,7 @@ inline void gcode_G4() {
  *
  */
 inline void gcode_G28() {
+  while(torchHeightController.is_disabling()) { idle(); }
   autohome(code_seen('X'), code_seen('Y'), code_seen('Z'));
 }
 
@@ -3761,6 +3765,7 @@ void autohome(bool homeX, bool homeY, bool homeZ)
    * G30: Do a Z ohmic probe at the current XY
    */
   inline void gcode_G30() {
+    while(torchHeightController.is_disabling()) { idle(); }
     ABORT_IF_UNHOMED;
 
     stepper.synchronize();
@@ -3955,6 +3960,7 @@ inline void gcode_M5() {
  * M6: Switch Torch Height Control on.
  */
 inline void gcode_M6() {
+  ABORT_IF_UNHOMED;
   stepper.synchronize();
   torchHeightController.enable();
 }
@@ -7154,7 +7160,7 @@ bool breach_software_endstops(float target[3])
 
   if(breach)
   {
-    lcd_setstatus("Stop: limit overrun.");
+    lcd_setstatus("Stop: prevent overrun.");
     stateManager.stop();
   }
 

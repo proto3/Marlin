@@ -1338,4 +1338,6 @@
 
 #define PLASMA_VOLTAGE_PROBE_PIN 13
 
+#define PLASMA_MAX_THC_STEP_S 7000 // set the maximal step frequency for THC module (it's all about CPU capabilities)
+
 #endif // CONFIGURATION_H

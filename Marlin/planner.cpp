@@ -63,6 +63,7 @@
 #include "temperature.h"
 #include "ultralcd.h"
 #include "language.h"
+#include "torch_height_control.h"
 
 #include "Marlin.h"
 
@@ -1187,6 +1188,8 @@ void Planner::set_z_position_step(const long& z) {
 void Planner::reset_acceleration_rates() {
   LOOP_XYZE(i)
     max_acceleration_steps_per_s2[i] = max_acceleration_mm_per_s2[i] * axis_steps_per_mm[i];
+
+  torchHeightController.set_max_acc_step_s2(max_acceleration_steps_per_s2[Z_AXIS]);
 }
 
 // Recalculate position, steps_to_mm if axis_steps_per_mm changes!
