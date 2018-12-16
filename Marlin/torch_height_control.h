@@ -8,6 +8,7 @@ class TorchHeightController {
     static void init();
     static void enable();
     static void disable();
+    static bool is_enabled();
     static bool is_disabling();
     static void update(bool);
     static void set_max_acc_step_s2(unsigned long);

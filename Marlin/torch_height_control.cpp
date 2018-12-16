@@ -56,6 +56,11 @@ void TorchHeightController::disable()
   _disabling = true;
 }
 //----------------------------------------------------------------------------//
+bool TorchHeightController::is_enabled()
+{
+  return _enabled;
+}
+//----------------------------------------------------------------------------//
 bool TorchHeightController::is_disabling()
 {
   return _disabling;
@@ -76,16 +81,15 @@ void TorchHeightController::update(bool plasma_on)
   _target_speed = _new_target_speed;
   //--------------//
 
-  if(_disabling && _speed == 0)
-  {
-    planner.set_z_position_step(stepper.position(Z_AXIS));
-    stepper.take_control_on(Z_AXIS);
-    _disabling = false;
-  }
-
   if(!_enabled)
   {
     _target_speed = 0;
+    if(_disabling && _speed == 0)
+    {
+      planner.set_z_position_step(stepper.position(Z_AXIS));
+      stepper.take_control_on(Z_AXIS);
+      _disabling = false;
+    }
   }
   else
   {

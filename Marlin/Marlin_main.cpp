@@ -2786,7 +2786,11 @@ inline void gcode_G4() {
  *
  */
 inline void gcode_G28() {
+  if(torchHeightController.is_enabled())
+    stateManager.stop();
+
   while(torchHeightController.is_disabling()) { idle(); }
+
   autohome(code_seen('X'), code_seen('Y'), code_seen('Z'));
 }
 
@@ -3765,7 +3769,11 @@ void autohome(bool homeX, bool homeY, bool homeZ)
    * G30: Do a Z ohmic probe at the current XY
    */
   inline void gcode_G30() {
+    if(torchHeightController.is_enabled())
+      stateManager.stop();
+
     while(torchHeightController.is_disabling()) { idle(); }
+
     ABORT_IF_UNHOMED;
 
     stepper.synchronize();
