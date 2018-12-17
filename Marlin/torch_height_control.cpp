@@ -1,12 +1,10 @@
 #include "torch_height_control.h"
 #include "stepper.h"
-#include "temperature.h"
 
 #define PAUSE_TIMER4  TCCR4B = _BV(WGM43);
 #define RESUME_TIMER4 TCCR4B = _BV(WGM43) | _BV(CS41) | _BV(CS40);
 
-bool TorchHeightController::_enabled = false;
-bool TorchHeightController::_disabling = false;
+THCState TorchHeightController::_state = Disabled;
 bool TorchHeightController::_counting_up = true;
 int32_t TorchHeightController::_target_speed = 0;
 int16_t TorchHeightController::_speed = 0;
@@ -46,63 +44,72 @@ void TorchHeightController::enable()
 
   _reset_PID();
 
-  _enabled = true;
-  _disabling = false;
+  _state = Enabled;
 }
 //----------------------------------------------------------------------------//
 void TorchHeightController::disable()
 {
-  _enabled = false;
-  _disabling = true;
+  _target_speed = 0;
+  if(_state == Enabled)
+    _state = Disabling;
 }
 //----------------------------------------------------------------------------//
-bool TorchHeightController::is_enabled()
+THCState TorchHeightController::get_state()
 {
-  return _enabled;
+  return _state;
 }
 //----------------------------------------------------------------------------//
-bool TorchHeightController::is_disabling()
+void TorchHeightController::update(PlasmaState plasma_state)
 {
-  return _disabling;
-}
-//----------------------------------------------------------------------------//
-void TorchHeightController::update(bool plasma_on)
-{
-  //PID--------------//
-  if(_counter == 200)
+  if(_state == Enabled)
   {
-    _counter = 0;
-    _new_target_speed = -_new_target_speed;
+    //PID--------------//
+    if(_counter == 200)
+    {
+      _counter = 0;
+      _new_target_speed = -_new_target_speed;
+    }
+    else
+    {
+      _counter++;
+    }
+    _target_speed = _new_target_speed;
+    //--------------//
   }
-  else
-  {
-    _counter++;
-  }
-  _target_speed = _new_target_speed;
-  //--------------//
 
-  if(!_enabled)
+  //THC is disabled or disabling
+  if(_state != Enabled)
   {
     _target_speed = 0;
-    if(_disabling && _speed == 0)
+    if(_state == Disabling && _speed == 0)
     {
+      // Z have stopped, give back Z control to stepper class
       planner.set_z_position_step(stepper.position(Z_AXIS));
       stepper.take_control_on(Z_AXIS);
-      _disabling = false;
+      _state = Disabled;
     }
   }
-  else
+  else // THC is enabled
   {
+    // check for software endstop overrun
     long z_pos = stepper.position(Z_AXIS);
     if(z_pos > _z_top_pos || z_pos < _z_bottom_pos)
     {
       kill("Stop: Z overrun.");
     }
-    if(!plasma_on)
+
+    // plasma transfer is lost, move Z to safe position
+    if(plasma_state == Lost)
     {
-      if(_z_top_pos - z_pos < _max_stopping_distance)
+      // Z is far enough from top, use max speed
+      if(_z_top_pos - z_pos > _max_stopping_distance)
+      {
+        _target_speed = PLASMA_MAX_THC_STEP_S;
+      }
+      else // Z approch top, move one step per update()
       {
         _target_speed = 0;
+        // do a step if Z below top
         if(_speed == 0 && z_pos < _z_top_pos)
         {
           _dir = 1;
@@ -113,10 +120,11 @@ void TorchHeightController::update(bool plasma_on)
           stepper.shift_z_position(_dir);
         }
       }
-      else
-      {
-        _target_speed = PLASMA_MAX_THC_STEP_S;
-      }
+    }
+    // plasma have been stopped voluntarily, just stop THC
+    else if(plasma_state != Established)
+    {
+      disable();
     }
   }
 

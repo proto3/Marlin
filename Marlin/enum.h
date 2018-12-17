@@ -116,6 +116,16 @@ enum TempState {
    Lost
  };
 
+ /**
+  * THC states
+  */
+  enum THCState {
+    Enabled,
+    Disabled,
+    Disabling
+  };
+
+
 #if ENABLED(EMERGENCY_PARSER)
   enum e_parser_state {
     state_RESET,

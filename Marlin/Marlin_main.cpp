@@ -2571,7 +2571,7 @@ void unknown_command_error() {
  */
 inline void gcode_G0_G1() {
   if (IsRunning()) {
-    while(torchHeightController.is_disabling()) { idle(); }
+    while(torchHeightController.get_state() == Disabling) { idle(); }
     ABORT_IF_UNHOMED;
 
     gcode_get_destination(); // For X Y Z E F
@@ -2786,10 +2786,15 @@ inline void gcode_G4() {
  *
  */
 inline void gcode_G28() {
-  if(torchHeightController.is_enabled())
-    stateManager.stop();
+  THCState thc_state = torchHeightController.get_state();
 
-  while(torchHeightController.is_disabling()) { idle(); }
+  if(thc_state == Enabled)
+  {
+    lcd_setstatus("Stop: G28 while THC.");
+    stateManager.stop();
+  }
+
+  while(thc_state == Disabling) { idle(); }
 
   autohome(code_seen('X'), code_seen('Y'), code_seen('Z'));
 }
@@ -3769,10 +3774,15 @@ void autohome(bool homeX, bool homeY, bool homeZ)
    * G30: Do a Z ohmic probe at the current XY
    */
   inline void gcode_G30() {
-    if(torchHeightController.is_enabled())
-      stateManager.stop();
+    THCState thc_state = torchHeightController.get_state();
 
-    while(torchHeightController.is_disabling()) { idle(); }
+    if(thc_state == Enabled)
+    {
+      lcd_setstatus("Stop: G30 while THC.");
+      stateManager.stop();
+    }
+
+    while(thc_state == Disabling) { idle(); }
 
     ABORT_IF_UNHOMED;
 

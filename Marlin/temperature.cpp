@@ -1659,7 +1659,7 @@ void Temperature::isr() {
   //-------------------------------------------------------//
 
   PlasmaState plasma_state = plasmaManager.update();
-  torchHeightController.update(plasma_state == Established);
+  torchHeightController.update(plasma_state);
 
   // Prepare or measure a sensor, each one every 12th frame
   switch (temp_state) {
