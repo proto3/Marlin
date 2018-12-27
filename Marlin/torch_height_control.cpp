@@ -1,4 +1,5 @@
 #include "torch_height_control.h"
+#include "ADS1015.h"
 #include "stepper.h"
 
 #define PAUSE_TIMER4  TCCR4B = _BV(WGM43);
@@ -20,6 +21,8 @@ int16_t TorchHeightController::_counter = 0;
 //----------------------------------------------------------------------------//
 void TorchHeightController::init()
 {
+  ADS1015_device.init();
+
   _z_top_pos = sw_endstop_max[Z_AXIS] * planner.axis_steps_per_mm[Z_AXIS];
   _z_bottom_pos = 0;
 
@@ -61,6 +64,7 @@ THCState TorchHeightController::get_state()
 //----------------------------------------------------------------------------//
 void TorchHeightController::update(PlasmaState plasma_state)
 {
+  int32_t voltage_mv = ADS1015_device.read();
   if(_state == Enabled)
   {
     //PID--------------//
@@ -202,11 +206,10 @@ void TorchHeightController::ovf_isr()
   }
   else
   {
-    _counting_up = true;
     Z_STEP_WRITE(!INVERT_Z_STEP_PIN);
-    delayMicroseconds(2);
-    Z_STEP_WRITE(INVERT_Z_STEP_PIN);
+    _counting_up = true;
     stepper.shift_z_position(_dir);
+    Z_STEP_WRITE(INVERT_Z_STEP_PIN);
   }
 }
 //----------------------------------------------------------------------------//
@@ -219,11 +222,10 @@ void TorchHeightController::capt_isr()
   }
   else
   {
-    _counting_up = false;
     Z_STEP_WRITE(!INVERT_Z_STEP_PIN);
-    delayMicroseconds(2);
-    Z_STEP_WRITE(INVERT_Z_STEP_PIN);
+    _counting_up = false;
     stepper.shift_z_position(_dir);
+    Z_STEP_WRITE(INVERT_Z_STEP_PIN);
   }
 }
 //----------------------------------------------------------------------------//

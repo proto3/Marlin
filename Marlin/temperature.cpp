@@ -30,8 +30,6 @@
 #include "thermistortables.h"
 #include "language.h"
 #include "plasma.h"
-#include "twi.h"
-#include "ADS1015.h"
 #include "torch_height_control.h"
 
 #if ENABLED(BABYSTEPPING)
@@ -1622,41 +1620,6 @@ void Temperature::isr() {
   #else
     #define START_ADC(pin) ADCSRB = 0; SET_ADMUX_ADCSRA(pin)
   #endif
-
-  //-------------------------------------------------------//
-  static bool requested = false;
-  static bool adc_state = false;
-  static uint16_t adc_val;
-
-  // TODO increment timeout counter
-
-  if(!adc_state)
-  {
-    if(requested)
-    {
-      // pick up ADC data from RX buffer
-      uint8_t len = 2;
-      uint8_t buffer[len];
-      if(twi_readBufferedData(buffer, len) == len)
-      {
-        adc_val = ((buffer[0] << 8) | buffer[1]) >> 4; // shift because 12bits res
-        adc_val *= 3; // gain
-        // TODO reset timeout counter
-      }
-      requested = false;
-    }
-
-    // send conversion request to ADC
-    uint8_t convert = ADS1015_REG_POINTER_CONVERT;
-    twi_writeTo(ADS1015_ADDRESS, &convert, 1, false, true);
-  }
-  else
-  {
-    if(twi_requestReadFrom(ADS1015_ADDRESS, 2, true))
-      requested = true;
-  }
-  adc_state = ! adc_state;
-  //-------------------------------------------------------//
 
   PlasmaState plasma_state = plasmaManager.update();
   torchHeightController.update(plasma_state);
