@@ -600,7 +600,7 @@ void kill_screen(const char* lcd_msg) {
   static void lcd_main_menu() {
     START_MENU();
     MENU_ITEM(back, "Return");
-    if (!planner.movesplanned() && !IS_RUNNING) {
+    if (!planner.movesplanned() && IS_WAITING_FILE) {
         MENU_ITEM(submenu, "Control", lcd_control_menu);
     }
     MENU_ITEM(submenu, "Settings", lcd_control_motion_menu);

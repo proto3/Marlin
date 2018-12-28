@@ -5,10 +5,10 @@
 #include "Marlin.h"
 #include "enum.h"
 
-#define IS_WAITING_FILE  stateManager.get_state() == waiting_file
-#define IS_RUNNING       stateManager.get_state() == running
-#define IS_PAUSE_PENDING stateManager.get_state() == pause_pending
-#define IS_SUSPENDED     stateManager.get_state() == suspended
+#define IS_WAITING_FILE  (stateManager.get_state() == waiting_file)
+#define IS_RUNNING       (stateManager.get_state() == running)
+#define IS_PAUSE_PENDING (stateManager.get_state() == pause_pending)
+#define IS_SUSPENDED     (stateManager.get_state() == suspended)
 
 class State {
 

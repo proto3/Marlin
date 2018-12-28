@@ -291,7 +291,7 @@ void CardReader::getAbsFilename(char *t) {
     t[0] = 0;
 }
 
-bool CardReader::openFile(char* name, bool read, bool push_current/*=false*/) {
+bool CardReader::openFile(const char* name, bool read, bool push_current/*=false*/) {
   if (!cardOK) return false;
   if (file.isOpen()) { //replacing current file by new file, or subfile call
     if (push_current) {
@@ -300,7 +300,7 @@ bool CardReader::openFile(char* name, bool read, bool push_current/*=false*/) {
         SERIAL_ERRORPGM("trying to call sub-gcode files with too many levels. MAX level is:");
         SERIAL_ERRORLN(SD_PROCEDURE_DEPTH);
         kill(PSTR(MSG_KILLED));
-        return;
+        return false;
       }
 
       SERIAL_ECHO_START;
@@ -333,9 +333,9 @@ bool CardReader::openFile(char* name, bool read, bool push_current/*=false*/) {
 
   SdFile myDir;
   curDir = &root;
-  char *fname = name;
+  const char *fname = name;
 
-  char *dirname_start, *dirname_end;
+  const char *dirname_start, *dirname_end;
   if (name[0] == '/') {
     dirname_start = &name[1];
     while (dirname_start != NULL) {
