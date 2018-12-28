@@ -156,12 +156,6 @@ class Stepper {
     //
     // Mixing extruder mix counters
     //
-    #if ENABLED(MIXING_EXTRUDER)
-      static long counter_M[MIXING_STEPPERS];
-      #define MIXING_STEPPERS_LOOP(VAR) \
-        for (uint8_t VAR = 0; VAR < MIXING_STEPPERS; VAR++) \
-          if (current_block->mix_event_count[VAR])
-    #endif
 
   public:
 
@@ -266,9 +260,6 @@ class Stepper {
       static FORCE_INLINE void set_z2_lock(bool state) { locked_z2_motor = state; }
     #endif
 
-    #if ENABLED(BABYSTEPPING)
-      static void babystep(const uint8_t axis, const bool direction); // perform a short step with a single stepper motor, outside of any convention
-    #endif
 
     static inline void kill_current_block() {
       step_events_completed = current_block->step_event_count;
@@ -351,15 +342,8 @@ class Stepper {
         final_advance = current_block->final_advance;
 
         // Do E steps + advance steps
-        #if ENABLED(MIXING_EXTRUDER)
-          long advance_factor = (advance >> 8) - old_advance;
-          // ...for mixing steppers proportionally
-          MIXING_STEPPERS_LOOP(j)
-            e_steps[j] += advance_factor * current_block->step_event_count / current_block->mix_event_count[j];
-        #else
           // ...for the active extruder
           e_steps[TOOL_E_INDEX] += ((advance >> 8) - old_advance);
-        #endif
 
         old_advance = advance >> 8;
 

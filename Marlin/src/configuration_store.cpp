@@ -114,9 +114,6 @@
 #include "ultralcd.h"
 #include "configuration_store.h"
 
-#if ENABLED(MESH_BED_LEVELING)
-  #include "mesh_bed_leveling.h"
-#endif
 
 uint16_t eeprom_checksum;
 const char version[4] = EEPROM_VERSION;
@@ -154,9 +151,6 @@ void Config_Postprocess() {
 
   // Make sure delta kinematics are updated before refreshing the
   // planner position so the stepper counts will be set correctly.
-  #if ENABLED(DELTA)
-    recalc_delta_settings(delta_radius, delta_diagonal_rod);
-  #endif
 
   // Refresh steps_to_mm with the reciprocal of axis_steps_per_mm
   // and init stepper.count[], planner.position[] with current_position
@@ -202,18 +196,6 @@ void Config_StoreSettings()  {
   EEPROM_WRITE(planner.max_e_jerk);
   EEPROM_WRITE(home_offset);
 
-  #if ENABLED(MESH_BED_LEVELING)
-    // Compile time test that sizeof(mbl.z_values) is as expected
-    typedef char c_assert[(sizeof(mbl.z_values) == (MESH_NUM_X_POINTS) * (MESH_NUM_Y_POINTS) * sizeof(dummy)) ? 1 : -1];
-    uint8_t mesh_num_x = MESH_NUM_X_POINTS,
-            mesh_num_y = MESH_NUM_Y_POINTS,
-            dummy_uint8 = mbl.status & _BV(MBL_STATUS_HAS_MESH_BIT);
-    EEPROM_WRITE(dummy_uint8);
-    EEPROM_WRITE(mbl.z_offset);
-    EEPROM_WRITE(mesh_num_x);
-    EEPROM_WRITE(mesh_num_y);
-    EEPROM_WRITE(mbl.z_values);
-  #else
     // For disabled MBL write a default mesh
     uint8_t mesh_num_x = 3,
             mesh_num_y = 3,
@@ -224,23 +206,12 @@ void Config_StoreSettings()  {
     EEPROM_WRITE(mesh_num_x);
     EEPROM_WRITE(mesh_num_y);
     for (uint8_t q = 0; q < mesh_num_x * mesh_num_y; q++) EEPROM_WRITE(dummy);
-  #endif // MESH_BED_LEVELING
 
-  #if !HAS_BED_PROBE
     float zprobe_zoffset = 0;
-  #endif
   EEPROM_WRITE(zprobe_zoffset);
 
   // 9 floats for DELTA / Z_DUAL_ENDSTOPS
-  #if ENABLED(DELTA)
-    EEPROM_WRITE(endstop_adj);               // 3 floats
-    EEPROM_WRITE(delta_radius);              // 1 float
-    EEPROM_WRITE(delta_diagonal_rod);        // 1 float
-    EEPROM_WRITE(delta_segments_per_second); // 1 float
-    EEPROM_WRITE(delta_diagonal_rod_trim_tower_1);  // 1 float
-    EEPROM_WRITE(delta_diagonal_rod_trim_tower_2);  // 1 float
-    EEPROM_WRITE(delta_diagonal_rod_trim_tower_3);  // 1 float
-  #elif ENABLED(Z_DUAL_ENDSTOPS)
+  #if   ENABLED(Z_DUAL_ENDSTOPS)
     EEPROM_WRITE(z_endstop_adj);            // 1 float
     dummy = 0.0f;
     for (uint8_t q = 8; q--;) EEPROM_WRITE(dummy);
@@ -273,33 +244,9 @@ void Config_StoreSettings()  {
   #endif
   EEPROM_WRITE(lcd_contrast);
 
-  #if ENABLED(SCARA)
-    EEPROM_WRITE(axis_scaling); // 3 floats
-  #else
     dummy = 1.0f;
     EEPROM_WRITE(dummy);
-  #endif
 
-  #if ENABLED(FWRETRACT)
-    EEPROM_WRITE(autoretract_enabled);
-    EEPROM_WRITE(retract_length);
-    #if EXTRUDERS > 1
-      EEPROM_WRITE(retract_length_swap);
-    #else
-      dummy = 0.0f;
-      EEPROM_WRITE(dummy);
-    #endif
-    EEPROM_WRITE(retract_feedrate_mm_s);
-    EEPROM_WRITE(retract_zlift);
-    EEPROM_WRITE(retract_recover_length);
-    #if EXTRUDERS > 1
-      EEPROM_WRITE(retract_recover_length_swap);
-    #else
-      dummy = 0.0f;
-      EEPROM_WRITE(dummy);
-    #endif
-    EEPROM_WRITE(retract_recover_feedrate_mm_s);
-  #endif // FWRETRACT
 
   EEPROM_WRITE(volumetric_enabled);
 
@@ -368,37 +315,13 @@ void Config_RetrieveSettings() {
     EEPROM_READ(dummy);
     EEPROM_READ(mesh_num_x);
     EEPROM_READ(mesh_num_y);
-    #if ENABLED(MESH_BED_LEVELING)
-      mbl.status = dummy_uint8;
-      mbl.z_offset = dummy;
-      if (mesh_num_x == MESH_NUM_X_POINTS && mesh_num_y == MESH_NUM_Y_POINTS) {
-        // EEPROM data fits the current mesh
-        EEPROM_READ(mbl.z_values);
-      }
-      else {
-        // EEPROM data is stale
-        mbl.reset();
-        for (uint8_t q = 0; q < mesh_num_x * mesh_num_y; q++) EEPROM_READ(dummy);
-      }
-    #else
       // MBL is disabled - skip the stored data
       for (uint8_t q = 0; q < mesh_num_x * mesh_num_y; q++) EEPROM_READ(dummy);
-    #endif // MESH_BED_LEVELING
 
-    #if !HAS_BED_PROBE
       float zprobe_zoffset = 0;
-    #endif
     EEPROM_READ(zprobe_zoffset);
 
-    #if ENABLED(DELTA)
-      EEPROM_READ(endstop_adj);                // 3 floats
-      EEPROM_READ(delta_radius);               // 1 float
-      EEPROM_READ(delta_diagonal_rod);         // 1 float
-      EEPROM_READ(delta_segments_per_second);  // 1 float
-      EEPROM_READ(delta_diagonal_rod_trim_tower_1);  // 1 float
-      EEPROM_READ(delta_diagonal_rod_trim_tower_2);  // 1 float
-      EEPROM_READ(delta_diagonal_rod_trim_tower_3);  // 1 float
-    #elif ENABLED(Z_DUAL_ENDSTOPS)
+    #if   ENABLED(Z_DUAL_ENDSTOPS)
       EEPROM_READ(z_endstop_adj);
       dummy = 0.0f;
       for (uint8_t q=8; q--;) EEPROM_READ(dummy);
@@ -422,30 +345,8 @@ void Config_RetrieveSettings() {
     #endif
     EEPROM_READ(lcd_contrast);
 
-    #if ENABLED(SCARA)
-      EEPROM_READ(axis_scaling);  // 3 floats
-    #else
       EEPROM_READ(dummy);
-    #endif
 
-    #if ENABLED(FWRETRACT)
-      EEPROM_READ(autoretract_enabled);
-      EEPROM_READ(retract_length);
-      #if EXTRUDERS > 1
-        EEPROM_READ(retract_length_swap);
-      #else
-        EEPROM_READ(dummy);
-      #endif
-      EEPROM_READ(retract_feedrate_mm_s);
-      EEPROM_READ(retract_zlift);
-      EEPROM_READ(retract_recover_length);
-      #if EXTRUDERS > 1
-        EEPROM_READ(retract_recover_length_swap);
-      #else
-        EEPROM_READ(dummy);
-      #endif
-      EEPROM_READ(retract_recover_feedrate_mm_s);
-    #endif // FWRETRACT
 
     EEPROM_READ(volumetric_enabled);
 
@@ -486,10 +387,6 @@ void Config_ResetDefault() {
     planner.axis_steps_per_mm[i] = tmp1[i];
     planner.max_feedrate_mm_s[i] = tmp2[i];
     planner.max_acceleration_mm_per_s2[i] = tmp3[i];
-    #if ENABLED(SCARA)
-      if (i < COUNT(axis_scaling))
-        axis_scaling[i] = 1;
-    #endif
   }
 
   planner.acceleration = DEFAULT_ACCELERATION;
@@ -503,23 +400,9 @@ void Config_ResetDefault() {
   planner.max_e_jerk = DEFAULT_EJERK;
   home_offset[X_AXIS] = home_offset[Y_AXIS] = home_offset[Z_AXIS] = 0;
 
-  #if ENABLED(MESH_BED_LEVELING)
-    mbl.reset();
-  #endif
 
-  #if HAS_BED_PROBE
-    zprobe_zoffset = Z_PROBE_OFFSET_FROM_EXTRUDER;
-  #endif
 
-  #if ENABLED(DELTA)
-    endstop_adj[X_AXIS] = endstop_adj[Y_AXIS] = endstop_adj[Z_AXIS] = 0;
-    delta_radius =  DELTA_RADIUS;
-    delta_diagonal_rod =  DELTA_DIAGONAL_ROD;
-    delta_segments_per_second =  DELTA_SEGMENTS_PER_SECOND;
-    delta_diagonal_rod_trim_tower_1 = DELTA_DIAGONAL_ROD_TRIM_TOWER_1;
-    delta_diagonal_rod_trim_tower_2 = DELTA_DIAGONAL_ROD_TRIM_TOWER_2;
-    delta_diagonal_rod_trim_tower_3 = DELTA_DIAGONAL_ROD_TRIM_TOWER_3;
-  #elif ENABLED(Z_DUAL_ENDSTOPS)
+  #if   ENABLED(Z_DUAL_ENDSTOPS)
     z_endstop_adj = 0;
   #endif
 
@@ -527,20 +410,6 @@ void Config_ResetDefault() {
     lcd_contrast = DEFAULT_LCD_CONTRAST;
   #endif
 
-  #if ENABLED(FWRETRACT)
-    autoretract_enabled = false;
-    retract_length = RETRACT_LENGTH;
-    #if EXTRUDERS > 1
-      retract_length_swap = RETRACT_LENGTH_SWAP;
-    #endif
-    retract_feedrate_mm_s = RETRACT_FEEDRATE;
-    retract_zlift = RETRACT_ZLIFT;
-    retract_recover_length = RETRACT_RECOVER_LENGTH;
-    #if EXTRUDERS > 1
-      retract_recover_length_swap = RETRACT_RECOVER_LENGTH_SWAP;
-    #endif
-    retract_recover_feedrate_mm_s = RETRACT_RECOVER_FEEDRATE;
-  #endif
 
   volumetric_enabled = false;
   for (uint8_t q = 0; q < COUNT(filament_size); q++)
@@ -584,17 +453,6 @@ void Config_PrintSettings(bool forReplay) {
 
   CONFIG_ECHO_START;
 
-  #if ENABLED(SCARA)
-    if (!forReplay) {
-      SERIAL_ECHOLNPGM("Scaling factors:");
-      CONFIG_ECHO_START;
-    }
-    SERIAL_ECHOPAIR("  M365 X", axis_scaling[X_AXIS]);
-    SERIAL_ECHOPAIR(" Y", axis_scaling[Y_AXIS]);
-    SERIAL_ECHOPAIR(" Z", axis_scaling[Z_AXIS]);
-    SERIAL_EOL;
-    CONFIG_ECHO_START;
-  #endif // SCARA
 
   if (!forReplay) {
     SERIAL_ECHOLNPGM("Maximum feedrates (mm/s):");
@@ -649,50 +507,8 @@ void Config_PrintSettings(bool forReplay) {
   SERIAL_ECHOPAIR(" Z", home_offset[Z_AXIS]);
   SERIAL_EOL;
 
-  #if ENABLED(MESH_BED_LEVELING)
-    if (!forReplay) {
-      SERIAL_ECHOLNPGM("Mesh bed leveling:");
-      CONFIG_ECHO_START;
-    }
-    SERIAL_ECHOPAIR("  M420 S", mbl.has_mesh() ? 1 : 0);
-    SERIAL_ECHOPAIR(" X", MESH_NUM_X_POINTS);
-    SERIAL_ECHOPAIR(" Y", MESH_NUM_Y_POINTS);
-    SERIAL_EOL;
-    for (uint8_t py = 1; py <= MESH_NUM_Y_POINTS; py++) {
-      for (uint8_t px = 1; px <= MESH_NUM_X_POINTS; px++) {
-        CONFIG_ECHO_START;
-        SERIAL_ECHOPAIR("  G29 S3 X", px);
-        SERIAL_ECHOPAIR(" Y", py);
-        SERIAL_ECHOPGM(" Z");
-        SERIAL_PROTOCOL_F(mbl.z_values[py-1][px-1], 5);
-        SERIAL_EOL;
-      }
-    }
-  #endif
 
-  #if ENABLED(DELTA)
-    CONFIG_ECHO_START;
-    if (!forReplay) {
-      SERIAL_ECHOLNPGM("Endstop adjustment (mm):");
-      CONFIG_ECHO_START;
-    }
-    SERIAL_ECHOPAIR("  M666 X", endstop_adj[X_AXIS]);
-    SERIAL_ECHOPAIR(" Y", endstop_adj[Y_AXIS]);
-    SERIAL_ECHOPAIR(" Z", endstop_adj[Z_AXIS]);
-    SERIAL_EOL;
-    CONFIG_ECHO_START;
-    if (!forReplay) {
-      SERIAL_ECHOLNPGM("Delta settings: L=diagonal_rod, R=radius, S=segments_per_second, ABC=diagonal_rod_trim_tower_[123]");
-      CONFIG_ECHO_START;
-    }
-    SERIAL_ECHOPAIR("  M665 L", delta_diagonal_rod);
-    SERIAL_ECHOPAIR(" R", delta_radius);
-    SERIAL_ECHOPAIR(" S", delta_segments_per_second);
-    SERIAL_ECHOPAIR(" A", delta_diagonal_rod_trim_tower_1);
-    SERIAL_ECHOPAIR(" B", delta_diagonal_rod_trim_tower_2);
-    SERIAL_ECHOPAIR(" C", delta_diagonal_rod_trim_tower_3);
-    SERIAL_EOL;
-  #elif ENABLED(Z_DUAL_ENDSTOPS)
+  #if   ENABLED(Z_DUAL_ENDSTOPS)
     CONFIG_ECHO_START;
     if (!forReplay) {
       SERIAL_ECHOLNPGM("Z2 Endstop adjustment (mm):");
@@ -712,40 +528,6 @@ void Config_PrintSettings(bool forReplay) {
     SERIAL_EOL;
   #endif
 
-  #if ENABLED(FWRETRACT)
-
-    CONFIG_ECHO_START;
-    if (!forReplay) {
-      SERIAL_ECHOLNPGM("Retract: S=Length (mm) F:Speed (mm/m) Z: ZLift (mm)");
-      CONFIG_ECHO_START;
-    }
-    SERIAL_ECHOPAIR("  M207 S", retract_length);
-    #if EXTRUDERS > 1
-      SERIAL_ECHOPAIR(" W", retract_length_swap);
-    #endif
-    SERIAL_ECHOPAIR(" F", MMS_TO_MMM(retract_feedrate_mm_s));
-    SERIAL_ECHOPAIR(" Z", retract_zlift);
-    SERIAL_EOL;
-    CONFIG_ECHO_START;
-    if (!forReplay) {
-      SERIAL_ECHOLNPGM("Recover: S=Extra length (mm) F:Speed (mm/m)");
-      CONFIG_ECHO_START;
-    }
-    SERIAL_ECHOPAIR("  M208 S", retract_recover_length);
-    #if EXTRUDERS > 1
-      SERIAL_ECHOPAIR(" W", retract_recover_length_swap);
-    #endif
-    SERIAL_ECHOPAIR(" F", MMS_TO_MMM(retract_recover_feedrate_mm_s));
-    SERIAL_EOL;
-    CONFIG_ECHO_START;
-    if (!forReplay) {
-      SERIAL_ECHOLNPGM("Auto-Retract: S=0 to disable, 1 to interpret extrude-only moves as retracts or recoveries");
-      CONFIG_ECHO_START;
-    }
-    SERIAL_ECHOPAIR("  M209 S", autoretract_enabled ? 1 : 0);
-    SERIAL_EOL;
-
-  #endif // FWRETRACT
 
   /**
    * Volumetric extrusion M200
@@ -786,15 +568,6 @@ void Config_PrintSettings(bool forReplay) {
   /**
    * Auto Bed Leveling
    */
-  #if HAS_BED_PROBE
-    if (!forReplay) {
-      CONFIG_ECHO_START;
-      SERIAL_ECHOLNPGM("Z-Probe Offset (mm):");
-    }
-    CONFIG_ECHO_START;
-    SERIAL_ECHOPAIR("  M851 Z", zprobe_zoffset);
-    SERIAL_EOL;
-  #endif
 }
 
 #endif // !DISABLE_M503

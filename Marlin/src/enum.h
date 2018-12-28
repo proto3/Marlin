@@ -116,26 +116,6 @@ enum EndstopEnum {
   };
 #endif
 
-#if ENABLED(FILAMENT_CHANGE_FEATURE)
-  enum FilamentChangeMenuResponse {
-    FILAMENT_CHANGE_RESPONSE_WAIT_FOR,
-    FILAMENT_CHANGE_RESPONSE_EXTRUDE_MORE,
-    FILAMENT_CHANGE_RESPONSE_RESUME_PRINT
-  };
-
-  #if ENABLED(ULTIPANEL)
-    enum FilamentChangeMessage {
-      FILAMENT_CHANGE_MESSAGE_INIT,
-      FILAMENT_CHANGE_MESSAGE_UNLOAD,
-      FILAMENT_CHANGE_MESSAGE_INSERT,
-      FILAMENT_CHANGE_MESSAGE_LOAD,
-      FILAMENT_CHANGE_MESSAGE_EXTRUDE,
-      FILAMENT_CHANGE_MESSAGE_OPTION,
-      FILAMENT_CHANGE_MESSAGE_RESUME,
-      FILAMENT_CHANGE_MESSAGE_STATUS
-    };
-  #endif
-#endif
 
 /**
  * States for managing Marlin and host communication
@@ -151,22 +131,6 @@ enum EndstopEnum {
   };
 #endif
 
-#if ENABLED(MESH_BED_LEVELING)
-  enum MeshLevelingState {
-    MeshReport,
-    MeshStart,
-    MeshNext,
-    MeshSet,
-    MeshSetZOffset,
-    MeshReset
-  };
-
-  enum MBLStatus {
-    MBL_STATUS_NONE = 0,
-    MBL_STATUS_HAS_MESH_BIT = 0,
-    MBL_STATUS_ACTIVE_BIT = 1
-  };
-#endif
 
 /**
  * SD Card

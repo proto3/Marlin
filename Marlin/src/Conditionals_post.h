@@ -88,10 +88,6 @@
   /**
    * SCARA
    */
-  #if ENABLED(SCARA)
-    #undef SLOWDOWN
-    #define QUICK_HOME //SCARA needs Quickhome
-  #endif
 
   /**
    * Set the home position based on settings or manual overrides
@@ -99,33 +95,17 @@
   #ifdef MANUAL_X_HOME_POS
     #define X_HOME_POS MANUAL_X_HOME_POS
   #elif ENABLED(BED_CENTER_AT_0_0)
-    #if ENABLED(DELTA)
-      #define X_HOME_POS 0
-    #else
       #define X_HOME_POS ((X_MAX_LENGTH) * (X_HOME_DIR) * 0.5)
-    #endif
   #else
-    #if ENABLED(DELTA)
-      #define X_HOME_POS ((X_MAX_LENGTH) * 0.5)
-    #else
       #define X_HOME_POS (X_HOME_DIR < 0 ? X_MIN_POS : X_MAX_POS)
-    #endif
   #endif
 
   #ifdef MANUAL_Y_HOME_POS
     #define Y_HOME_POS MANUAL_Y_HOME_POS
   #elif ENABLED(BED_CENTER_AT_0_0)
-    #if ENABLED(DELTA)
-      #define Y_HOME_POS 0
-    #else
       #define Y_HOME_POS ((Y_MAX_LENGTH) * (Y_HOME_DIR) * 0.5)
-    #endif
   #else
-    #if ENABLED(DELTA)
-      #define Y_HOME_POS ((Y_MAX_LENGTH) * 0.5)
-    #else
       #define Y_HOME_POS (Y_HOME_DIR < 0 ? Y_MIN_POS : Y_MAX_POS)
-    #endif
   #endif
 
   #ifdef MANUAL_Z_HOME_POS
@@ -152,7 +132,7 @@
   /**
    * Auto Bed Leveling and Z Probe Repeatability Test
    */
-  #define HAS_PROBING_PROCEDURE (ENABLED(AUTO_BED_LEVELING_FEATURE) || ENABLED(Z_MIN_PROBE_REPEATABILITY_TEST))
+  #define HAS_PROBING_PROCEDURE (0 || ENABLED(Z_MIN_PROBE_REPEATABILITY_TEST))
 
   // Boundaries for probing based on set limits
   #define MIN_PROBE_X (max(X_MIN_POS, X_MIN_POS + X_PROBE_OFFSET_FROM_EXTRUDER))
@@ -172,9 +152,6 @@
   /**
    * DELTA should ignore Z_SAFE_HOMING
    */
-  #if ENABLED(DELTA)
-    #undef Z_SAFE_HOMING
-  #endif
 
   /**
    * Safe Homing Options
@@ -381,8 +358,6 @@
 
   #define PROBE_PIN_CONFIGURED (HAS_Z_MIN_PROBE_PIN || (HAS_Z_MIN && ENABLED(Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN)))
 
-  #define HAS_BED_PROBE (PROBE_SELECTED && PROBE_PIN_CONFIGURED)
-
   #if ENABLED(Z_PROBE_ALLEN_KEY)
     #define PROBE_IS_TRIGGERED_WHEN_STOWED_TEST
   #endif
@@ -390,67 +365,20 @@
   /**
    * Bed Probe dependencies
    */
-  #if HAS_BED_PROBE
-    #ifndef Z_PROBE_OFFSET_RANGE_MIN
-      #define Z_PROBE_OFFSET_RANGE_MIN -20
-    #endif
-    #ifndef Z_PROBE_OFFSET_RANGE_MAX
-      #define Z_PROBE_OFFSET_RANGE_MAX 20
-    #endif
-    #ifndef XY_PROBE_SPEED
-      #ifdef HOMING_FEEDRATE_XY
-        #define XY_PROBE_SPEED HOMING_FEEDRATE_XY
-      #else
-        #define XY_PROBE_SPEED 4000
-      #endif
-    #endif
-    #if Z_PROBE_TRAVEL_HEIGHT > Z_PROBE_DEPLOY_HEIGHT
-      #define _Z_PROBE_DEPLOY_HEIGHT Z_PROBE_TRAVEL_HEIGHT
-    #else
-      #define _Z_PROBE_DEPLOY_HEIGHT Z_PROBE_DEPLOY_HEIGHT
-    #endif
-  #else
     #undef X_PROBE_OFFSET_FROM_EXTRUDER
     #undef Y_PROBE_OFFSET_FROM_EXTRUDER
     #undef Z_PROBE_OFFSET_FROM_EXTRUDER
     #define X_PROBE_OFFSET_FROM_EXTRUDER 0
     #define Y_PROBE_OFFSET_FROM_EXTRUDER 0
     #define Z_PROBE_OFFSET_FROM_EXTRUDER 0
-  #endif
 
   /**
    * Delta radius/rod trimmers
    */
-  #if ENABLED(DELTA)
-    #ifndef DELTA_RADIUS_TRIM_TOWER_1
-      #define DELTA_RADIUS_TRIM_TOWER_1 0.0
-    #endif
-    #ifndef DELTA_RADIUS_TRIM_TOWER_2
-      #define DELTA_RADIUS_TRIM_TOWER_2 0.0
-    #endif
-    #ifndef DELTA_RADIUS_TRIM_TOWER_3
-      #define DELTA_RADIUS_TRIM_TOWER_3 0.0
-    #endif
-    #ifndef DELTA_DIAGONAL_ROD_TRIM_TOWER_1
-      #define DELTA_DIAGONAL_ROD_TRIM_TOWER_1 0.0
-    #endif
-    #ifndef DELTA_DIAGONAL_ROD_TRIM_TOWER_2
-      #define DELTA_DIAGONAL_ROD_TRIM_TOWER_2 0.0
-    #endif
-    #ifndef DELTA_DIAGONAL_ROD_TRIM_TOWER_3
-      #define DELTA_DIAGONAL_ROD_TRIM_TOWER_3 0.0
-    #endif
-    #if ENABLED(AUTO_BED_LEVELING_GRID)
-      #define DELTA_BED_LEVELING_GRID
-    #endif
-  #endif
 
   /**
    * When not using other bed leveling...
    */
-  #if ENABLED(AUTO_BED_LEVELING_FEATURE) && DISABLED(AUTO_BED_LEVELING_GRID) && DISABLED(DELTA_BED_LEVELING_GRID)
-    #define AUTO_BED_LEVELING_3POINT
-  #endif
 
   /**
    * Buzzer/Speaker

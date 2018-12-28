@@ -71,9 +71,6 @@
     bool lcd_clicked();
     void lcd_ignore_click(bool b=true);
 
-    #if ENABLED(FILAMENT_CHANGE_FEATURE)
-      void lcd_filament_change_show_message(FilamentChangeMessage message);
-    #endif // FILAMENT_CHANGE_FEATURE
 
   #else
     FORCE_INLINE void lcd_buttons_update() {}

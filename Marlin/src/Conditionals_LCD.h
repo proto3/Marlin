@@ -289,14 +289,6 @@
     #define E_STEPPERS   EXTRUDERS
     #define E_MANUAL     EXTRUDERS
     #define TOOL_E_INDEX current_block->active_extruder
-  #elif ENABLED(SWITCHING_EXTRUDER)     // One E stepper, unified E axis, two hotends
-    #define E_STEPPERS   1
-    #define E_MANUAL     1
-    #define TOOL_E_INDEX 0
-  #elif ENABLED(MIXING_EXTRUDER)        // Multi-stepper, unified E axis, one hotend
-    #define E_STEPPERS   MIXING_STEPPERS
-    #define E_MANUAL     1
-    #define TOOL_E_INDEX 0
   #else                                 // One stepper, E axis, and hotend per tool
     #define E_STEPPERS   EXTRUDERS
     #define E_MANUAL     EXTRUDERS

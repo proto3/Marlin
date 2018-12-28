@@ -98,43 +98,6 @@
 #endif
 
 /**
- * Babystepping
- */
-#if ENABLED(BABYSTEPPING)
-  #if DISABLED(ULTRA_LCD)
-    #error "BABYSTEPPING requires an LCD controller."
-  #endif
-  #if ENABLED(SCARA)
-    #error "BABYSTEPPING is not implemented for SCARA yet."
-  #endif
-  #if ENABLED(DELTA) && ENABLED(BABYSTEP_XY)
-    #error "BABYSTEPPING only implemented for Z axis on deltabots."
-  #endif
-#endif
-
-/**
- * Filament Runout needs a pin and either SD Support or Auto print start detection
- */
-#if ENABLED(FILAMENT_RUNOUT_SENSOR)
-  #if !HAS_FIL_RUNOUT
-    #error "FILAMENT_RUNOUT_SENSOR requires FIL_RUNOUT_PIN."
-  #elif DISABLED(SDSUPPORT) && DISABLED(PRINTJOB_TIMER_AUTOSTART)
-    #error "FILAMENT_RUNOUT_SENSOR requires SDSUPPORT or PRINTJOB_TIMER_AUTOSTART."
-  #endif
-#endif
-
-/**
- * Filament Change with Extruder Runout Prevention
- */
-
-/**
- * Individual axis homing is useless for DELTAS
- */
-#if ENABLED(INDIVIDUAL_AXIS_HOMING_MENU) && ENABLED(DELTA)
-  #error "INDIVIDUAL_AXIS_HOMING_MENU is incompatible with DELTA kinematics."
-#endif
-
-/**
  * Options only for EXTRUDERS > 1
  */
 #if EXTRUDERS > 1
@@ -145,42 +108,6 @@
 
 #elif ENABLED(SINGLENOZZLE)
   #error "SINGLENOZZLE requires 2 or more EXTRUDERS."
-#endif
-
-/**
- * Only one type of extruder allowed
- */
-#if (ENABLED(SWITCHING_EXTRUDER) && (ENABLED(SINGLENOZZLE) || ENABLED(MIXING_EXTRUDER))) \
-  || (ENABLED(SINGLENOZZLE) && ENABLED(MIXING_EXTRUDER))
-    #error "Please define only one type of extruder: SINGLENOZZLE, SWITCHING_EXTRUDER, or MIXING_EXTRUDER."
-#endif
-
-/**
- * Single Stepper Dual Extruder with switching servo
- */
-#if ENABLED(SWITCHING_EXTRUDER)
-  #if ENABLED(DUAL_X_CARRIAGE)
-    #error "SWITCHING_EXTRUDER and DUAL_X_CARRIAGE are incompatible."
-  #elif EXTRUDERS != 2
-    #error "SWITCHING_EXTRUDER requires exactly 2 EXTRUDERS."
-  #elif NUM_SERVOS < 1
-    #error "SWITCHING_EXTRUDER requires NUM_SERVOS >= 1."
-  #endif
-#endif
-
-/**
- * Mixing Extruder requirements
- */
-#if ENABLED(MIXING_EXTRUDER)
-  #if EXTRUDERS > 1
-    #error "MIXING_EXTRUDER currently only supports one extruder."
-  #endif
-  #if MIXING_STEPPERS < 2
-    #error "You must set MIXING_STEPPERS >= 2 for a mixing extruder."
-  #endif
-  #if ENABLED(FILAMENT_SENSOR)
-    #error "MIXING_EXTRUDER is incompatible with FILAMENT_SENSOR. Comment out this line to use it anyway."
-  #endif
 #endif
 
 /**
@@ -209,29 +136,10 @@
 #endif
 
 /**
- * Mesh Bed Leveling
- */
-#if ENABLED(MESH_BED_LEVELING)
-  #if ENABLED(DELTA)
-    #error "MESH_BED_LEVELING does not yet support DELTA printers."
-  #elif ENABLED(AUTO_BED_LEVELING_FEATURE)
-    #error "Select AUTO_BED_LEVELING_FEATURE or MESH_BED_LEVELING, not both."
-  #elif MESH_NUM_X_POINTS > 9 || MESH_NUM_Y_POINTS > 9
-    #error "MESH_NUM_X_POINTS and MESH_NUM_Y_POINTS must be less than 10."
-  #endif
-#elif ENABLED(MANUAL_BED_LEVELING)
-  #error "MESH_BED_LEVELING is required for MANUAL_BED_LEVELING."
-#endif
-
-/**
  * Probes
  */
 
 #if PROBE_SELECTED
-
-  #if ENABLED(Z_PROBE_SLED) && ENABLED(DELTA)
-    #error "You cannot use Z_PROBE_SLED with DELTA."
-  #endif
 
   /**
    * NUM_SERVOS is required for a Z servo probe
@@ -298,19 +206,6 @@
     #if !HAS_Z_MIN_PROBE_PIN
       #error "Z_MIN_PROBE_ENDSTOP requires a Z_MIN_PROBE_PIN in your board's pins_XXXX.h file."
     #endif
-    // Forcing Servo definitions can break some hall effect sensor setups. Leaving these here for further comment.
-    //#ifndef NUM_SERVOS
-    //  #error "You must have NUM_SERVOS defined and there must be at least 1 configured to use Z_MIN_PROBE_ENDSTOP."
-    //#endif
-    //#if defined(NUM_SERVOS) && NUM_SERVOS < 1
-    //  #error "You must have at least 1 servo defined for NUM_SERVOS to use Z_MIN_PROBE_ENDSTOP."
-    //#endif
-    //#if Z_ENDSTOP_SERVO_NR < 0
-    //  #error "You must have Z_ENDSTOP_SERVO_NR set to at least 0 or above to use Z_MIN_PROBE_ENDSTOP."
-    //#endif
-    //#ifndef Z_SERVO_ANGLES
-    //  #error "You must have Z_SERVO_ANGLES defined for Z Extend and Retract to use Z_MIN_PROBE_ENDSTOP."
-    //#endif
   #endif
 
   /**
@@ -331,9 +226,7 @@
   /**
    * Require some kind of probe for bed leveling and probe testing
    */
-  #if ENABLED(AUTO_BED_LEVELING_FEATURE)
-    #error "AUTO_BED_LEVELING_FEATURE requires a probe! Define a Z Servo, Z_PROBE_ALLEN_KEY, Z_PROBE_SLED, or FIX_MOUNTED_PROBE."
-  #elif ENABLED(Z_MIN_PROBE_REPEATABILITY_TEST)
+  #if   ENABLED(Z_MIN_PROBE_REPEATABILITY_TEST)
     #error "Z_MIN_PROBE_REPEATABILITY_TEST requires a probe! Define a Z Servo, Z_PROBE_ALLEN_KEY, Z_PROBE_SLED, or FIX_MOUNTED_PROBE."
   #endif
 
@@ -344,87 +237,17 @@
  */
 #if ENABLED(Z_SAFE_HOMING)
   #if Z_SAFE_HOMING_X_POINT < MIN_PROBE_X || Z_SAFE_HOMING_X_POINT > MAX_PROBE_X
-    #if HAS_BED_PROBE
-      #error "Z_SAFE_HOMING_X_POINT can't be reached by the Z probe."
-    #else
       #error "Z_SAFE_HOMING_X_POINT can't be reached by the nozzle."
-    #endif
   #elif Z_SAFE_HOMING_Y_POINT < MIN_PROBE_Y || Z_SAFE_HOMING_Y_POINT > MAX_PROBE_Y
-    #if HAS_BED_PROBE
-      #error "Z_SAFE_HOMING_Y_POINT can't be reached by the Z probe."
-    #else
       #error "Z_SAFE_HOMING_Y_POINT can't be reached by the nozzle."
-    #endif
   #endif
 #endif // Z_SAFE_HOMING
-
-/**
- * Auto Bed Leveling
- */
-#if ENABLED(AUTO_BED_LEVELING_FEATURE)
-
-  /**
-   * Delta has limited bed leveling options
-   */
-  #if ENABLED(DELTA) && DISABLED(AUTO_BED_LEVELING_GRID)
-    #error "You must use AUTO_BED_LEVELING_GRID for DELTA bed leveling."
-  #endif
-
-  /**
-   * Check if Probe_Offset * Grid Points is greater than Probing Range
-   */
-  #if ENABLED(AUTO_BED_LEVELING_GRID)
-    #ifndef DELTA_PROBEABLE_RADIUS
-      // Be sure points are in the right order
-      #if LEFT_PROBE_BED_POSITION > RIGHT_PROBE_BED_POSITION
-        #error "LEFT_PROBE_BED_POSITION must be less than RIGHT_PROBE_BED_POSITION."
-      #elif FRONT_PROBE_BED_POSITION > BACK_PROBE_BED_POSITION
-        #error "FRONT_PROBE_BED_POSITION must be less than BACK_PROBE_BED_POSITION."
-      #endif
-      // Make sure probing points are reachable
-      #if LEFT_PROBE_BED_POSITION < MIN_PROBE_X
-        #error "The given LEFT_PROBE_BED_POSITION can't be reached by the Z probe."
-      #elif RIGHT_PROBE_BED_POSITION > MAX_PROBE_X
-        #error "The given RIGHT_PROBE_BED_POSITION can't be reached by the Z probe."
-      #elif FRONT_PROBE_BED_POSITION < MIN_PROBE_Y
-        #error "The given FRONT_PROBE_BED_POSITION can't be reached by the Z probe."
-      #elif BACK_PROBE_BED_POSITION > MAX_PROBE_Y
-        #error "The given BACK_PROBE_BED_POSITION can't be reached by the Z probe."
-      #endif
-    #endif
-  #else // !AUTO_BED_LEVELING_GRID
-
-    // Check the triangulation points
-    #if ABL_PROBE_PT_1_X < MIN_PROBE_X || ABL_PROBE_PT_1_X > MAX_PROBE_X
-      #error "The given ABL_PROBE_PT_1_X can't be reached by the Z probe."
-    #elif ABL_PROBE_PT_2_X < MIN_PROBE_X || ABL_PROBE_PT_2_X > MAX_PROBE_X
-      #error "The given ABL_PROBE_PT_2_X can't be reached by the Z probe."
-    #elif ABL_PROBE_PT_3_X < MIN_PROBE_X || ABL_PROBE_PT_3_X > MAX_PROBE_X
-      #error "The given ABL_PROBE_PT_3_X can't be reached by the Z probe."
-    #elif ABL_PROBE_PT_1_Y < MIN_PROBE_Y || ABL_PROBE_PT_1_Y > MAX_PROBE_Y
-      #error "The given ABL_PROBE_PT_1_Y can't be reached by the Z probe."
-    #elif ABL_PROBE_PT_2_Y < MIN_PROBE_Y || ABL_PROBE_PT_2_Y > MAX_PROBE_Y
-      #error "The given ABL_PROBE_PT_2_Y can't be reached by the Z probe."
-    #elif ABL_PROBE_PT_3_Y < MIN_PROBE_Y || ABL_PROBE_PT_3_Y > MAX_PROBE_Y
-      #error "The given ABL_PROBE_PT_3_Y can't be reached by the Z probe."
-    #endif
-
-  #endif // !AUTO_BED_LEVELING_GRID
-
-#endif // AUTO_BED_LEVELING_FEATURE
 
 /**
  * Advance Extrusion
  */
 #if ENABLED(ADVANCE) && ENABLED(LIN_ADVANCE)
   #error "You can enable ADVANCE or LIN_ADVANCE, but not both."
-#endif
-
-/**
- * Filament Width Sensor
- */
-#if ENABLED(FILAMENT_WIDTH_SENSOR) && !HAS_FILAMENT_WIDTH_SENSOR
-  #error "FILAMENT_WIDTH_SENSOR requires a FILWIDTH_PIN to be defined."
 #endif
 
 /**
@@ -448,11 +271,9 @@
 /**
  * Don't set more than one kinematic type
  */
-#if (ENABLED(DELTA) && (ENABLED(SCARA) || ENABLED(COREXY) || ENABLED(COREXZ) || ENABLED(COREYZ))) \
- || (ENABLED(SCARA) && (ENABLED(COREXY) || ENABLED(COREXZ) || ENABLED(COREYZ))) \
- || (ENABLED(COREXY) && (ENABLED(COREXZ) || ENABLED(COREYZ))) \
+#if (ENABLED(COREXY) && (ENABLED(COREXZ) || ENABLED(COREYZ))) \
  || (ENABLED(COREXZ) && ENABLED(COREYZ))
-  #error "Please enable only one of DELTA, SCARA, COREXY, COREXZ, or COREYZ."
+  #error "Please enable only one of COREXY, COREXZ, or COREYZ."
 #endif
 
 /**
@@ -492,10 +313,6 @@
     #error "DUAL_NOZZLE_DUPLICATION_MODE is incompatible with DUAL_X_CARRIAGE."
   #elif ENABLED(SINGLENOZZLE)
     #error "DUAL_NOZZLE_DUPLICATION_MODE is incompatible with SINGLENOZZLE."
-  #elif ENABLED(MIXING_EXTRUDER)
-    #error "DUAL_NOZZLE_DUPLICATION_MODE is incompatible with MIXING_EXTRUDER."
-  #elif ENABLED(SWITCHING_EXTRUDER)
-    #error "DUAL_NOZZLE_DUPLICATION_MODE is incompatible with SWITCHING_EXTRUDER."
   #endif
 #endif
 
@@ -541,10 +358,6 @@
  */
 #if WATCH_TEMP_PERIOD > 500
   #error "WATCH_TEMP_PERIOD now uses seconds instead of milliseconds."
-#elif 1 && (defined(WATCH_TEMP_PERIOD) || defined(THERMAL_PROTECTION_PERIOD))
-  #error "Thermal Runaway Protection for hotends is now enabled with THERMAL_PROTECTION_HOTENDS."
-#elif 1 && defined(THERMAL_PROTECTION_BED_PERIOD)
-  #error "Thermal Runaway Protection for the bed is now enabled with THERMAL_PROTECTION_BED."
 #elif ENABLED(COREXZ) && ENABLED(Z_LATE_ENABLE)
   #error "Z_LATE_ENABLE can't be used with COREXZ."
 #elif defined(X_HOME_RETRACT_MM)
@@ -561,14 +374,10 @@
   #error "CUSTOM_MENDEL_NAME is now CUSTOM_MACHINE_NAME. Please update your configuration."
 #elif defined(HAS_AUTOMATIC_VERSIONING)
   #error "HAS_AUTOMATIC_VERSIONING is now USE_AUTOMATIC_VERSIONING. Please update your configuration."
-#elif defined(ENABLE_AUTO_BED_LEVELING)
-  #error "ENABLE_AUTO_BED_LEVELING is now AUTO_BED_LEVELING_FEATURE. Please update your configuration."
 #elif defined(SDSLOW)
   #error "SDSLOW deprecated. Set SPI_SPEED to SPI_HALF_SPEED instead."
 #elif defined(SDEXTRASLOW)
   #error "SDEXTRASLOW deprecated. Set SPI_SPEED to SPI_QUARTER_SPEED instead."
-#elif defined(FILAMENT_SENSOR)
-  #error "FILAMENT_SENSOR is deprecated. Use FILAMENT_WIDTH_SENSOR instead."
 #elif defined(DISABLE_MAX_ENDSTOPS) || defined(DISABLE_MIN_ENDSTOPS)
   #error "DISABLE_MAX_ENDSTOPS and DISABLE_MIN_ENDSTOPS deprecated. Use individual USE_*_PLUG options instead."
 #elif ENABLED(Z_DUAL_ENDSTOPS) && !defined(Z2_USE_ENDSTOP)
@@ -591,8 +400,6 @@
   #error "PROBE_SERVO_DEACTIVATION_DELAY is deprecated. Use DEACTIVATE_SERVOS_AFTER_MOVE instead."
 #elif defined(SERVO_DEACTIVATION_DELAY)
   #error "SERVO_DEACTIVATION_DELAY is deprecated. Use SERVO_DELAY instead."
-#elif ENABLED(FILAMENTCHANGEENABLE)
-  #error "FILAMENTCHANGEENABLE is now FILAMENT_CHANGE_FEATURE. Please update your configuration."
 #elif defined(ENDSTOPS_ONLY_FOR_HOMING)
   #error "ENDSTOPS_ONLY_FOR_HOMING is deprecated. Use (disable) ENDSTOPS_ALWAYS_ON_DEFAULT instead."
 #elif defined(HOMING_FEEDRATE)

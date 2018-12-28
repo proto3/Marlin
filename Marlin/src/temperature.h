@@ -30,19 +30,6 @@
 #include "planner.h"
 
 class Temperature {
-
-  #if ENABLED(BABYSTEPPING)
-  public:
-    static volatile int babystepsTodo[3];
-  #endif
-
-
-  #if ENABLED(FILAMENT_WIDTH_SENSOR)
-  private:
-    static int meas_shift_index;  // Index of a delayed sample in buffer
-    static int current_raw_filwidth;  //Holds measured filament diameter - one extruder only
-  #endif
-
   public:
 
     /**
@@ -59,46 +46,6 @@ class Temperature {
      * Call periodically to manage heaters
      */
     static void manage_heater();
-
-    #if ENABLED(FILAMENT_WIDTH_SENSOR)
-      static float analog2widthFil(); // Convert raw Filament Width to millimeters
-      static int widthFil_to_size_ratio(); // Convert raw Filament Width to an extrusion ratio
-    #endif
-
-    #if ENABLED(BABYSTEPPING)
-
-      static void babystep_axis(AxisEnum axis, int distance) {
-        #if ENABLED(COREXY) || ENABLED(COREXZ) || ENABLED(COREYZ)
-          #if ENABLED(BABYSTEP_XY)
-            switch (axis) {
-              case CORE_AXIS_1: // X on CoreXY and CoreXZ, Y on CoreYZ
-                babystepsTodo[CORE_AXIS_1] += distance * 2;
-                babystepsTodo[CORE_AXIS_2] += distance * 2;
-                break;
-              case CORE_AXIS_2: // Y on CoreXY, Z on CoreXZ and CoreYZ
-                babystepsTodo[CORE_AXIS_1] += distance * 2;
-                babystepsTodo[CORE_AXIS_2] -= distance * 2;
-                break;
-              case NORMAL_AXIS: // Z on CoreXY, Y on CoreXZ, X on CoreYZ
-                babystepsTodo[NORMAL_AXIS] += distance;
-                break;
-            }
-          #elif ENABLED(COREXZ) || ENABLED(COREYZ)
-            // Only Z stepping needs to be handled here
-            babystepsTodo[CORE_AXIS_1] += distance * 2;
-            babystepsTodo[CORE_AXIS_2] -= distance * 2;
-          #else
-            babystepsTodo[Z_AXIS] += distance;
-          #endif
-        #else
-          babystepsTodo[axis] += distance;
-        #endif
-      }
-
-    #endif // BABYSTEPPING
-
-  private:
-    static void updateTemperaturesFromRawValues();
 };
 
 extern Temperature thermalManager;

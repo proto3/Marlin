@@ -114,31 +114,16 @@ uint8_t lcdDrawUpdate = LCDVIEW_CLEAR_CALL_REDRAW; // Set when the LCD needs to 
     static void lcd_info_menu();
   #endif // LCD_INFO_MENU
 
-  #if ENABLED(FILAMENT_CHANGE_FEATURE)
-    static void lcd_filament_change_option_menu();
-    static void lcd_filament_change_init_message();
-    static void lcd_filament_change_unload_message();
-    static void lcd_filament_change_insert_message();
-    static void lcd_filament_change_load_message();
-    static void lcd_filament_change_extrude_message();
-    static void lcd_filament_change_resume_message();
-  #endif
 
   #if HAS_LCD_CONTRAST
     static void lcd_set_contrast();
   #endif
 
-  #if ENABLED(FWRETRACT)
-    static void lcd_control_retract_menu();
-  #endif
 
   #if ENABLED(DELTA_CALIBRATION_MENU)
     static void lcd_delta_calibrate_menu();
   #endif
 
-  #if ENABLED(MANUAL_BED_LEVELING)
-    #include "mesh_bed_leveling.h"
-  #endif
 
   // Function pointer to menu functions.
   typedef void (*screenFunc_t)();
@@ -540,12 +525,7 @@ void kill_screen(const char* lcd_msg) {
 #if ENABLED(ULTIPANEL)
 
   inline void line_to_current(AxisEnum axis) {
-    #if ENABLED(DELTA)
-      inverse_kinematics(current_position);
-      planner.buffer_line(delta[X_AXIS], delta[Y_AXIS], delta[Z_AXIS], current_position[E_AXIS], MMM_TO_MMS(manual_feedrate_mm_m[axis]), active_extruder);
-    #else // !DELTA
       planner.buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS], MMM_TO_MMS(manual_feedrate_mm_m[axis]), active_extruder);
-    #endif // !DELTA
   }
 
   #if ENABLED(SDSUPPORT)
@@ -653,36 +633,6 @@ void kill_screen(const char* lcd_msg) {
     lcd_return_to_status();
   }
 
-  #if ENABLED(BABYSTEPPING)
-
-    long babysteps_done = 0;
-
-    static void _lcd_babystep(const AxisEnum axis, const char* msg) {
-      if (LCD_CLICKED) { lcd_goto_previous_menu(true); return; }
-      ENCODER_DIRECTION_NORMAL();
-      if (encoderPosition) {
-        int babystep_increment = (int32_t)encoderPosition * BABYSTEP_MULTIPLICATOR;
-        encoderPosition = 0;
-        lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
-        thermalManager.babystep_axis(axis, babystep_increment);
-        babysteps_done += babystep_increment;
-      }
-      if (lcdDrawUpdate)
-        lcd_implementation_drawedit(msg, ftostr43sign(
-          ((1000 * babysteps_done) * planner.steps_to_mm[axis]) * 0.001f
-        ));
-    }
-
-    #if ENABLED(BABYSTEP_XY)
-      static void _lcd_babystep_x() { _lcd_babystep(X_AXIS, PSTR(MSG_BABYSTEPPING_X)); }
-      static void _lcd_babystep_y() { _lcd_babystep(Y_AXIS, PSTR(MSG_BABYSTEPPING_Y)); }
-      static void lcd_babystep_x() { babysteps_done = 0; lcd_goto_screen(_lcd_babystep_x); }
-      static void lcd_babystep_y() { babysteps_done = 0; lcd_goto_screen(_lcd_babystep_y); }
-    #endif
-    static void _lcd_babystep_z() { _lcd_babystep(Z_AXIS, PSTR(MSG_BABYSTEPPING_Z)); }
-    static void lcd_babystep_z() { babysteps_done = 0; lcd_goto_screen(_lcd_babystep_z); }
-
-  #endif //BABYSTEPPING
 
   /**
    *
@@ -703,9 +653,6 @@ void kill_screen(const char* lcd_msg) {
     MENU_ITEM_EDIT(int3, MSG_SPEED, &feedrate_percentage, 10, 999);
 
     // Manual bed leveling, Bed Z:
-    #if ENABLED(MANUAL_BED_LEVELING)
-      MENU_ITEM_EDIT(float43, MSG_BED_Z, &mbl.z_offset, -1, 1);
-    #endif
 
     //
     // Flow:
@@ -733,20 +680,10 @@ void kill_screen(const char* lcd_msg) {
     // Babystep Y:
     // Babystep Z:
     //
-    #if ENABLED(BABYSTEPPING)
-      #if ENABLED(BABYSTEP_XY)
-        MENU_ITEM(submenu, MSG_BABYSTEP_X, lcd_babystep_x);
-        MENU_ITEM(submenu, MSG_BABYSTEP_Y, lcd_babystep_y);
-      #endif //BABYSTEP_XY
-      MENU_ITEM(submenu, MSG_BABYSTEP_Z, lcd_babystep_z);
-    #endif
 
     //
     // Change filament
     //
-    #if ENABLED(FILAMENT_CHANGE_FEATURE)
-       MENU_ITEM(gcode, MSG_FILAMENTCHANGE, PSTR("M600"));
-    #endif
 
     END_MENU();
   }
@@ -760,199 +697,6 @@ void kill_screen(const char* lcd_msg) {
 
   #endif
 
-  #if ENABLED(MANUAL_BED_LEVELING)
-
-    /**
-     *
-     * "Prepare" > "Bed Leveling" handlers
-     *
-     */
-
-    static uint8_t _lcd_level_bed_position;
-
-    // Utility to go to the next mesh point
-    // A raise is added between points if Z_HOMING_HEIGHT is in use
-    // Note: During Manual Bed Leveling the homed Z position is MESH_HOME_SEARCH_Z
-    // Z position will be restored with the final action, a G28
-    inline void _mbl_goto_xy(float x, float y) {
-      current_position[Z_AXIS] = MESH_HOME_SEARCH_Z + Z_HOMING_HEIGHT;
-      line_to_current(Z_AXIS);
-      current_position[X_AXIS] = x + home_offset[X_AXIS];
-      current_position[Y_AXIS] = y + home_offset[Y_AXIS];
-      line_to_current(manual_feedrate_mm_m[X_AXIS] <= manual_feedrate_mm_m[Y_AXIS] ? X_AXIS : Y_AXIS);
-      #if Z_HOMING_HEIGHT > 0
-        current_position[Z_AXIS] = MESH_HOME_SEARCH_Z; // How do condition and action match?
-        line_to_current(Z_AXIS);
-      #endif
-      stepper.synchronize();
-    }
-
-    static void _lcd_level_goto_next_point();
-
-    static void _lcd_level_bed_done() {
-      if (lcdDrawUpdate) lcd_implementation_drawedit(PSTR(MSG_LEVEL_BED_DONE));
-      lcdDrawUpdate =
-        #if ENABLED(DOGLCD)
-          LCDVIEW_CALL_REDRAW_NEXT
-        #else
-          LCDVIEW_CALL_NO_REDRAW
-        #endif
-      ;
-    }
-
-    /**
-     * Step 7: Get the Z coordinate, then goto next point or exit
-     */
-    static void _lcd_level_bed_get_z() {
-      ENCODER_DIRECTION_NORMAL();
-
-      // Encoder wheel adjusts the Z position
-      if (encoderPosition) {
-        refresh_cmd_timeout();
-        current_position[Z_AXIS] += float((int32_t)encoderPosition) * (MBL_Z_STEP);
-        NOLESS(current_position[Z_AXIS], 0);
-        NOMORE(current_position[Z_AXIS], MESH_HOME_SEARCH_Z * 2);
-        line_to_current(Z_AXIS);
-        lcdDrawUpdate =
-          #if ENABLED(DOGLCD)
-            LCDVIEW_CALL_REDRAW_NEXT
-          #else
-            LCDVIEW_REDRAW_NOW
-          #endif
-        ;
-        encoderPosition = 0;
-      }
-
-      static bool debounce_click = false;
-      if (LCD_CLICKED) {
-        if (!debounce_click) {
-          debounce_click = true; // ignore multiple "clicks" in a row
-          mbl.set_zigzag_z(_lcd_level_bed_position++, current_position[Z_AXIS]);
-          if (_lcd_level_bed_position == (MESH_NUM_X_POINTS) * (MESH_NUM_Y_POINTS)) {
-            lcd_goto_screen(_lcd_level_bed_done, true);
-
-            current_position[Z_AXIS] = MESH_HOME_SEARCH_Z + Z_HOMING_HEIGHT;
-            line_to_current(Z_AXIS);
-            stepper.synchronize();
-
-            mbl.set_has_mesh(true);
-            enqueue_and_echo_commands_P(PSTR("G28"));
-            lcd_return_to_status();
-            //LCD_MESSAGEPGM(MSG_LEVEL_BED_DONE);
-            #if HAS_BUZZER
-              lcd_buzz(200, 659);
-              lcd_buzz(200, 698);
-            #endif
-          }
-          else {
-            lcd_goto_screen(_lcd_level_goto_next_point, true);
-          }
-        }
-      }
-      else {
-        debounce_click = false;
-      }
-
-      // Update on first display, then only on updates to Z position
-      // Show message above on clicks instead
-      if (lcdDrawUpdate) {
-        float v = current_position[Z_AXIS] - MESH_HOME_SEARCH_Z;
-        lcd_implementation_drawedit(PSTR(MSG_MOVE_Z), ftostr43sign(v + (v < 0 ? -0.0001 : 0.0001), '+'));
-      }
-
-    }
-
-    /**
-     * Step 6: Display "Next point: 1 / 9" while waiting for move to finish
-     */
-    static void _lcd_level_bed_moving() {
-      if (lcdDrawUpdate) {
-        char msg[10];
-        sprintf_P(msg, PSTR("%i / %u"), (int)(_lcd_level_bed_position + 1), (MESH_NUM_X_POINTS) * (MESH_NUM_Y_POINTS));
-        lcd_implementation_drawedit(PSTR(MSG_LEVEL_BED_NEXT_POINT), msg);
-      }
-
-      lcdDrawUpdate =
-        #if ENABLED(DOGLCD)
-          LCDVIEW_CALL_REDRAW_NEXT
-        #else
-          LCDVIEW_CALL_NO_REDRAW
-        #endif
-      ;
-    }
-
-    /**
-     * Step 5: Initiate a move to the next point
-     */
-    static void _lcd_level_goto_next_point() {
-      // Set the menu to display ahead of blocking call
-      lcd_goto_screen(_lcd_level_bed_moving);
-
-      // _mbl_goto_xy runs the menu loop until the move is done
-      int8_t px, py;
-      mbl.zigzag(_lcd_level_bed_position, px, py);
-      _mbl_goto_xy(mbl.get_probe_x(px), mbl.get_probe_y(py));
-
-      // After the blocking function returns, change menus
-      lcd_goto_screen(_lcd_level_bed_get_z);
-    }
-
-    /**
-     * Step 4: Display "Click to Begin", wait for click
-     *         Move to the first probe position
-     */
-    static void _lcd_level_bed_homing_done() {
-      if (lcdDrawUpdate) lcd_implementation_drawedit(PSTR(MSG_LEVEL_BED_WAITING));
-      if (LCD_CLICKED) {
-        _lcd_level_bed_position = 0;
-        current_position[Z_AXIS] = MESH_HOME_SEARCH_Z
-          #if Z_HOME_DIR > 0
-            + Z_MAX_POS
-          #endif
-        ;
-        planner.set_position_mm(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS]);
-        lcd_goto_screen(_lcd_level_goto_next_point, true);
-      }
-    }
-
-    /**
-     * Step 3: Display "Homing XYZ" - Wait for homing to finish
-     */
-    static void _lcd_level_bed_homing() {
-      if (lcdDrawUpdate) lcd_implementation_drawedit(PSTR(MSG_LEVEL_BED_HOMING), NULL);
-      lcdDrawUpdate =
-        #if ENABLED(DOGLCD)
-          LCDVIEW_CALL_REDRAW_NEXT
-        #else
-          LCDVIEW_CALL_NO_REDRAW
-        #endif
-      ;
-      if (axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS])
-        lcd_goto_screen(_lcd_level_bed_homing_done);
-    }
-
-    /**
-     * Step 2: Continue Bed Leveling...
-     */
-    static void _lcd_level_bed_continue() {
-      defer_return_to_status = true;
-      axis_homed[X_AXIS] = axis_homed[Y_AXIS] = axis_homed[Z_AXIS] = false;
-      mbl.reset();
-      enqueue_and_echo_commands_P(PSTR("G28"));
-      lcd_goto_screen(_lcd_level_bed_homing);
-    }
-
-    /**
-     * Step 1: MBL entry-point: "Cancel" or "Level Bed"
-     */
-    static void lcd_level_bed() {
-      START_MENU();
-      MENU_ITEM(back, MSG_LEVEL_BED_CANCEL);
-      MENU_ITEM(submenu, MSG_LEVEL_BED, _lcd_level_bed_continue);
-      END_MENU();
-    }
-
-  #endif  // MANUAL_BED_LEVELING
 
   /**
    *
@@ -983,12 +727,7 @@ void kill_screen(const char* lcd_msg) {
    */
   inline void manage_manual_move() {
     if (manual_move_axis != (int8_t)NO_AXIS && ELAPSED(millis(), manual_move_start_time) && !planner.is_full()) {
-      #if ENABLED(DELTA)
-        inverse_kinematics(current_position);
-        planner.buffer_line(delta[X_AXIS], delta[Y_AXIS], delta[Z_AXIS], current_position[E_AXIS], MMM_TO_MMS(manual_feedrate_mm_m[manual_move_axis]), manual_move_e_index);
-      #else
         planner.buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS], MMM_TO_MMS(manual_feedrate_mm_m[manual_move_axis]), manual_move_e_index);
-      #endif
       manual_move_axis = (int8_t)NO_AXIS;
     }
   }
@@ -1029,15 +768,8 @@ void kill_screen(const char* lcd_msg) {
     }
     if (lcdDrawUpdate) lcd_implementation_drawedit(name, ftostr41sign(current_position[axis]));
   }
-  #if ENABLED(DELTA)
-    static float delta_clip_radius_2 =  (DELTA_PRINTABLE_RADIUS) * (DELTA_PRINTABLE_RADIUS);
-    static int delta_clip( float a ) { return sqrt(delta_clip_radius_2 - sq(a)); }
-    static void lcd_move_x() { int clip = delta_clip(current_position[Y_AXIS]); _lcd_move_xyz(PSTR(MSG_MOVE_X), X_AXIS, max(sw_endstop_min[X_AXIS], -clip), min(sw_endstop_max[X_AXIS], clip)); }
-    static void lcd_move_y() { int clip = delta_clip(current_position[X_AXIS]); _lcd_move_xyz(PSTR(MSG_MOVE_Y), Y_AXIS, max(sw_endstop_min[Y_AXIS], -clip), min(sw_endstop_max[Y_AXIS], clip)); }
-  #else
     static void lcd_move_x() { _lcd_move_xyz(PSTR(MSG_MOVE_X), X_AXIS, sw_endstop_min[X_AXIS], sw_endstop_max[X_AXIS]); }
     static void lcd_move_y() { _lcd_move_xyz(PSTR(MSG_MOVE_Y), Y_AXIS, sw_endstop_min[Y_AXIS], sw_endstop_max[Y_AXIS]); }
-  #endif
   static void lcd_move_z() { _lcd_move_xyz(PSTR(MSG_MOVE_Z), Z_AXIS, sw_endstop_min[Z_AXIS], sw_endstop_max[Z_AXIS]); }
   static void _lcd_move_e(
     #if E_MANUAL > 1
@@ -1094,11 +826,7 @@ void kill_screen(const char* lcd_msg) {
    *
    */
 
-  #if ENABLED(DELTA) || ENABLED(SCARA)
-    #define _MOVE_XYZ_ALLOWED (axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS])
-  #else
     #define _MOVE_XYZ_ALLOWED true
-  #endif
 
   static void _lcd_move_menu_axis() {
     START_MENU();
@@ -1174,20 +902,10 @@ void kill_screen(const char* lcd_msg) {
   static void lcd_control_motion_menu() {
     START_MENU();
     MENU_ITEM(back, "Return");
-    #if HAS_BED_PROBE
-      MENU_ITEM_EDIT(float32, MSG_ZPROBE_ZOFFSET, &zprobe_zoffset, Z_PROBE_OFFSET_RANGE_MIN, Z_PROBE_OFFSET_RANGE_MAX);
-    #endif
     // Manual bed leveling, Bed Z:
-    #if ENABLED(MANUAL_BED_LEVELING)
-      MENU_ITEM_EDIT(float43, MSG_BED_Z, &mbl.z_offset, -1, 1);
-    #endif
     MENU_ITEM_EDIT(float5, MSG_ACC, &planner.acceleration, 10, 99000);
     MENU_ITEM_EDIT(float3, MSG_VXY_JERK, &planner.max_xy_jerk, 1, 990);
-    #if ENABLED(DELTA)
-      MENU_ITEM_EDIT(float3, MSG_VZ_JERK, &planner.max_z_jerk, 1, 990);
-    #else
       MENU_ITEM_EDIT(float52, MSG_VZ_JERK, &planner.max_z_jerk, 0.1, 990);
-    #endif
     MENU_ITEM_EDIT(float3, MSG_VMAX MSG_X, &planner.max_feedrate_mm_s[X_AXIS], 1, 999);
     MENU_ITEM_EDIT(float3, MSG_VMAX MSG_Y, &planner.max_feedrate_mm_s[Y_AXIS], 1, 999);
     MENU_ITEM_EDIT(float3, MSG_VMAX MSG_Z, &planner.max_feedrate_mm_s[Z_AXIS], 1, 999);
@@ -1199,17 +917,9 @@ void kill_screen(const char* lcd_msg) {
     MENU_ITEM_EDIT(float5, MSG_A_TRAVEL, &planner.travel_acceleration, 100, 99000);
     MENU_ITEM_EDIT_CALLBACK(float52, MSG_XSTEPS, &planner.axis_steps_per_mm[X_AXIS], 5, 9999, _planner_refresh_positioning);
     MENU_ITEM_EDIT_CALLBACK(float52, MSG_YSTEPS, &planner.axis_steps_per_mm[Y_AXIS], 5, 9999, _planner_refresh_positioning);
-    #if ENABLED(DELTA)
-      MENU_ITEM_EDIT_CALLBACK(float52, MSG_ZSTEPS, &planner.axis_steps_per_mm[Z_AXIS], 5, 9999, _planner_refresh_positioning);
-    #else
       MENU_ITEM_EDIT_CALLBACK(float51, MSG_ZSTEPS, &planner.axis_steps_per_mm[Z_AXIS], 5, 9999, _planner_refresh_positioning);
-    #endif
     #if ENABLED(ABORT_ON_ENDSTOP_HIT_FEATURE_ENABLED)
       MENU_ITEM_EDIT(bool, MSG_ENDSTOP_ABORT, &stepper.abort_on_endstop_hit);
-    #endif
-    #if ENABLED(SCARA)
-      MENU_ITEM_EDIT(float74, MSG_XSCALE, &axis_scaling[X_AXIS], 0.5, 2);
-      MENU_ITEM_EDIT(float74, MSG_YSCALE, &axis_scaling[Y_AXIS], 0.5, 2);
     #endif
     END_MENU();
   }
@@ -1274,25 +984,6 @@ void kill_screen(const char* lcd_msg) {
    * "Control" > "Retract" submenu
    *
    */
-  #if ENABLED(FWRETRACT)
-    static void lcd_control_retract_menu() {
-      START_MENU();
-      MENU_ITEM(back, MSG_CONTROL);
-      MENU_ITEM_EDIT(bool, MSG_AUTORETRACT, &autoretract_enabled);
-      MENU_ITEM_EDIT(float52, MSG_CONTROL_RETRACT, &retract_length, 0, 100);
-      #if EXTRUDERS > 1
-        MENU_ITEM_EDIT(float52, MSG_CONTROL_RETRACT_SWAP, &retract_length_swap, 0, 100);
-      #endif
-      MENU_ITEM_EDIT(float3, MSG_CONTROL_RETRACTF, &retract_feedrate_mm_s, 1, 999);
-      MENU_ITEM_EDIT(float52, MSG_CONTROL_RETRACT_ZLIFT, &retract_zlift, 0, 999);
-      MENU_ITEM_EDIT(float52, MSG_CONTROL_RETRACT_RECOVER, &retract_recover_length, 0, 100);
-      #if EXTRUDERS > 1
-        MENU_ITEM_EDIT(float52, MSG_CONTROL_RETRACT_RECOVER_SWAP, &retract_recover_length_swap, 0, 100);
-      #endif
-      MENU_ITEM_EDIT(float3, MSG_CONTROL_RETRACT_RECOVERF, &retract_recover_feedrate_mm_s, 1, 999);
-      END_MENU();
-    }
-  #endif // FWRETRACT
 
   #if ENABLED(SDSUPPORT)
 
@@ -1449,138 +1140,6 @@ void kill_screen(const char* lcd_msg) {
     }
   #endif // LCD_INFO_MENU
 
-  #if ENABLED(FILAMENT_CHANGE_FEATURE)
-
-    static void lcd_filament_change_resume_print() {
-      filament_change_menu_response = FILAMENT_CHANGE_RESPONSE_RESUME_PRINT;
-      lcdDrawUpdate = 2;
-      lcd_goto_screen(lcd_status_screen);
-    }
-
-    static void lcd_filament_change_extrude_more() {
-      filament_change_menu_response = FILAMENT_CHANGE_RESPONSE_EXTRUDE_MORE;
-    }
-
-    static void lcd_filament_change_option_menu() {
-      START_MENU();
-      #if LCD_HEIGHT > 2
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_OPTION_HEADER, true, false);
-      #endif
-      MENU_ITEM(function, MSG_FILAMENT_CHANGE_OPTION_RESUME, lcd_filament_change_resume_print);
-      MENU_ITEM(function, MSG_FILAMENT_CHANGE_OPTION_EXTRUDE, lcd_filament_change_extrude_more);
-      END_MENU();
-    }
-
-    static void lcd_filament_change_init_message() {
-      START_SCREEN();
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_HEADER, true, true);
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_INIT_1);
-      #ifdef MSG_FILAMENT_CHANGE_INIT_2
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_INIT_2);
-      #endif
-      #ifdef MSG_FILAMENT_CHANGE_INIT_3
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_INIT_3);
-      #endif
-      END_SCREEN();
-    }
-
-    static void lcd_filament_change_unload_message() {
-      START_SCREEN();
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_HEADER, true, true);
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_UNLOAD_1);
-      #ifdef MSG_FILAMENT_CHANGE_UNLOAD_2
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_UNLOAD_2);
-      #endif
-      #ifdef MSG_FILAMENT_CHANGE_UNLOAD_3
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_UNLOAD_3);
-      #endif
-      END_SCREEN();
-    }
-
-    static void lcd_filament_change_insert_message() {
-      START_SCREEN();
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_HEADER, true, true);
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_INSERT_1);
-      #ifdef MSG_FILAMENT_CHANGE_INSERT_2
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_INSERT_2);
-      #endif
-      #ifdef MSG_FILAMENT_CHANGE_INSERT_3
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_INSERT_3);
-      #endif
-      END_SCREEN();
-    }
-
-    static void lcd_filament_change_load_message() {
-      START_SCREEN();
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_HEADER, true, true);
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_LOAD_1);
-      #ifdef MSG_FILAMENT_CHANGE_LOAD_2
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_LOAD_2);
-      #endif
-      #ifdef MSG_FILAMENT_CHANGE_LOAD_3
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_LOAD_3);
-      #endif
-      END_SCREEN();
-    }
-
-    static void lcd_filament_change_extrude_message() {
-      START_SCREEN();
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_HEADER, true, true);
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_EXTRUDE_1);
-      #ifdef MSG_FILAMENT_CHANGE_EXTRUDE_2
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_EXTRUDE_2);
-      #endif
-      #ifdef MSG_FILAMENT_CHANGE_EXTRUDE_3
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_EXTRUDE_3);
-      #endif
-      END_SCREEN();
-    }
-
-    static void lcd_filament_change_resume_message() {
-      START_SCREEN();
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_HEADER, true, true);
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_RESUME_1);
-      #ifdef MSG_FILAMENT_CHANGE_RESUME_2
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_RESUME_2);
-      #endif
-      #ifdef MSG_FILAMENT_CHANGE_RESUME_3
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_RESUME_3);
-      #endif
-      END_SCREEN();
-    }
-
-    void lcd_filament_change_show_message(FilamentChangeMessage message) {
-      switch (message) {
-        case FILAMENT_CHANGE_MESSAGE_INIT:
-          defer_return_to_status = true;
-          lcd_goto_screen(lcd_filament_change_init_message);
-          break;
-        case FILAMENT_CHANGE_MESSAGE_UNLOAD:
-          lcd_goto_screen(lcd_filament_change_unload_message);
-          break;
-        case FILAMENT_CHANGE_MESSAGE_INSERT:
-          lcd_goto_screen(lcd_filament_change_insert_message);
-          break;
-        case FILAMENT_CHANGE_MESSAGE_LOAD:
-          lcd_goto_screen(lcd_filament_change_load_message);
-          break;
-        case FILAMENT_CHANGE_MESSAGE_EXTRUDE:
-          lcd_goto_screen(lcd_filament_change_extrude_message);
-          break;
-        case FILAMENT_CHANGE_MESSAGE_OPTION:
-          filament_change_menu_response = FILAMENT_CHANGE_RESPONSE_WAIT_FOR;
-          lcd_goto_screen(lcd_filament_change_option_menu);
-          break;
-        case FILAMENT_CHANGE_MESSAGE_RESUME:
-          lcd_goto_screen(lcd_filament_change_resume_message);
-          break;
-        case FILAMENT_CHANGE_MESSAGE_STATUS:
-          lcd_return_to_status();
-          break;
-      }
-    }
-
-  #endif // FILAMENT_CHANGE_FEATURE
 
   /**
    *
@@ -1945,12 +1504,12 @@ void lcd_update(bool fast) {
 
           if (REPRAPWORLD_KEYPAD_MOVE_MENU)       reprapworld_keypad_move_menu();
 
-          #if DISABLED(DELTA) && Z_HOME_DIR == -1
+          #if 1 && Z_HOME_DIR == -1
             if (REPRAPWORLD_KEYPAD_MOVE_Z_UP)     reprapworld_keypad_move_z_up();
           #endif
 
           if (axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS]) {
-            #if ENABLED(DELTA) || Z_HOME_DIR != -1
+            #if 0 || Z_HOME_DIR != -1
               if (REPRAPWORLD_KEYPAD_MOVE_Z_UP)   reprapworld_keypad_move_z_up();
             #endif
             if (REPRAPWORLD_KEYPAD_MOVE_Z_DOWN)   reprapworld_keypad_move_z_down();

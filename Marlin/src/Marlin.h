@@ -110,9 +110,6 @@ FORCE_INLINE void serialprintPGM(const char* str) {
 }
 
 void idle(bool fast = false
-  #if ENABLED(FILAMENT_CHANGE_FEATURE)
-    , bool no_stepper_sleep = false  // pass true to keep steppers from disabling on timeout
-  #endif
 );
 
 void manage_inactivity(bool ignore_stepper_queue = false);
@@ -154,29 +151,6 @@ void manage_inactivity(bool ignore_stepper_queue = false);
   #define disable_z() NOOP
 #endif
 
-#if ENABLED(MIXING_EXTRUDER)
-
-  /**
-   * Mixing steppers synchronize their enable (and direction) together
-   */
-  #if MIXING_STEPPERS > 3
-    #define  enable_e0() { E0_ENABLE_WRITE( E_ENABLE_ON); E1_ENABLE_WRITE( E_ENABLE_ON); E2_ENABLE_WRITE( E_ENABLE_ON); E3_ENABLE_WRITE( E_ENABLE_ON); }
-    #define disable_e0() { E0_ENABLE_WRITE(!E_ENABLE_ON); E1_ENABLE_WRITE(!E_ENABLE_ON); E2_ENABLE_WRITE(!E_ENABLE_ON); E3_ENABLE_WRITE(!E_ENABLE_ON); }
-  #elif MIXING_STEPPERS > 2
-    #define  enable_e0() { E0_ENABLE_WRITE( E_ENABLE_ON); E1_ENABLE_WRITE( E_ENABLE_ON); E2_ENABLE_WRITE( E_ENABLE_ON); }
-    #define disable_e0() { E0_ENABLE_WRITE(!E_ENABLE_ON); E1_ENABLE_WRITE(!E_ENABLE_ON); E2_ENABLE_WRITE(!E_ENABLE_ON); }
-  #else
-    #define  enable_e0() { E0_ENABLE_WRITE( E_ENABLE_ON); E1_ENABLE_WRITE( E_ENABLE_ON); }
-    #define disable_e0() { E0_ENABLE_WRITE(!E_ENABLE_ON); E1_ENABLE_WRITE(!E_ENABLE_ON); }
-  #endif
-  #define  enable_e1() NOOP
-  #define disable_e1() NOOP
-  #define  enable_e2() NOOP
-  #define disable_e2() NOOP
-  #define  enable_e3() NOOP
-  #define disable_e3() NOOP
-
-#else // !MIXING_EXTRUDER
 
   #if HAS_E0_ENABLE
     #define  enable_e0() E0_ENABLE_WRITE( E_ENABLE_ON)
@@ -210,7 +184,6 @@ void manage_inactivity(bool ignore_stepper_queue = false);
     #define disable_e3() NOOP
   #endif
 
-#endif // !MIXING_EXTRUDER
 
 /**
  * The axis order in all axis related arrays is X, Y, Z, E
@@ -237,9 +210,6 @@ void kill(const char*);
 void quickstop_stepper();
 void autohome(bool x, bool y, bool z);
 
-#if ENABLED(FILAMENT_RUNOUT_SENSOR)
-  void handle_filament_runout();
-#endif
 
 extern uint8_t marlin_debug_flags;
 #define DEBUGGING(F) (marlin_debug_flags & (DEBUG_## F))
@@ -299,68 +269,23 @@ extern float sw_endstop_max[3];
 bool code_seen(char);
 int code_value_int();
 
-#if ENABLED(DELTA)
-  extern float delta[3];
-  extern float endstop_adj[3]; // axis[n].endstop_adj
-  extern float delta_radius;
-  extern float delta_diagonal_rod;
-  extern float delta_segments_per_second;
-  extern float delta_diagonal_rod_trim_tower_1;
-  extern float delta_diagonal_rod_trim_tower_2;
-  extern float delta_diagonal_rod_trim_tower_3;
-  void inverse_kinematics(const float cartesian[3]);
-  void recalc_delta_settings(float radius, float diagonal_rod);
-  #if ENABLED(AUTO_BED_LEVELING_FEATURE)
-    extern int delta_grid_spacing[2];
-    void adjust_delta(float cartesian[3]);
-  #endif
-#elif ENABLED(SCARA)
-  extern float delta[3];
-  extern float axis_scaling[3];  // Build size scaling
-  void inverse_kinematics(const float cartesian[3]);
-  void forward_kinematics_SCARA(float f_scara[3]);
-#endif
 
 #if ENABLED(Z_DUAL_ENDSTOPS)
   extern float z_endstop_adj;
 #endif
 
-#if HAS_BED_PROBE
-  extern float zprobe_zoffset;
-#endif
 
 #if ENABLED(HOST_KEEPALIVE_FEATURE)
   extern uint8_t host_keepalive_interval;
 #endif
 
-#if ENABLED(BARICUDA)
-  extern int baricuda_valve_pressure;
-  extern int baricuda_e_to_p_pressure;
-#endif
 
-#if ENABLED(FILAMENT_WIDTH_SENSOR)
-  extern float filament_width_nominal;  //holds the theoretical filament diameter i.e., 3.00 or 1.75
-  extern bool filament_sensor;  //indicates that filament sensor readings should control extrusion
-  extern float filament_width_meas; //holds the filament diameter as accurately measured
-  extern int8_t measurement_delay[];  //ring buffer to delay measurement
-  extern int filwidth_delay_index1, filwidth_delay_index2;  //ring buffer index. used by planner, temperature, and main code
-  extern int meas_delay_cm; //delay distance
-#endif
 
-#if ENABLED(FILAMENT_CHANGE_FEATURE)
-  extern FilamentChangeMenuResponse filament_change_menu_response;
-#endif
 
 #if ENABLED(PID_EXTRUSION_SCALING)
   extern int lpq_len;
 #endif
 
-#if ENABLED(FWRETRACT)
-  extern bool autoretract_enabled;
-  extern bool retracted[EXTRUDERS]; // extruder[n].retracted
-  extern float retract_length, retract_length_swap, retract_feedrate_mm_s, retract_zlift;
-  extern float retract_recover_length, retract_recover_length_swap, retract_recover_feedrate_mm_s;
-#endif
 
 // Print job timer
 #if ENABLED(PRINTCOUNTER)
@@ -372,9 +297,6 @@ int code_value_int();
 // Handling multiple extruders pins
 extern uint8_t active_extruder;
 
-#if ENABLED(MIXING_EXTRUDER)
-  extern float mixing_factor[MIXING_STEPPERS];
-#endif
 
 void calculate_volumetric_multipliers();
 

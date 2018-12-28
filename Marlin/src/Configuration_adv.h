@@ -307,12 +307,6 @@
 // it can e.g. be used to change z-positions in the print startup phase in real-time
 // does not respect endstops!
 //#define BABYSTEPPING
-#if ENABLED(BABYSTEPPING)
-  #define BABYSTEP_XY  //not only z, but also XY in the menu. more clutter, more functions
-                       //not implemented for deltabots!
-  #define BABYSTEP_INVERT_Z false  //true for inverse movements in Z
-  #define BABYSTEP_MULTIPLICATOR 1 //faster movements
-#endif
 
 // @section extruder
 
@@ -344,12 +338,6 @@
 // Default mesh area is an area with an inset margin on the print area.
 // Below are the macros that are used to define the borders for the mesh area,
 // made available here for specialized needs, ie dual extruder setup.
-#if ENABLED(MESH_BED_LEVELING)
-  #define MESH_MIN_X (X_MIN_POS + MESH_INSET)
-  #define MESH_MAX_X (X_MAX_POS - (MESH_INSET))
-  #define MESH_MIN_Y (Y_MIN_POS + MESH_INSET)
-  #define MESH_MAX_Y (Y_MAX_POS - (MESH_INSET))
-#endif
 
 // @section extras
 
@@ -416,44 +404,10 @@ const unsigned int dropsegments = 5; //everything with less than this number of 
 // the moves are than replaced by the firmware controlled ones.
 
 //#define FWRETRACT  //ONLY PARTIALLY TESTED
-#if ENABLED(FWRETRACT)
-  #define MIN_RETRACT 0.1                //minimum extruded mm to accept a automatic gcode retraction attempt
-  #define RETRACT_LENGTH 3               //default retract length (positive mm)
-  #define RETRACT_LENGTH_SWAP 13         //default swap retract length (positive mm), for extruder change
-  #define RETRACT_FEEDRATE 45            //default feedrate for retracting (mm/s)
-  #define RETRACT_ZLIFT 0                //default retract Z-lift
-  #define RETRACT_RECOVER_LENGTH 0       //default additional recover length (mm, added to retract length when recovering)
-  #define RETRACT_RECOVER_LENGTH_SWAP 0  //default additional swap recover length (mm, added to retract length when recovering from extruder change)
-  #define RETRACT_RECOVER_FEEDRATE 8     //default feedrate for recovering from retraction (mm/s)
-#endif
 
 // Add support for experimental filament exchange support M600; requires display
 #if ENABLED(ULTIPANEL)
   // #define FILAMENT_CHANGE_FEATURE             // Enable filament exchange menu and M600 g-code (used for runout sensor too)
-  #if ENABLED(FILAMENT_CHANGE_FEATURE)
-    #define FILAMENT_CHANGE_X_POS 3             // X position of hotend
-    #define FILAMENT_CHANGE_Y_POS 3             // Y position of hotend
-    #define FILAMENT_CHANGE_Z_ADD 10            // Z addition of hotend (lift)
-    #define FILAMENT_CHANGE_XY_FEEDRATE 100     // X and Y axes feedrate in mm/s (also used for delta printers Z axis)
-    #define FILAMENT_CHANGE_Z_FEEDRATE 5        // Z axis feedrate in mm/s (not used for delta printers)
-    #define FILAMENT_CHANGE_RETRACT_LENGTH 2    // Initial retract in mm
-                                                // It is a short retract used immediately after print interrupt before move to filament exchange position
-    #define FILAMENT_CHANGE_RETRACT_FEEDRATE 60 // Initial retract feedrate in mm/s
-    #define FILAMENT_CHANGE_UNLOAD_LENGTH 100   // Unload filament length from hotend in mm
-                                                // Longer length for bowden printers to unload filament from whole bowden tube,
-                                                // shorter lenght for printers without bowden to unload filament from extruder only,
-                                                // 0 to disable unloading for manual unloading
-    #define FILAMENT_CHANGE_UNLOAD_FEEDRATE 10  // Unload filament feedrate in mm/s - filament unloading can be fast
-    #define FILAMENT_CHANGE_LOAD_LENGTH 0       // Load filament length over hotend in mm
-                                                // Longer length for bowden printers to fast load filament into whole bowden tube over the hotend,
-                                                // Short or zero length for printers without bowden where loading is not used
-    #define FILAMENT_CHANGE_LOAD_FEEDRATE 10    // Load filament feedrate in mm/s - filament loading into the bowden tube can be fast
-    #define FILAMENT_CHANGE_EXTRUDE_LENGTH 50   // Extrude filament length in mm after filament is load over the hotend,
-                                                // 0 to disable for manual extrusion
-                                                // Filament can be extruded repeatedly from the filament exchange menu to fill the hotend,
-                                                // or until outcoming filament color is not clear for filament color change
-    #define FILAMENT_CHANGE_EXTRUDE_FEEDRATE 3  // Extrude filament feedrate in mm/s - must be slower than load feedrate
-  #endif
 #endif
 
 /******************************************************************************\

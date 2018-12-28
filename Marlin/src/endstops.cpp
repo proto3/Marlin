@@ -55,9 +55,6 @@ volatile char Endstops::endstop_hit_bits; // use X_MIN, Y_MIN, Z_MIN and Z_MIN_P
     Endstops::current_endstop_bits = 0,
     Endstops::old_endstop_bits = 0;
 
-#if HAS_BED_PROBE
-  volatile bool Endstops::z_probe_enabled = false;
-#endif
 
 /**
  * Class and Instance Methods
@@ -327,22 +324,12 @@ void Endstops::update() {
 
           #else // !Z_DUAL_ENDSTOPS
 
-            #if HAS_BED_PROBE && ENABLED(Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN)
-              if (z_probe_enabled) UPDATE_ENDSTOP(Z, MIN);
-            #else
               UPDATE_ENDSTOP(Z, MIN);
-            #endif
 
           #endif // !Z_DUAL_ENDSTOPS
 
         #endif // HAS_Z_MIN
 
-        #if HAS_BED_PROBE && ENABLED(Z_MIN_PROBE_ENDSTOP) && DISABLED(Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN)
-          if (z_probe_enabled) {
-            UPDATE_ENDSTOP(Z, MIN_PROBE);
-            if (TEST_ENDSTOP(Z_MIN_PROBE)) SBI(endstop_hit_bits, Z_MIN_PROBE);
-          }
-        #endif
       }
       else { // z +direction
         #if HAS_Z_MAX
