@@ -126,9 +126,6 @@
 /**
  * Filament Change with Extruder Runout Prevention
  */
-#if ENABLED(FILAMENT_CHANGE_FEATURE) && ENABLED(EXTRUDER_RUNOUT_PREVENT)
-  #error "EXTRUDER_RUNOUT_PREVENT is incompatible with FILAMENT_CHANGE_FEATURE."
-#endif
 
 /**
  * Individual axis homing is useless for DELTAS
@@ -144,14 +141,6 @@
 
   #if EXTRUDERS > 4
     #error "The maximum number of EXTRUDERS in Marlin is 4."
-  #endif
-
-  #if ENABLED(TEMP_SENSOR_1_AS_REDUNDANT)
-    #error "EXTRUDERS must be 1 with TEMP_SENSOR_1_AS_REDUNDANT."
-  #endif
-
-  #if ENABLED(HEATERS_PARALLEL)
-    #error "EXTRUDERS must be 1 with HEATERS_PARALLEL."
   #endif
 
 #elif ENABLED(SINGLENOZZLE)
@@ -217,13 +206,6 @@
  */
 #if DISABLED(DOGLCD) && ENABLED(ULTRA_LCD) && !defined(DISPLAY_CHARSET_HD44780)
   #error "You must set DISPLAY_CHARSET_HD44780 to JAPANESE, WESTERN or CYRILLIC for your LCD controller."
-#endif
-
-/**
- * Bed Heating Options - PID vs Limit Switching
- */
-#if ENABLED(PIDTEMPBED) && ENABLED(BED_LIMIT_SWITCHING)
-  #error "To use BED_LIMIT_SWITCHING you must disable PIDTEMPBED."
 #endif
 
 /**
@@ -501,100 +483,6 @@
 #endif // DUAL_X_CARRIAGE
 
 /**
- * Make sure auto fan pins don't conflict with the fan pin
- */
-#if HAS_AUTO_FAN
-  #if HAS_FAN0
-    #if EXTRUDER_0_AUTO_FAN_PIN == FAN_PIN
-      #error "You cannot set EXTRUDER_0_AUTO_FAN_PIN equal to FAN_PIN."
-    #elif EXTRUDER_1_AUTO_FAN_PIN == FAN_PIN
-      #error "You cannot set EXTRUDER_1_AUTO_FAN_PIN equal to FAN_PIN."
-    #elif EXTRUDER_2_AUTO_FAN_PIN == FAN_PIN
-      #error "You cannot set EXTRUDER_2_AUTO_FAN_PIN equal to FAN_PIN."
-    #elif EXTRUDER_3_AUTO_FAN_PIN == FAN_PIN
-      #error "You cannot set EXTRUDER_3_AUTO_FAN_PIN equal to FAN_PIN."
-    #endif
-  #endif
-#endif
-
-#if HAS_FAN0 && CONTROLLERFAN_PIN == FAN_PIN
-  #error "You cannot set CONTROLLERFAN_PIN equal to FAN_PIN."
-#endif
-
-#if HAS_CONTROLLERFAN
-  #if EXTRUDER_0_AUTO_FAN_PIN == CONTROLLERFAN_PIN
-    #error "You cannot set EXTRUDER_0_AUTO_FAN_PIN equal to CONTROLLERFAN_PIN."
-  #elif EXTRUDER_1_AUTO_FAN_PIN == CONTROLLERFAN_PIN
-    #error "You cannot set EXTRUDER_1_AUTO_FAN_PIN equal to CONTROLLERFAN_PIN."
-  #elif EXTRUDER_2_AUTO_FAN_PIN == CONTROLLERFAN_PIN
-    #error "You cannot set EXTRUDER_2_AUTO_FAN_PIN equal to CONTROLLERFAN_PIN."
-  #elif EXTRUDER_3_AUTO_FAN_PIN == CONTROLLERFAN_PIN
-    #error "You cannot set EXTRUDER_3_AUTO_FAN_PIN equal to CONTROLLERFAN_PIN."
-  #endif
-#endif
-
-/**
- * Test Heater, Temp Sensor, and Extruder Pins; Sensor Type must also be set.
- */
-#if !HAS_HEATER_0
-  #error "HEATER_0_PIN not defined for this board."
-#elif !PIN_EXISTS(TEMP_0)
-  #error "TEMP_0_PIN not defined for this board."
-#elif !PIN_EXISTS(E0_STEP) || !PIN_EXISTS(E0_DIR) || !PIN_EXISTS(E0_ENABLE)
-  #error "E0_STEP_PIN, E0_DIR_PIN, or E0_ENABLE_PIN not defined for this board."
-#elif TEMP_SENSOR_0 == 0
-  #error "TEMP_SENSOR_0 is required."
-#endif
-
-#if HOTENDS > 1 || ENABLED(HEATERS_PARALLEL)
-  #if !HAS_HEATER_1
-    #error "HEATER_1_PIN not defined for this board."
-  #endif
-#endif
-
-#if HOTENDS > 1
-  #if TEMP_SENSOR_1 == 0
-    #error "TEMP_SENSOR_1 is required with 2 or more HOTENDS."
-  #elif !PIN_EXISTS(TEMP_1)
-    #error "TEMP_1_PIN not defined for this board."
-  #endif
-  #if HOTENDS > 2
-    #if TEMP_SENSOR_2 == 0
-      #error "TEMP_SENSOR_2 is required with 3 or more HOTENDS."
-    #elif !HAS_HEATER_2
-      #error "HEATER_2_PIN not defined for this board."
-    #elif !PIN_EXISTS(TEMP_2)
-      #error "TEMP_2_PIN not defined for this board."
-    #endif
-    #if HOTENDS > 3
-      #if TEMP_SENSOR_3 == 0
-        #error "TEMP_SENSOR_3 is required with 4 HOTENDS."
-      #elif !HAS_HEATER_3
-        #error "HEATER_3_PIN not defined for this board."
-      #elif !PIN_EXISTS(TEMP_3)
-        #error "TEMP_3_PIN not defined for this board."
-      #endif
-    #elif TEMP_SENSOR_3 != 0
-      #error "TEMP_SENSOR_3 shouldn't be set with only 3 extruders."
-    #endif
-  #elif TEMP_SENSOR_2 != 0
-    #error "TEMP_SENSOR_2 shouldn't be set with only 2 extruders."
-  #elif TEMP_SENSOR_3 != 0
-    #error "TEMP_SENSOR_3 shouldn't be set with only 2 extruders."
-  #endif
-#elif TEMP_SENSOR_1 != 0 && DISABLED(TEMP_SENSOR_1_AS_REDUNDANT)
-  #error "TEMP_SENSOR_1 shouldn't be set with only 1 extruder."
-#elif TEMP_SENSOR_2 != 0
-  #error "TEMP_SENSOR_2 shouldn't be set with only 1 extruder."
-#elif TEMP_SENSOR_3 != 0
-  #error "TEMP_SENSOR_3 shouldn't be set with only 1 extruder."
-#endif
-
-#if ENABLED(TEMP_SENSOR_1_AS_REDUNDANT) && TEMP_SENSOR_1 == 0
-  #error "TEMP_SENSOR_1 is required with TEMP_SENSOR_1_AS_REDUNDANT."
-#endif
-
-/**
  * Basic 2-nozzle duplication mode
  */
 #if ENABLED(DUAL_NOZZLE_DUPLICATION_MODE)
@@ -653,9 +541,9 @@
  */
 #if WATCH_TEMP_PERIOD > 500
   #error "WATCH_TEMP_PERIOD now uses seconds instead of milliseconds."
-#elif DISABLED(THERMAL_PROTECTION_HOTENDS) && (defined(WATCH_TEMP_PERIOD) || defined(THERMAL_PROTECTION_PERIOD))
+#elif 1 && (defined(WATCH_TEMP_PERIOD) || defined(THERMAL_PROTECTION_PERIOD))
   #error "Thermal Runaway Protection for hotends is now enabled with THERMAL_PROTECTION_HOTENDS."
-#elif DISABLED(THERMAL_PROTECTION_BED) && defined(THERMAL_PROTECTION_BED_PERIOD)
+#elif 1 && defined(THERMAL_PROTECTION_BED_PERIOD)
   #error "Thermal Runaway Protection for the bed is now enabled with THERMAL_PROTECTION_BED."
 #elif ENABLED(COREXZ) && ENABLED(Z_LATE_ENABLE)
   #error "Z_LATE_ENABLE can't be used with COREXZ."
@@ -705,18 +593,6 @@
   #error "SERVO_DEACTIVATION_DELAY is deprecated. Use SERVO_DELAY instead."
 #elif ENABLED(FILAMENTCHANGEENABLE)
   #error "FILAMENTCHANGEENABLE is now FILAMENT_CHANGE_FEATURE. Please update your configuration."
-#elif defined(PLA_PREHEAT_HOTEND_TEMP)
-  #error "PLA_PREHEAT_HOTEND_TEMP is now PREHEAT_1_TEMP_HOTEND. Please update your configuration."
-#elif defined(PLA_PREHEAT_HPB_TEMP)
-  #error "PLA_PREHEAT_HPB_TEMP is now PREHEAT_1_TEMP_BED. Please update your configuration."
-#elif defined(PLA_PREHEAT_FAN_SPEED)
-  #error "PLA_PREHEAT_FAN_SPEED is now PREHEAT_1_FAN_SPEED. Please update your configuration."
-#elif defined(ABS_PREHEAT_HOTEND_TEMP)
-  #error "ABS_PREHEAT_HOTEND_TEMP is now PREHEAT_2_TEMP_HOTEND. Please update your configuration."
-#elif defined(ABS_PREHEAT_HPB_TEMP)
-  #error "ABS_PREHEAT_HPB_TEMP is now PREHEAT_2_TEMP_BED. Please update your configuration."
-#elif defined(ABS_PREHEAT_FAN_SPEED)
-  #error "ABS_PREHEAT_FAN_SPEED is now PREHEAT_2_FAN_SPEED. Please update your configuration."
 #elif defined(ENDSTOPS_ONLY_FOR_HOMING)
   #error "ENDSTOPS_ONLY_FOR_HOMING is deprecated. Use (disable) ENDSTOPS_ALWAYS_ON_DEFAULT instead."
 #elif defined(HOMING_FEEDRATE)

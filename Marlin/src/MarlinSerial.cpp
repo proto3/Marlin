@@ -452,7 +452,7 @@ MarlinSerial customizedSerial;
 
 #if ENABLED(EMERGENCY_PARSER)
 
-  // Currently looking for: M108, M112, M410
+  // Currently looking for: M112, M410
   // If you alter the parser please don't forget to update the capabilities in Conditionals_post.h
 
   FORCE_INLINE void emergency_parser(unsigned char c) {
@@ -490,15 +490,7 @@ MarlinSerial customizedSerial;
         break;
 
       case state_M1:
-        switch (c) {
-          case '0': state = state_M10;    break;
-          case '1': state = state_M11;    break;
-          default: state = state_IGNORE;
-        }
-        break;
-
-      case state_M10:
-        state = (c == '8') ? state_M108 : state_IGNORE;
+        state = (c == '1') ? state_M11 : state_IGNORE;
         break;
 
       case state_M11:
@@ -520,9 +512,6 @@ MarlinSerial customizedSerial;
       default:
         if (c == '\n') {
           switch (state) {
-            case state_M108:
-              wait_for_heatup = false;
-              break;
             case state_M112:
               kill(PSTR(MSG_KILLED));
               break;

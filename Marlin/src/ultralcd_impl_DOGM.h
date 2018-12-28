@@ -303,36 +303,6 @@ void lcd_kill_screen() {
 
 static void lcd_implementation_clear() { } // Automatically cleared by Picture Loop
 
-FORCE_INLINE void _draw_centered_temp(int temp, int x, int y) {
-  int degsize = 6 * (temp >= 100 ? 3 : temp >= 10 ? 2 : 1); // number's pixel width
-  u8g.setPrintPos(x - (18 - degsize) / 2, y); // move left if shorter
-  lcd_print(itostr3(temp));
-  lcd_printPGM(PSTR(LCD_STR_DEGREE " "));
-}
-
-FORCE_INLINE void _draw_heater_status(int x, int heater) {
-  #if HAS_TEMP_BED
-    bool isBed = heater < 0;
-  #else
-    const bool isBed = false;
-  #endif
-
-  _draw_centered_temp((isBed ? thermalManager.degTargetBed() : thermalManager.degTargetHotend(heater)) + 0.5, x, 7);
-
-  _draw_centered_temp((isBed ? thermalManager.degBed() : thermalManager.degHotend(heater)) + 0.5, x, 28);
-
-  int h = isBed ? 7 : 8,
-      y = isBed ? 18 : 17;
-  if (isBed ? thermalManager.isHeatingBed() : thermalManager.isHeatingHotend(heater)) {
-    u8g.setColorIndex(0); // white on black
-    u8g.drawBox(x + h, y, 2, 2);
-    u8g.setColorIndex(1); // black on white
-  }
-  else {
-    u8g.drawBox(x + h, y, 2, 2);
-  }
-}
-
 FORCE_INLINE void _draw_axis_label(AxisEnum axis, const char *pstr, bool blink) {
   if (blink)
     lcd_printPGM(pstr);
@@ -362,7 +332,7 @@ static void lcd_implementation_status_screen() {
   else
     u8g.drawBitmapP(5, 3, STATUS_SCREENBYTEWIDTH, STATUS_SCREENHEIGHT, status_screen1_bmp);
 
-  // Status Menu Font for SD info, Heater status, Fan, XYZ
+  // Status Menu Font for SD info, XYZ
   lcd_setFont(FONT_STATUSMENU);
 
   #if ENABLED(SDSUPPORT)
@@ -389,24 +359,6 @@ static void lcd_implementation_status_screen() {
     lcd_print(buffer);
 
   #endif
-
-  // Extruders
-  //HOTEND_LOOP() _draw_heater_status(5 + e * 25, e);
-
-  // Heated bed
-  #if HOTENDS < 4 && HAS_TEMP_BED
-    _draw_heater_status(81, -1);
-  #endif
-
-  // Fan
-  // u8g.setPrintPos(104, 27);
-  // #if HAS_FAN0
-  //   int per = ((fanSpeeds[0] + 1) * 100) / 256;
-  //   if (per) {
-  //     lcd_print(itostr3(per));
-  //     lcd_print('%');
-  //   }
-  // #endif
 
   // X, Y, Z-Coordinates
   // Before homing the axis letters are blinking 'X' <-> '?'.

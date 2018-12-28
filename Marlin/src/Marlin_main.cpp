@@ -160,14 +160,6 @@
  *        or use S<seconds> to specify an inactivity timeout, after which the steppers will be disabled.  S0 to disable the timeout.
  * M85  - Set inactivity shutdown timer with parameter S<seconds>. To disable set zero (default)
  * M92  - Set planner.axis_steps_per_mm - same syntax as G92
- * M104 - Set extruder target temp
- * M105 - Read current temp
- * M106 - Fan on
- * M107 - Fan off
- * M108 - Stop the waiting for heaters in M109, M190, M303. Does not affect the target temperature.
- * M109 - Sxxx Wait for extruder current temp to reach target temp. Waits only when heating
- *        Rxxx Wait for extruder current temp to reach target temp. Waits when heating and cooling
- *        IF AUTOTEMP is enabled, S<mintemp> B<maxtemp> F<factor>. Exit autotemp by any M109 without F
  * M110 - Set the current line number
  * M111 - Set debug flags with S<mask>. See flag bits defined in enum.h.
  * M112 - Emergency stop
@@ -182,15 +174,10 @@
  * M127 - Solenoid Air Valve Closed (BariCUDA vent to atmospheric pressure by jmil)
  * M128 - EtoP Open (BariCUDA EtoP = electricity to air pressure transducer by jmil)
  * M129 - EtoP Closed (BariCUDA EtoP = electricity to air pressure transducer by jmil)
- * M140 - Set bed target temp
- * M145 - Set the heatup state H<hotend> B<bed> F<fan speed> for S<material> (0=PLA, 1=ABS)
- * M149 - Set temperature units
  * M150 - Set BlinkM Color Output R: Red<0-255> U(!): Green<0-255> B: Blue<0-255> over i2c, G for green does not work.
  * M163 - Set a single proportion for a mixing extruder. Requires MIXING_EXTRUDER.
  * M164 - Save the mix as a virtual extruder. Requires MIXING_EXTRUDER and MIXING_VIRTUAL_TOOLS.
  * M165 - Set the proportions for a mixing extruder. Use parameters ABCDHI to set the mixing factors. Requires MIXING_EXTRUDER.
- * M190 - Sxxx Wait for bed current temp to reach target temp. Waits only when heating
- *        Rxxx Wait for bed current temp to reach target temp. Waits when heating and cooling
  * M200 - Set filament diameter, D<diameter>, setting E axis units to cubic. (Use S0 to revert to linear units.)
  * M201 - Set max acceleration in units/s^2 for print moves (M201 X1000 Y1000)
  * M202 - Set max acceleration in units/s^2 for travel moves (M202 X1000 Y1000) Unused in Marlin!!
@@ -214,8 +201,6 @@
  * M280 - Set servo position absolute. P: servo index, S: angle or microseconds
  * M300 - Play beep sound S<frequency Hz> P<duration ms>
  * M301 - Set PID parameters P I and D
- * M302 - Allow cold extrudes, or set the minimum extrude S<temperature>.
- * M303 - PID relay autotune S<temperature> sets the target temperature. (default target temperature = 150C)
  * M304 - Set bed PID parameters P I and D
  * M380 - Activate solenoid on active extruder
  * M381 - Disable all solenoids
@@ -300,9 +285,6 @@ static uint8_t cmd_queue_index_r = 0,
   float linear_unit_factor = 1.0;
   float volumetric_unit_factor = 1.0;
 #endif
-#if ENABLED(TEMPERATURE_UNITS_SUPPORT)
-  TempUnit input_temp_units = TEMPUNIT_C;
-#endif
 
 /**
  * Feed rates are often configured with mm/m
@@ -336,17 +318,11 @@ float home_offset[3] = { 0 };
 float sw_endstop_min[3] = { X_MIN_POS, Y_MIN_POS, Z_MIN_POS };
 float sw_endstop_max[3] = { X_MAX_POS, Y_MAX_POS, Z_MAX_POS };
 
-#if FAN_COUNT > 0
-  int fanSpeeds[FAN_COUNT] = { 0 };
-#endif
-
 // The active extruder (tool). Set with T<extruder> command.
 uint8_t active_extruder = 0;
 
 // Relative Mode. Enable with G91, disable with G90.
 static bool relative_mode = false;
-
-volatile bool wait_for_heatup = true;
 
 const char errormagic[] PROGMEM = "Error:";
 const char echomagic[] PROGMEM = "echo:";
@@ -404,17 +380,6 @@ static uint8_t target_extruder;
 
 #if ENABLED(Z_DUAL_ENDSTOPS) && DISABLED(DELTA)
   float z_endstop_adj = 0;
-#endif
-
-// Extruder offsets
-#if HOTENDS > 1
-  float hotend_offset[][HOTENDS] = {
-    HOTEND_OFFSET_X,
-    HOTEND_OFFSET_Y
-    #ifdef HOTEND_OFFSET_Z
-      , HOTEND_OFFSET_Z
-    #endif
-  };
 #endif
 
 #if HAS_Z_SERVO_ENDSTOP
@@ -935,10 +900,6 @@ void setup() {
   setup_photpin();
   servo_init();
 
-  #if HAS_CONTROLLERFAN
-    SET_OUTPUT(CONTROLLERFAN_PIN); //Set pin used for driver cooling fan
-  #endif
-
   #if HAS_STEPPER_RESET
     enableStepperDrivers();
   #endif
@@ -1126,7 +1087,6 @@ inline void get_serial_commands() {
 
       #if DISABLED(EMERGENCY_PARSER)
         // If command was e-stop process now
-        if (strcmp(command, "M108") == 0) wait_for_heatup = false;
         if (strcmp(command, "M112") == 0) kill(PSTR(MSG_KILLED));
         if (strcmp(command, "M410") == 0) { quickstop_stepper(); }
       #endif
@@ -1222,38 +1182,6 @@ inline bool code_value_bool() { return code_value_byte() > 0; }
 
 #endif
 
-#if ENABLED(TEMPERATURE_UNITS_SUPPORT)
-  inline void set_input_temp_units(TempUnit units) { input_temp_units = units; }
-
-  float code_value_temp_abs() {
-    switch (input_temp_units) {
-      case TEMPUNIT_C:
-        return code_value_float();
-      case TEMPUNIT_F:
-        return (code_value_float() - 32) * 0.5555555556;
-      case TEMPUNIT_K:
-        return code_value_float() - 272.15;
-      default:
-        return code_value_float();
-    }
-  }
-
-  float code_value_temp_diff() {
-    switch (input_temp_units) {
-      case TEMPUNIT_C:
-      case TEMPUNIT_K:
-        return code_value_float();
-      case TEMPUNIT_F:
-        return code_value_float() * 0.5555555556;
-      default:
-        return code_value_float();
-    }
-  }
-#else
-  float code_value_temp_abs() { return code_value_float(); }
-  float code_value_temp_diff() { return code_value_float(); }
-#endif
-
 FORCE_INLINE millis_t code_value_millis() { return code_value_ulong(); }
 inline millis_t code_value_millis_from_seconds() { return code_value_float() * 1000; }
 
@@ -1339,7 +1267,6 @@ XYZ_CONSTS_FROM_CONFIG(signed char, home_dir, HOME_DIR);
   static float raised_parked_position[NUM_AXIS];     // used in mode 1
   static millis_t delayed_move_time = 0;             // used in mode 1
   static float duplicate_extruder_x_offset = DEFAULT_DUPLICATION_X_OFFSET; // used in mode 2
-  static float duplicate_extruder_temp_offset = 0;   // used in mode 2
 
 #endif //DUAL_X_CARRIAGE
 
@@ -2794,12 +2721,6 @@ void autohome(bool homeX, bool homeY, bool homeZ)
     #endif
   #endif
 
-  // Always home with tool 0 active
-  #if HOTENDS > 1
-    uint8_t old_tool_index = active_extruder;
-    tool_change(0, 0, true);
-  #endif
-
   #if ENABLED(DUAL_X_CARRIAGE) || ENABLED(DUAL_NOZZLE_DUPLICATION_MODE)
     extruder_duplication_enabled = false;
   #endif
@@ -3101,11 +3022,6 @@ void autohome(bool homeX, bool homeY, bool homeZ)
 
   #if ENABLED(DEBUG_LEVELING_FEATURE)
     if (DEBUGGING(LEVELING)) SERIAL_ECHOLNPGM("<<< gcode_G28");
-  #endif
-
-  // Restore the active tool after homing
-  #if HOTENDS > 1
-    tool_change(old_tool_index, 0, true);
   #endif
 
   report_current_position();
@@ -4064,8 +3980,6 @@ inline void gcode_M31() {
   SERIAL_ECHO_START;
   SERIAL_ECHOPGM("Print time: ");
   SERIAL_ECHOLN(buffer);
-
-  thermalManager.autotempShutdown();
 }
 
 #if ENABLED(SDSUPPORT)
@@ -4120,20 +4034,6 @@ inline void gcode_M42() {
   pinMode(pin_number, OUTPUT);
   digitalWrite(pin_number, pin_status);
   analogWrite(pin_number, pin_status);
-
-  #if FAN_COUNT > 0
-    switch (pin_number) {
-      #if HAS_FAN0
-        case FAN_PIN: fanSpeeds[0] = pin_status; break;
-      #endif
-      #if HAS_FAN1
-        case FAN1_PIN: fanSpeeds[1] = pin_status; break;
-      #endif
-      #if HAS_FAN2
-        case FAN2_PIN: fanSpeeds[2] = pin_status; break;
-      #endif
-    }
-  #endif
 }
 
 #if ENABLED(Z_MIN_PROBE_REPEATABILITY_TEST)
@@ -4390,143 +4290,7 @@ inline void gcode_M77() { print_job_timer.stop(); }
   }
 #endif
 
-/**
- * M104: Set hot end temperature
- */
-inline void gcode_M104() {
-  if (get_target_extruder_from_command(104)) return;
-  if (DEBUGGING(DRYRUN)) return;
-
-  #if ENABLED(SINGLENOZZLE)
-    if (target_extruder != active_extruder) return;
-  #endif
-
-  if (code_seen('S')) {
-    thermalManager.setTargetHotend(code_value_temp_abs(), target_extruder);
-    #if ENABLED(DUAL_X_CARRIAGE)
-      if (dual_x_carriage_mode == DXC_DUPLICATION_MODE && target_extruder == 0)
-        thermalManager.setTargetHotend(code_value_temp_abs() == 0.0 ? 0.0 : code_value_temp_abs() + duplicate_extruder_temp_offset, 1);
-    #endif
-
-    #if ENABLED(PRINTJOB_TIMER_AUTOSTART)
-      /**
-       * Stop the timer at the end of print, starting is managed by
-       * 'heat and wait' M109.
-       * We use half EXTRUDE_MINTEMP here to allow nozzles to be put into hot
-       * stand by mode, for instance in a dual extruder setup, without affecting
-       * the running print timer.
-       */
-      if (code_value_temp_abs() <= (EXTRUDE_MINTEMP)/2) {
-        print_job_timer.stop();
-        LCD_MESSAGEPGM(WELCOME_MSG);
-      }
-    #endif
-
-    if (code_value_temp_abs() > thermalManager.degHotend(target_extruder)) LCD_MESSAGEPGM(MSG_HEATING);
-  }
-}
-
-#if HAS_TEMP_HOTEND || HAS_TEMP_BED
-
-  void print_heaterstates() {
-    #if HAS_TEMP_HOTEND
-      SERIAL_PROTOCOLPGM(" T:");
-      SERIAL_PROTOCOL_F(thermalManager.degHotend(target_extruder), 1);
-      SERIAL_PROTOCOLPGM(" /");
-      SERIAL_PROTOCOL_F(thermalManager.degTargetHotend(target_extruder), 1);
-      #if ENABLED(SHOW_TEMP_ADC_VALUES)
-        SERIAL_PROTOCOLPAIR(" (", thermalManager.current_temperature_raw[target_extruder] / OVERSAMPLENR);
-        SERIAL_CHAR(')');
-      #endif
-    #endif
-    #if HAS_TEMP_BED
-      SERIAL_PROTOCOLPGM(" B:");
-      SERIAL_PROTOCOL_F(thermalManager.degBed(), 1);
-      SERIAL_PROTOCOLPGM(" /");
-      SERIAL_PROTOCOL_F(thermalManager.degTargetBed(), 1);
-      #if ENABLED(SHOW_TEMP_ADC_VALUES)
-        SERIAL_PROTOCOLPAIR(" (", thermalManager.current_temperature_bed_raw / OVERSAMPLENR);
-        SERIAL_CHAR(')');
-      #endif
-    #endif
-    #if HOTENDS > 1
-      HOTEND_LOOP() {
-        SERIAL_PROTOCOLPAIR(" T", e);
-        SERIAL_PROTOCOLCHAR(':');
-        SERIAL_PROTOCOL_F(thermalManager.degHotend(e), 1);
-        SERIAL_PROTOCOLPGM(" /");
-        SERIAL_PROTOCOL_F(thermalManager.degTargetHotend(e), 1);
-        #if ENABLED(SHOW_TEMP_ADC_VALUES)
-          SERIAL_PROTOCOLPAIR(" (", thermalManager.current_temperature_raw[e] / OVERSAMPLENR);
-          SERIAL_CHAR(')');
-        #endif
-      }
-    #endif
-    SERIAL_PROTOCOLPGM(" @:");
-    SERIAL_PROTOCOL(thermalManager.getHeaterPower(target_extruder));
-    #if HAS_TEMP_BED
-      SERIAL_PROTOCOLPGM(" B@:");
-      SERIAL_PROTOCOL(thermalManager.getHeaterPower(-1));
-    #endif
-    #if HOTENDS > 1
-      HOTEND_LOOP() {
-        SERIAL_PROTOCOLPAIR(" @", e);
-        SERIAL_PROTOCOLCHAR(':');
-        SERIAL_PROTOCOL(thermalManager.getHeaterPower(e));
-      }
-    #endif
-  }
-#endif
-
-/**
- * M105: Read hot end and bed temperature
- */
-inline void gcode_M105() {
-  if (get_target_extruder_from_command(105)) return;
-
-  #if HAS_TEMP_HOTEND || HAS_TEMP_BED
-    SERIAL_PROTOCOLPGM(MSG_OK);
-    print_heaterstates();
-  #else // !HAS_TEMP_HOTEND && !HAS_TEMP_BED
-    SERIAL_ERROR_START;
-    SERIAL_ERRORLNPGM(MSG_ERR_NO_THERMISTORS);
-  #endif
-
-  SERIAL_EOL;
-}
-
-#if FAN_COUNT > 0
-
-  /**
-   * M106: Set Fan Speed
-   *
-   *  S<int>   Speed between 0-255
-   *  P<index> Fan index, if more than one fan
-   */
-  inline void gcode_M106() {
-    uint16_t s = code_seen('S') ? code_value_ushort() : 255,
-             p = code_seen('P') ? code_value_ushort() : 0;
-    NOMORE(s, 255);
-    if (p < FAN_COUNT) fanSpeeds[p] = s;
-  }
-
-  /**
-   * M107: Fan Off
-   */
-  inline void gcode_M107() {
-    uint16_t p = code_seen('P') ? code_value_ushort() : 0;
-    if (p < FAN_COUNT) fanSpeeds[p] = 0;
-  }
-
-#endif // FAN_COUNT > 0
-
 #if DISABLED(EMERGENCY_PARSER)
-
-  /**
-   * M108: Stop the waiting for heaters in M109, M190, M303. Does not affect the target temperature.
-   */
-  inline void gcode_M108() { wait_for_heatup = false; }
-
 
   /**
    * M112: Emergency Stop
@@ -4543,260 +4307,6 @@ inline void gcode_M105() {
   inline void gcode_M410() { quickstop_stepper(); }
 
 #endif
-
-  #ifndef MIN_COOLING_SLOPE_DEG
-    #define MIN_COOLING_SLOPE_DEG 1.50
-  #endif
-  #ifndef MIN_COOLING_SLOPE_TIME
-    #define MIN_COOLING_SLOPE_TIME 60
-  #endif
-
-/**
- * M109: Sxxx Wait for extruder(s) to reach temperature. Waits only when heating.
- *       Rxxx Wait for extruder(s) to reach temperature. Waits when heating and cooling.
- */
-inline void gcode_M109() {
-
-  if (get_target_extruder_from_command(109)) return;
-  if (DEBUGGING(DRYRUN)) return;
-
-  #if ENABLED(SINGLENOZZLE)
-    if (target_extruder != active_extruder) return;
-  #endif
-
-  bool no_wait_for_cooling = code_seen('S');
-  if (no_wait_for_cooling || code_seen('R')) {
-    thermalManager.setTargetHotend(code_value_temp_abs(), target_extruder);
-    #if ENABLED(DUAL_X_CARRIAGE)
-      if (dual_x_carriage_mode == DXC_DUPLICATION_MODE && target_extruder == 0)
-        thermalManager.setTargetHotend(code_value_temp_abs() == 0.0 ? 0.0 : code_value_temp_abs() + duplicate_extruder_temp_offset, 1);
-    #endif
-
-    #if ENABLED(PRINTJOB_TIMER_AUTOSTART)
-      /**
-       * We use half EXTRUDE_MINTEMP here to allow nozzles to be put into hot
-       * stand by mode, for instance in a dual extruder setup, without affecting
-       * the running print timer.
-       */
-      if (code_value_temp_abs() <= (EXTRUDE_MINTEMP)/2) {
-        print_job_timer.stop();
-        LCD_MESSAGEPGM(WELCOME_MSG);
-      }
-      /**
-       * We do not check if the timer is already running because this check will
-       * be done for us inside the Stopwatch::start() method thus a running timer
-       * will not restart.
-       */
-      else print_job_timer.start();
-    #endif
-
-    if (thermalManager.isHeatingHotend(target_extruder)) LCD_MESSAGEPGM(MSG_HEATING);
-  }
-
-  #if ENABLED(AUTOTEMP)
-    planner.autotemp_M109();
-  #endif
-
-  #if TEMP_RESIDENCY_TIME > 0
-    millis_t residency_start_ms = 0;
-    // Loop until the temperature has stabilized
-    #define TEMP_CONDITIONS (!residency_start_ms || PENDING(now, residency_start_ms + (TEMP_RESIDENCY_TIME) * 1000UL))
-  #else
-    // Loop until the temperature is very close target
-    #define TEMP_CONDITIONS (wants_to_cool ? thermalManager.isCoolingHotend(target_extruder) : thermalManager.isHeatingHotend(target_extruder))
-  #endif //TEMP_RESIDENCY_TIME > 0
-
-  float theTarget = -1.0, old_temp = 9999.0;
-  bool wants_to_cool = false;
-  wait_for_heatup = true;
-  millis_t now, next_temp_ms = 0, next_cool_check_ms = 0;
-
-  KEEPALIVE_STATE(NOT_BUSY);
-
-  do {
-    // Target temperature might be changed during the loop
-    if (theTarget != thermalManager.degTargetHotend(target_extruder)) {
-      wants_to_cool = thermalManager.isCoolingHotend(target_extruder);
-      theTarget = thermalManager.degTargetHotend(target_extruder);
-
-      // Exit if S<lower>, continue if S<higher>, R<lower>, or R<higher>
-      if (no_wait_for_cooling && wants_to_cool) break;
-    }
-
-    now = millis();
-    if (ELAPSED(now, next_temp_ms)) { //Print temp & remaining time every 1s while waiting
-      next_temp_ms = now + 1000UL;
-      print_heaterstates();
-      #if TEMP_RESIDENCY_TIME > 0
-        SERIAL_PROTOCOLPGM(" W:");
-        if (residency_start_ms) {
-          long rem = (((TEMP_RESIDENCY_TIME) * 1000UL) - (now - residency_start_ms)) / 1000UL;
-          SERIAL_PROTOCOLLN(rem);
-        }
-        else {
-          SERIAL_PROTOCOLLNPGM("?");
-        }
-      #else
-        SERIAL_EOL;
-      #endif
-    }
-
-    idle();
-    refresh_cmd_timeout(); // to prevent stepper_inactive_time from running out
-
-    float temp = thermalManager.degHotend(target_extruder);
-
-    #if TEMP_RESIDENCY_TIME > 0
-
-      float temp_diff = fabs(theTarget - temp);
-
-      if (!residency_start_ms) {
-        // Start the TEMP_RESIDENCY_TIME timer when we reach target temp for the first time.
-        if (temp_diff < TEMP_WINDOW) residency_start_ms = now;
-      }
-      else if (temp_diff > TEMP_HYSTERESIS) {
-        // Restart the timer whenever the temperature falls outside the hysteresis.
-        residency_start_ms = now;
-      }
-
-    #endif //TEMP_RESIDENCY_TIME > 0
-
-    // Prevent a wait-forever situation if R is misused i.e. M109 R0
-    if (wants_to_cool) {
-      // break after MIN_COOLING_SLOPE_TIME seconds
-      // if the temperature did not drop at least MIN_COOLING_SLOPE_DEG
-      if (!next_cool_check_ms || ELAPSED(now, next_cool_check_ms)) {
-        if (old_temp - temp < MIN_COOLING_SLOPE_DEG) break;
-        next_cool_check_ms = now + 1000UL * MIN_COOLING_SLOPE_TIME;
-        old_temp = temp;
-      }
-    }
-
-  } while (wait_for_heatup && TEMP_CONDITIONS);
-
-  LCD_MESSAGEPGM(MSG_HEATING_COMPLETE);
-  KEEPALIVE_STATE(IN_HANDLER);
-}
-
-#if HAS_TEMP_BED
-
-  #ifndef MIN_COOLING_SLOPE_DEG_BED
-    #define MIN_COOLING_SLOPE_DEG_BED 1.50
-  #endif
-  #ifndef MIN_COOLING_SLOPE_TIME_BED
-    #define MIN_COOLING_SLOPE_TIME_BED 60
-  #endif
-
-  /**
-   * M190: Sxxx Wait for bed current temp to reach target temp. Waits only when heating
-   *       Rxxx Wait for bed current temp to reach target temp. Waits when heating and cooling
-   */
-  inline void gcode_M190() {
-    if (DEBUGGING(DRYRUN)) return;
-
-    LCD_MESSAGEPGM(MSG_BED_HEATING);
-    bool no_wait_for_cooling = code_seen('S');
-    if (no_wait_for_cooling || code_seen('R')) {
-      thermalManager.setTargetBed(code_value_temp_abs());
-      #if ENABLED(PRINTJOB_TIMER_AUTOSTART)
-        if (code_value_temp_abs() > BED_MINTEMP) {
-          /**
-          * We start the timer when 'heating and waiting' command arrives, LCD
-          * functions never wait. Cooling down managed by extruders.
-          *
-          * We do not check if the timer is already running because this check will
-          * be done for us inside the Stopwatch::start() method thus a running timer
-          * will not restart.
-          */
-          print_job_timer.start();
-        }
-      #endif
-    }
-
-    #if TEMP_BED_RESIDENCY_TIME > 0
-      millis_t residency_start_ms = 0;
-      // Loop until the temperature has stabilized
-      #define TEMP_BED_CONDITIONS (!residency_start_ms || PENDING(now, residency_start_ms + (TEMP_BED_RESIDENCY_TIME) * 1000UL))
-    #else
-      // Loop until the temperature is very close target
-      #define TEMP_BED_CONDITIONS (wants_to_cool ? thermalManager.isCoolingBed() : thermalManager.isHeatingBed())
-    #endif //TEMP_BED_RESIDENCY_TIME > 0
-
-    float theTarget = -1.0, old_temp = 9999.0;
-    bool wants_to_cool = false;
-    wait_for_heatup = true;
-    millis_t now, next_temp_ms = 0, next_cool_check_ms = 0;
-
-    KEEPALIVE_STATE(NOT_BUSY);
-
-    target_extruder = active_extruder; // for print_heaterstates
-
-    do {
-      // Target temperature might be changed during the loop
-      if (theTarget != thermalManager.degTargetBed()) {
-        wants_to_cool = thermalManager.isCoolingBed();
-        theTarget = thermalManager.degTargetBed();
-
-        // Exit if S<lower>, continue if S<higher>, R<lower>, or R<higher>
-        if (no_wait_for_cooling && wants_to_cool) break;
-      }
-
-      now = millis();
-      if (ELAPSED(now, next_temp_ms)) { //Print Temp Reading every 1 second while heating up.
-        next_temp_ms = now + 1000UL;
-        print_heaterstates();
-        #if TEMP_BED_RESIDENCY_TIME > 0
-          SERIAL_PROTOCOLPGM(" W:");
-          if (residency_start_ms) {
-            long rem = (((TEMP_BED_RESIDENCY_TIME) * 1000UL) - (now - residency_start_ms)) / 1000UL;
-            SERIAL_PROTOCOLLN(rem);
-          }
-          else {
-            SERIAL_PROTOCOLLNPGM("?");
-          }
-        #else
-          SERIAL_EOL;
-        #endif
-      }
-
-      idle();
-      refresh_cmd_timeout(); // to prevent stepper_inactive_time from running out
-
-      float temp = thermalManager.degBed();
-
-      #if TEMP_BED_RESIDENCY_TIME > 0
-
-        float temp_diff = fabs(theTarget - temp);
-
-        if (!residency_start_ms) {
-          // Start the TEMP_BED_RESIDENCY_TIME timer when we reach target temp for the first time.
-          if (temp_diff < TEMP_BED_WINDOW) residency_start_ms = now;
-        }
-        else if (temp_diff > TEMP_BED_HYSTERESIS) {
-          // Restart the timer whenever the temperature falls outside the hysteresis.
-          residency_start_ms = now;
-        }
-
-      #endif //TEMP_BED_RESIDENCY_TIME > 0
-
-      // Prevent a wait-forever situation if R is misused i.e. M190 R0
-      if (wants_to_cool) {
-        // break after MIN_COOLING_SLOPE_TIME_BED seconds
-        // if the temperature did not drop at least MIN_COOLING_SLOPE_DEG_BED
-        if (!next_cool_check_ms || ELAPSED(now, next_cool_check_ms)) {
-          if (old_temp - temp < MIN_COOLING_SLOPE_DEG_BED) break;
-          next_cool_check_ms = now + 1000UL * MIN_COOLING_SLOPE_TIME_BED;
-          old_temp = temp;
-        }
-      }
-
-    } while (wait_for_heatup && TEMP_BED_CONDITIONS);
-
-    LCD_MESSAGEPGM(MSG_BED_DONE);
-    KEEPALIVE_STATE(IN_HANDLER);
-  }
-
-#endif // HAS_TEMP_BED
 
 /**
  * M110: Set Current Line Number
@@ -4865,111 +4375,6 @@ inline void gcode_M111() {
 
 #endif
 
-#if ENABLED(BARICUDA)
-
-  #if HAS_HEATER_1
-    /**
-     * M126: Heater 1 valve open
-     */
-    inline void gcode_M126() { baricuda_valve_pressure = code_seen('S') ? code_value_byte() : 255; }
-    /**
-     * M127: Heater 1 valve close
-     */
-    inline void gcode_M127() { baricuda_valve_pressure = 0; }
-  #endif
-
-  #if HAS_HEATER_2
-    /**
-     * M128: Heater 2 valve open
-     */
-    inline void gcode_M128() { baricuda_e_to_p_pressure = code_seen('S') ? code_value_byte() : 255; }
-    /**
-     * M129: Heater 2 valve close
-     */
-    inline void gcode_M129() { baricuda_e_to_p_pressure = 0; }
-  #endif
-
-#endif //BARICUDA
-
-/**
- * M140: Set bed temperature
- */
-inline void gcode_M140() {
-  if (DEBUGGING(DRYRUN)) return;
-  if (code_seen('S')) thermalManager.setTargetBed(code_value_temp_abs());
-}
-
-#if ENABLED(ULTIPANEL)
-
-  /**
-   * M145: Set the heatup state for a material in the LCD menu
-   *   S<material> (0=PLA, 1=ABS)
-   *   H<hotend temp>
-   *   B<bed temp>
-   *   F<fan speed>
-   */
-  inline void gcode_M145() {
-    int8_t material = code_seen('S') ? (int8_t)code_value_int() : 0;
-    if (material < 0 || material > 1) {
-      SERIAL_ERROR_START;
-      SERIAL_ERRORLNPGM(MSG_ERR_MATERIAL_INDEX);
-    }
-    else {
-      int v;
-      switch (material) {
-        case 0:
-          if (code_seen('H')) {
-            v = code_value_int();
-            preheatHotendTemp1 = constrain(v, EXTRUDE_MINTEMP, HEATER_0_MAXTEMP - 15);
-          }
-          if (code_seen('F')) {
-            v = code_value_int();
-            preheatFanSpeed1 = constrain(v, 0, 255);
-          }
-          #if TEMP_SENSOR_BED != 0
-            if (code_seen('B')) {
-              v = code_value_int();
-              preheatBedTemp1 = constrain(v, BED_MINTEMP, BED_MAXTEMP - 15);
-            }
-          #endif
-          break;
-        case 1:
-          if (code_seen('H')) {
-            v = code_value_int();
-            preheatHotendTemp2 = constrain(v, EXTRUDE_MINTEMP, HEATER_0_MAXTEMP - 15);
-          }
-          if (code_seen('F')) {
-            v = code_value_int();
-            preheatFanSpeed2 = constrain(v, 0, 255);
-          }
-          #if TEMP_SENSOR_BED != 0
-            if (code_seen('B')) {
-              v = code_value_int();
-              preheatBedTemp2 = constrain(v, BED_MINTEMP, BED_MAXTEMP - 15);
-            }
-          #endif
-          break;
-      }
-    }
-  }
-
-#endif
-
-#if ENABLED(TEMPERATURE_UNITS_SUPPORT)
-  /**
-   * M149: Set temperature units
-   */
-  inline void gcode_M149() {
-    if (code_seen('C')) {
-      set_input_temp_units(TEMPUNIT_C);
-    } else if (code_seen('K')) {
-      set_input_temp_units(TEMPUNIT_K);
-    } else if (code_seen('F')) {
-      set_input_temp_units(TEMPUNIT_F);
-    }
-  }
-#endif
-
 #if HAS_POWER_SWITCH
 
   /**
@@ -5003,15 +4408,8 @@ inline void gcode_M140() {
  */
 inline void gcode_M81() {
   plasmaManager.lock();
-  thermalManager.disable_all_heaters();
+  print_job_timer.stop();
   stepper.finish_and_disable();
-  #if FAN_COUNT > 0
-    #if FAN_COUNT > 1
-      for (uint8_t i = 0; i < FAN_COUNT; i++) fanSpeeds[i] = 0;
-    #else
-      fanSpeeds[0] = 0;
-    #endif
-  #endif
   delay(1000); // Wait 1 second before switching off
   #if HAS_SUICIDE
     stepper.synchronize();
@@ -5284,13 +4682,6 @@ inline void gcode_M201() {
   planner.reset_acceleration_rates();
 }
 
-#if 0 // Not used for Sprinter/grbl gen6
-  inline void gcode_M202() {
-    LOOP_XYZE(i) {
-      if (code_seen(axis_codes[i])) axis_travel_steps_per_sqr_second[i] = code_value_axis_units(i) * planner.axis_steps_per_mm[i];
-    }
-  }
-#endif
 
 
 /**
@@ -5490,43 +4881,6 @@ inline void gcode_M206() {
 
 #endif // FWRETRACT
 
-#if HOTENDS > 1
-
-  /**
-   * M218 - set hotend offset (in linear units)
-   *
-   *   T<tool>
-   *   X<xoffset>
-   *   Y<yoffset>
-   *   Z<zoffset> - Available with DUAL_X_CARRIAGE and SWITCHING_EXTRUDER
-   */
-  inline void gcode_M218() {
-    if (get_target_extruder_from_command(218)) return;
-
-    if (code_seen('X')) hotend_offset[X_AXIS][target_extruder] = code_value_axis_units(X_AXIS);
-    if (code_seen('Y')) hotend_offset[Y_AXIS][target_extruder] = code_value_axis_units(Y_AXIS);
-
-    #if ENABLED(DUAL_X_CARRIAGE) || ENABLED(SWITCHING_EXTRUDER)
-      if (code_seen('Z')) hotend_offset[Z_AXIS][target_extruder] = code_value_axis_units(Z_AXIS);
-    #endif
-
-    SERIAL_ECHO_START;
-    SERIAL_ECHOPGM(MSG_HOTEND_OFFSET);
-    HOTEND_LOOP() {
-      SERIAL_CHAR(' ');
-      SERIAL_ECHO(hotend_offset[X_AXIS][e]);
-      SERIAL_CHAR(',');
-      SERIAL_ECHO(hotend_offset[Y_AXIS][e]);
-      #if ENABLED(DUAL_X_CARRIAGE) || ENABLED(SWITCHING_EXTRUDER)
-        SERIAL_CHAR(',');
-        SERIAL_ECHO(hotend_offset[Z_AXIS][e]);
-      #endif
-    }
-    SERIAL_EOL;
-  }
-
-#endif // HOTENDS > 1
-
 /**
  * M220: Set speed percentage factor, aka "Feed Rate" (M220 S95)
  */
@@ -5635,82 +4989,7 @@ inline void gcode_M226() {
 
 #endif // HAS_BUZZER
 
-#if ENABLED(PIDTEMP)
 
-  /**
-   * M301: Set PID parameters P I D (and optionally C, L)
-   *
-   *   P[float] Kp term
-   *   I[float] Ki term (unscaled)
-   *   D[float] Kd term (unscaled)
-   *
-   * With PID_EXTRUSION_SCALING:
-   *
-   *   C[float] Kc term
-   *   L[float] LPQ length
-   */
-  inline void gcode_M301() {
-
-    // multi-extruder PID patch: M301 updates or prints a single extruder's PID values
-    // default behaviour (omitting E parameter) is to update for extruder 0 only
-    int e = code_seen('E') ? code_value_int() : 0; // extruder being updated
-
-    if (e < HOTENDS) { // catch bad input value
-      if (code_seen('P')) PID_PARAM(Kp, e) = code_value_float();
-      if (code_seen('I')) PID_PARAM(Ki, e) = scalePID_i(code_value_float());
-      if (code_seen('D')) PID_PARAM(Kd, e) = scalePID_d(code_value_float());
-      #if ENABLED(PID_EXTRUSION_SCALING)
-        if (code_seen('C')) PID_PARAM(Kc, e) = code_value_float();
-        if (code_seen('L')) lpq_len = code_value_float();
-        NOMORE(lpq_len, LPQ_MAX_LEN);
-      #endif
-
-      thermalManager.updatePID();
-      SERIAL_ECHO_START;
-      #if ENABLED(PID_PARAMS_PER_HOTEND)
-        SERIAL_ECHOPGM(" e:"); // specify extruder in serial output
-        SERIAL_ECHO(e);
-      #endif // PID_PARAMS_PER_HOTEND
-      SERIAL_ECHOPGM(" p:");
-      SERIAL_ECHO(PID_PARAM(Kp, e));
-      SERIAL_ECHOPGM(" i:");
-      SERIAL_ECHO(unscalePID_i(PID_PARAM(Ki, e)));
-      SERIAL_ECHOPGM(" d:");
-      SERIAL_ECHO(unscalePID_d(PID_PARAM(Kd, e)));
-      #if ENABLED(PID_EXTRUSION_SCALING)
-        SERIAL_ECHOPGM(" c:");
-        //Kc does not have scaling applied above, or in resetting defaults
-        SERIAL_ECHO(PID_PARAM(Kc, e));
-      #endif
-      SERIAL_EOL;
-    }
-    else {
-      SERIAL_ERROR_START;
-      SERIAL_ERRORLN(MSG_INVALID_EXTRUDER);
-    }
-  }
-
-#endif // PIDTEMP
-
-#if ENABLED(PIDTEMPBED)
-
-  inline void gcode_M304() {
-    if (code_seen('P')) thermalManager.bedKp = code_value_float();
-    if (code_seen('I')) thermalManager.bedKi = scalePID_i(code_value_float());
-    if (code_seen('D')) thermalManager.bedKd = scalePID_d(code_value_float());
-
-    thermalManager.updatePID();
-
-    SERIAL_ECHO_START;
-    SERIAL_ECHOPGM(" p:");
-    SERIAL_ECHO(thermalManager.bedKp);
-    SERIAL_ECHOPGM(" i:");
-    SERIAL_ECHO(unscalePID_i(thermalManager.bedKi));
-    SERIAL_ECHOPGM(" d:");
-    SERIAL_ECHOLN(unscalePID_d(thermalManager.bedKd));
-  }
-
-#endif // PIDTEMPBED
 
 #if defined(CHDK) || HAS_PHOTOGRAPH
 
@@ -5761,73 +5040,6 @@ inline void gcode_M226() {
   }
 
 #endif // HAS_LCD_CONTRAST
-
-#if ENABLED(PREVENT_DANGEROUS_EXTRUDE)
-
-  /**
-   * M302: Allow cold extrudes, or set the minimum extrude temperature
-   *
-   *       S<temperature> sets the minimum extrude temperature
-   *       P<bool> enables (1) or disables (0) cold extrusion
-   *
-   *  Examples:
-   *
-   *       M302         ; report current cold extrusion state
-   *       M302 P0      ; enable cold extrusion checking
-   *       M302 P1      ; disables cold extrusion checking
-   *       M302 S0      ; always allow extrusion (disables checking)
-   *       M302 S170    ; only allow extrusion above 170
-   *       M302 S170 P1 ; set min extrude temp to 170 but leave disabled
-   */
-  inline void gcode_M302() {
-    bool seen_S = code_seen('S');
-    if (seen_S) {
-      thermalManager.extrude_min_temp = code_value_temp_abs();
-      thermalManager.allow_cold_extrude = (thermalManager.extrude_min_temp == 0);
-    }
-
-    if (code_seen('P'))
-      thermalManager.allow_cold_extrude = (thermalManager.extrude_min_temp == 0) || code_value_bool();
-    else if (!seen_S) {
-      // Report current state
-      SERIAL_ECHO_START;
-      SERIAL_ECHOPAIR("Cold extrudes are ", (thermalManager.allow_cold_extrude ? "en" : "dis"));
-      SERIAL_ECHOPAIR("abled (min temp ", int(thermalManager.extrude_min_temp + 0.5));
-      SERIAL_ECHOLNPGM("C)");
-    }
-  }
-
-#endif // PREVENT_DANGEROUS_EXTRUDE
-
-/**
- * M303: PID relay autotune
- *
- *       S<temperature> sets the target temperature. (default 150C)
- *       E<extruder> (-1 for the bed) (default 0)
- *       C<cycles>
- *       U<bool> with a non-zero value will apply the result to current settings
- */
-inline void gcode_M303() {
-  #if HAS_PID_HEATING
-    int e = code_seen('E') ? code_value_int() : 0;
-    int c = code_seen('C') ? code_value_int() : 5;
-    bool u = code_seen('U') && code_value_bool();
-
-    float temp = code_seen('S') ? code_value_temp_abs() : (e < 0 ? 70.0 : 150.0);
-
-    if (e >= 0 && e < HOTENDS)
-      target_extruder = e;
-
-    KEEPALIVE_STATE(NOT_BUSY); // don't send "busy: processing" messages during autotune output
-
-    thermalManager.PID_autotune(temp, e, c, u);
-
-    KEEPALIVE_STATE(IN_HANDLER);
-  #else
-    SERIAL_ERROR_START;
-    SERIAL_ERRORLNPGM(MSG_ERR_M303_DISABLED);
-  #endif
-}
 
 #if ENABLED(SCARA)
   bool SCARA_move_to_cal(uint8_t delta_x, uint8_t delta_y) {
@@ -6629,276 +5841,11 @@ void tool_change(const uint8_t tmp_extruder, const float fr_mm_m/*=0.0*/, bool n
 
   #else //!MIXING_EXTRUDER || MIXING_VIRTUAL_TOOLS <= 1
 
-    #if HOTENDS > 1
+    // Set the new active extruder
+    active_extruder = tmp_extruder;
 
-      if (tmp_extruder >= EXTRUDERS) {
-        invalid_extruder_error(tmp_extruder);
-        return;
-      }
-
-      float old_feedrate_mm_m = feedrate_mm_m;
-
-      feedrate_mm_m = fr_mm_m > 0.0 ? (old_feedrate_mm_m = fr_mm_m) : XY_PROBE_FEEDRATE_MM_M;
-
-      if (tmp_extruder != active_extruder) {
-        if (!no_move && axis_unhomed_error(true, true, true)) {
-          SERIAL_ECHOLNPGM("No move on toolchange");
-          no_move = true;
-        }
-
-        // Save current position to destination, for use later
-        set_destination_to_current();
-
-        #if ENABLED(DUAL_X_CARRIAGE)
-
-          #if ENABLED(DEBUG_LEVELING_FEATURE)
-            if (DEBUGGING(LEVELING)) {
-              SERIAL_ECHOPGM("Dual X Carriage Mode ");
-              switch (dual_x_carriage_mode) {
-                case DXC_DUPLICATION_MODE: SERIAL_ECHOLNPGM("DXC_DUPLICATION_MODE"); break;
-                case DXC_AUTO_PARK_MODE: SERIAL_ECHOLNPGM("DXC_AUTO_PARK_MODE"); break;
-                case DXC_FULL_CONTROL_MODE: SERIAL_ECHOLNPGM("DXC_FULL_CONTROL_MODE"); break;
-              }
-            }
-          #endif
-
-          if (dual_x_carriage_mode == DXC_AUTO_PARK_MODE && IsRunning() &&
-              (delayed_move_time || current_position[X_AXIS] != x_home_pos(active_extruder))
-          ) {
-            #if ENABLED(DEBUG_LEVELING_FEATURE)
-              if (DEBUGGING(LEVELING)) {
-                SERIAL_ECHOPAIR("Raise to ", current_position[Z_AXIS] + TOOLCHANGE_PARK_ZLIFT); SERIAL_EOL;
-                SERIAL_ECHOPAIR("MoveX to ", x_home_pos(active_extruder)); SERIAL_EOL;
-                SERIAL_ECHOPAIR("Lower to ", current_position[Z_AXIS]); SERIAL_EOL;
-              }
-            #endif
-            // Park old head: 1) raise 2) move to park position 3) lower
-            for (uint8_t i = 0; i < 3; i++)
-              planner.buffer_line(
-                i == 0 ? current_position[X_AXIS] : x_home_pos(active_extruder),
-                current_position[Y_AXIS],
-                current_position[Z_AXIS] + (i == 2 ? 0 : TOOLCHANGE_PARK_ZLIFT),
-                current_position[E_AXIS],
-                planner.max_feedrate_mm_s[i == 1 ? X_AXIS : Z_AXIS],
-                active_extruder
-              );
-            stepper.synchronize();
-          }
-
-          // apply Y & Z extruder offset (x offset is already used in determining home pos)
-          current_position[Y_AXIS] -= hotend_offset[Y_AXIS][active_extruder] - hotend_offset[Y_AXIS][tmp_extruder];
-          current_position[Z_AXIS] -= hotend_offset[Z_AXIS][active_extruder] - hotend_offset[Z_AXIS][tmp_extruder];
-          active_extruder = tmp_extruder;
-
-          // This function resets the max/min values - the current position may be overwritten below.
-          set_axis_is_at_home(X_AXIS);
-
-          #if ENABLED(DEBUG_LEVELING_FEATURE)
-            if (DEBUGGING(LEVELING)) DEBUG_POS("New Extruder", current_position);
-          #endif
-
-          switch (dual_x_carriage_mode) {
-            case DXC_FULL_CONTROL_MODE:
-              current_position[X_AXIS] = LOGICAL_X_POSITION(inactive_extruder_x_pos);
-              inactive_extruder_x_pos = RAW_X_POSITION(destination[X_AXIS]);
-              break;
-            case DXC_DUPLICATION_MODE:
-              active_extruder_parked = (active_extruder == 0); // this triggers the second extruder to move into the duplication position
-              if (active_extruder_parked)
-                current_position[X_AXIS] = LOGICAL_X_POSITION(inactive_extruder_x_pos);
-              else
-                current_position[X_AXIS] = destination[X_AXIS] + duplicate_extruder_x_offset;
-              inactive_extruder_x_pos = RAW_X_POSITION(destination[X_AXIS]);
-              extruder_duplication_enabled = false;
-              break;
-            default:
-              // record raised toolhead position for use by unpark
-              memcpy(raised_parked_position, current_position, sizeof(raised_parked_position));
-              raised_parked_position[Z_AXIS] += TOOLCHANGE_UNPARK_ZLIFT;
-              active_extruder_parked = true;
-              delayed_move_time = 0;
-              break;
-          }
-
-          #if ENABLED(DEBUG_LEVELING_FEATURE)
-            if (DEBUGGING(LEVELING)) {
-              SERIAL_ECHOPAIR("Active extruder parked: ", active_extruder_parked ? "yes" : "no");
-              SERIAL_EOL;
-              DEBUG_POS("New extruder (parked)", current_position);
-            }
-          #endif
-
-          // No extra case for AUTO_BED_LEVELING_FEATURE in DUAL_X_CARRIAGE. Does that mean they don't work together?
-        #else // !DUAL_X_CARRIAGE
-
-          #if ENABLED(SWITCHING_EXTRUDER)
-            // <0 if the new nozzle is higher, >0 if lower. A bigger raise when lower.
-            float z_diff = hotend_offset[Z_AXIS][active_extruder] - hotend_offset[Z_AXIS][tmp_extruder],
-                  z_raise = 0.3 + (z_diff > 0.0 ? z_diff : 0.0);
-
-            // Always raise by some amount
-            planner.buffer_line(
-              current_position[X_AXIS],
-              current_position[Y_AXIS],
-              current_position[Z_AXIS] + z_raise,
-              current_position[E_AXIS],
-              planner.max_feedrate_mm_s[Z_AXIS],
-              active_extruder
-            );
-            stepper.synchronize();
-
-            move_extruder_servo(active_extruder);
-            delay(500);
-
-            // Move back down, if needed
-            if (z_raise != z_diff) {
-              planner.buffer_line(
-                current_position[X_AXIS],
-                current_position[Y_AXIS],
-                current_position[Z_AXIS] + z_diff,
-                current_position[E_AXIS],
-                planner.max_feedrate_mm_s[Z_AXIS],
-                active_extruder
-              );
-              stepper.synchronize();
-            }
-          #endif
-
-          /**
-           * Set current_position to the position of the new nozzle.
-           * Offsets are based on linear distance, so we need to get
-           * the resulting position in coordinate space.
-           *
-           * - With grid or 3-point leveling, offset XYZ by a tilted vector
-           * - With mesh leveling, update Z for the new position
-           * - Otherwise, just use the raw linear distance
-           *
-           * Software endstops are altered here too. Consider a case where:
-           *   E0 at X=0 ... E1 at X=10
-           * When we switch to E1 now X=10, but E1 can't move left.
-           * To express this we apply the change in XY to the software endstops.
-           * E1 can move farther right than E0, so the right limit is extended.
-           *
-           * Note that we don't adjust the Z software endstops. Why not?
-           * Consider a case where Z=0 (here) and switching to E1 makes Z=1
-           * because the bed is 1mm lower at the new position. As long as
-           * the first nozzle is out of the way, the carriage should be
-           * allowed to move 1mm lower. This technically "breaks" the
-           * Z software endstop. But this is technically correct (and
-           * there is no viable alternative).
-           */
-          #if ENABLED(AUTO_BED_LEVELING_FEATURE)
-            // Offset extruder, make sure to apply the bed level rotation matrix
-            vector_3 tmp_offset_vec = vector_3(hotend_offset[X_AXIS][tmp_extruder],
-                                               hotend_offset[Y_AXIS][tmp_extruder],
-                                               0),
-                     act_offset_vec = vector_3(hotend_offset[X_AXIS][active_extruder],
-                                               hotend_offset[Y_AXIS][active_extruder],
-                                               0),
-                     offset_vec = tmp_offset_vec - act_offset_vec;
-
-            #if ENABLED(DEBUG_LEVELING_FEATURE)
-              if (DEBUGGING(LEVELING)) {
-                tmp_offset_vec.debug("tmp_offset_vec");
-                act_offset_vec.debug("act_offset_vec");
-                offset_vec.debug("offset_vec (BEFORE)");
-              }
-            #endif
-
-            offset_vec.apply_rotation(planner.bed_level_matrix.transpose(planner.bed_level_matrix));
-
-            #if ENABLED(DEBUG_LEVELING_FEATURE)
-              if (DEBUGGING(LEVELING)) offset_vec.debug("offset_vec (AFTER)");
-            #endif
-
-            // Adjustments to the current position
-            float xydiff[2] = { offset_vec.x, offset_vec.y };
-            current_position[Z_AXIS] += offset_vec.z;
-
-          #else // !AUTO_BED_LEVELING_FEATURE
-
-            float xydiff[2] = {
-              hotend_offset[X_AXIS][tmp_extruder] - hotend_offset[X_AXIS][active_extruder],
-              hotend_offset[Y_AXIS][tmp_extruder] - hotend_offset[Y_AXIS][active_extruder]
-            };
-
-            #if ENABLED(MESH_BED_LEVELING)
-
-              if (mbl.active()) {
-                #if ENABLED(DEBUG_LEVELING_FEATURE)
-                  if (DEBUGGING(LEVELING)) SERIAL_ECHOPAIR("Z before MBL: ", current_position[Z_AXIS]);
-                #endif
-                float xpos = RAW_CURRENT_POSITION(X_AXIS),
-                      ypos = RAW_CURRENT_POSITION(Y_AXIS);
-                current_position[Z_AXIS] += mbl.get_z(xpos + xydiff[X_AXIS], ypos + xydiff[Y_AXIS]) - mbl.get_z(xpos, ypos);
-                #if ENABLED(DEBUG_LEVELING_FEATURE)
-                  if (DEBUGGING(LEVELING)) {
-                    SERIAL_ECHOPAIR(" after: ", current_position[Z_AXIS]);
-                    SERIAL_EOL;
-                  }
-                #endif
-              }
-
-            #endif // MESH_BED_LEVELING
-
-          #endif // !AUTO_BED_LEVELING_FEATURE
-
-          #if ENABLED(DEBUG_LEVELING_FEATURE)
-            if (DEBUGGING(LEVELING)) {
-              SERIAL_ECHOPAIR("Offset Tool XY by { ", xydiff[X_AXIS]);
-              SERIAL_ECHOPAIR(", ", xydiff[Y_AXIS]);
-              SERIAL_ECHOLNPGM(" }");
-            }
-          #endif
-
-          // The newly-selected extruder XY is actually at...
-          current_position[X_AXIS] += xydiff[X_AXIS];
-          current_position[Y_AXIS] += xydiff[Y_AXIS];
-          for (uint8_t i = X_AXIS; i <= Y_AXIS; i++) {
-            position_shift[i] += xydiff[i];
-            update_software_endstops((AxisEnum)i);
-          }
-
-          // Set the new active extruder
-          active_extruder = tmp_extruder;
-
-        #endif // !DUAL_X_CARRIAGE
-
-        #if ENABLED(DEBUG_LEVELING_FEATURE)
-          if (DEBUGGING(LEVELING)) DEBUG_POS("Sync After Toolchange", current_position);
-        #endif
-
-        // Tell the planner the new "current position"
-        SYNC_PLAN_POSITION_KINEMATIC();
-
-        // Move to the "old position" (move the extruder into place)
-        if (!no_move && IsRunning()) {
-          #if ENABLED(DEBUG_LEVELING_FEATURE)
-            if (DEBUGGING(LEVELING)) DEBUG_POS("Move back", destination);
-          #endif
-          prepare_move_to_destination();
-        }
-
-      } // (tmp_extruder != active_extruder)
-
-      stepper.synchronize();
-
-      #if ENABLED(EXT_SOLENOID)
-        disable_all_solenoids();
-        enable_solenoid_on_active_extruder();
-      #endif // EXT_SOLENOID
-
-      feedrate_mm_m = old_feedrate_mm_m;
-
-    #else // HOTENDS <= 1
-
-      // Set the new active extruder
-      active_extruder = tmp_extruder;
-
-      UNUSED(fr_mm_m);
-      UNUSED(no_move);
-
-    #endif // HOTENDS <= 1
+    UNUSED(fr_mm_m);
+    UNUSED(no_move);
 
     SERIAL_ECHO_START;
     SERIAL_ECHOPGM(MSG_ACTIVE_EXTRUDER);
@@ -6923,19 +5870,7 @@ inline void gcode_T(uint8_t tmp_extruder) {
     }
   #endif
 
-  #if HOTENDS == 1 || (ENABLED(MIXING_EXTRUDER) && MIXING_VIRTUAL_TOOLS > 1)
-
-    tool_change(tmp_extruder);
-
-  #elif HOTENDS > 1
-
-    tool_change(
-      tmp_extruder,
-      code_seen('F') ? code_value_axis_units(X_AXIS) : 0.0,
-      (tmp_extruder == active_extruder) || (code_seen('S') && code_value_bool())
-    );
-
-  #endif
+  tool_change(tmp_extruder);
 
   #if ENABLED(DEBUG_LEVELING_FEATURE)
     if (DEBUGGING(LEVELING)) {
@@ -7522,28 +6457,6 @@ void mesh_line_to_destination(float fr_mm_m, uint8_t x_splits = 0xff, uint8_t y_
 
 #endif // !DELTA && !SCARA
 
-#if ENABLED(PREVENT_DANGEROUS_EXTRUDE)
-
-  inline void prevent_dangerous_extrude(float& curr_e, float& dest_e) {
-    if (DEBUGGING(DRYRUN)) return;
-    float de = dest_e - curr_e;
-    if (de) {
-      if (thermalManager.tooColdToExtrude(active_extruder)) {
-        curr_e = dest_e; // Behave as if the move really took place, but ignore E part
-        SERIAL_ECHO_START;
-        SERIAL_ECHOLNPGM(MSG_ERR_COLD_EXTRUDE_STOP);
-      }
-      #if ENABLED(PREVENT_LENGTHY_EXTRUDE)
-        if (labs(de) > EXTRUDE_MAXLENGTH) {
-          curr_e = dest_e; // Behave as if the move really took place, but ignore E part
-          SERIAL_ECHO_START;
-          SERIAL_ECHOLNPGM(MSG_ERR_LONG_EXTRUDE_STOP);
-        }
-      #endif
-    }
-  }
-
-#endif // PREVENT_DANGEROUS_EXTRUDE
 
 /**
  * Prepare a single move and get ready for the next one
@@ -7557,9 +6470,6 @@ void prepare_move_to_destination() {
 
   refresh_cmd_timeout();
 
-  #if ENABLED(PREVENT_DANGEROUS_EXTRUDE)
-    prevent_dangerous_extrude(current_position[E_AXIS], destination[E_AXIS]);
-  #endif
 
   #if ENABLED(DELTA) || ENABLED(SCARA)
     if (!prepare_kinematic_move_to(destination)) return;
@@ -7739,43 +6649,6 @@ void prepare_move_to_destination() {
 
 #endif // BEZIER_CURVE_SUPPORT
 
-#if HAS_CONTROLLERFAN
-
-  void controllerFan() {
-    static millis_t lastMotorOn = 0; // Last time a motor was turned on
-    static millis_t nextMotorCheck = 0; // Last time the state was checked
-    millis_t ms = millis();
-    if (ELAPSED(ms, nextMotorCheck)) {
-      nextMotorCheck = ms + 2500UL; // Not a time critical function, so only check every 2.5s
-      if (X_ENABLE_READ == X_ENABLE_ON || Y_ENABLE_READ == Y_ENABLE_ON || Z_ENABLE_READ == Z_ENABLE_ON || thermalManager.soft_pwm_bed > 0
-          || E0_ENABLE_READ == E_ENABLE_ON // If any of the drivers are enabled...
-          #if E_STEPPERS > 1
-            || E1_ENABLE_READ == E_ENABLE_ON
-            #if HAS_X2_ENABLE
-              || X2_ENABLE_READ == X_ENABLE_ON
-            #endif
-            #if E_STEPPERS > 2
-              || E2_ENABLE_READ == E_ENABLE_ON
-              #if E_STEPPERS > 3
-                || E3_ENABLE_READ == E_ENABLE_ON
-              #endif
-            #endif
-          #endif
-      ) {
-        lastMotorOn = ms; //... set time to NOW so the fan will turn on
-      }
-
-      // Fan off if no steppers have been enabled for CONTROLLERFAN_SECS seconds
-      uint8_t speed = (!lastMotorOn || ELAPSED(ms, lastMotorOn + (CONTROLLERFAN_SECS) * 1000UL)) ? 0 : CONTROLLERFAN_SPEED;
-
-      // allows digital or PWM fan output to be used (see M42 handling)
-      digitalWrite(CONTROLLERFAN_PIN, speed);
-      analogWrite(CONTROLLERFAN_PIN, speed);
-    }
-  }
-
-#endif // HAS_CONTROLLERFAN
-
 #if ENABLED(SCARA)
 
   void forward_kinematics_SCARA(float f_scara[3]) {
@@ -7856,32 +6729,6 @@ void prepare_move_to_destination() {
 
 #endif // SCARA
 
-#if ENABLED(TEMP_STAT_LEDS)
-
-  static bool red_led = false;
-  static millis_t next_status_led_update_ms = 0;
-
-  void handle_status_leds(void) {
-    float max_temp = 0.0;
-    if (ELAPSED(millis(), next_status_led_update_ms)) {
-      next_status_led_update_ms += 500; // Update every 0.5s
-      HOTEND_LOOP() {
-        max_temp = max(max(max_temp, thermalManager.degHotend(e)), thermalManager.degTargetHotend(e));
-      }
-      #if HAS_TEMP_BED
-        max_temp = max(max(max_temp, thermalManager.degTargetBed()), thermalManager.degBed());
-      #endif
-      bool new_led = (max_temp > 55.0) ? true : (max_temp < 54.0) ? false : red_led;
-      if (new_led != red_led) {
-        red_led = new_led;
-        digitalWrite(STAT_LED_RED, new_led ? HIGH : LOW);
-        digitalWrite(STAT_LED_BLUE, new_led ? LOW : HIGH);
-      }
-    }
-  }
-
-#endif
-
 void enable_all_steppers() {
   enable_x();
   enable_y();
@@ -7944,7 +6791,6 @@ void idle(bool fast
  *  - Check if pin CHDK needs to go LOW
  *  - Check for KILL button held down
  *  - Check for HOME button held down
- *  - Check if cooling fan needs to be switched on
  *  - Check if an idle but hot extruder needs filament extruded (EXTRUDER_RUNOUT_PREVENT)
  */
 void manage_inactivity(bool ignore_stepper_queue/*=false*/) {
@@ -8001,80 +6847,6 @@ void manage_inactivity(bool ignore_stepper_queue/*=false*/) {
     }
   #endif
 
-  #if HAS_CONTROLLERFAN
-    controllerFan(); // Check if fan should be turned on to cool stepper drivers down
-  #endif
-
-  #if ENABLED(EXTRUDER_RUNOUT_PREVENT)
-    if (ELAPSED(ms, previous_cmd_ms + (EXTRUDER_RUNOUT_SECONDS) * 1000UL)
-      && thermalManager.degHotend(active_extruder) > EXTRUDER_RUNOUT_MINTEMP) {
-      #if ENABLED(SWITCHING_EXTRUDER)
-        bool oldstatus = E0_ENABLE_READ;
-        enable_e0();
-      #else // !SWITCHING_EXTRUDER
-        bool oldstatus;
-        switch (active_extruder) {
-          case 0:
-            oldstatus = E0_ENABLE_READ;
-            enable_e0();
-            break;
-          #if E_STEPPERS > 1
-            case 1:
-              oldstatus = E1_ENABLE_READ;
-              enable_e1();
-              break;
-            #if E_STEPPERS > 2
-              case 2:
-                oldstatus = E2_ENABLE_READ;
-                enable_e2();
-                break;
-              #if E_STEPPERS > 3
-                case 3:
-                  oldstatus = E3_ENABLE_READ;
-                  enable_e3();
-                  break;
-              #endif
-            #endif
-          #endif
-        }
-      #endif // !SWITCHING_EXTRUDER
-
-      float oldepos = current_position[E_AXIS], oldedes = destination[E_AXIS];
-      planner.buffer_line(destination[X_AXIS], destination[Y_AXIS], destination[Z_AXIS],
-                       destination[E_AXIS] + (EXTRUDER_RUNOUT_EXTRUDE) * (EXTRUDER_RUNOUT_ESTEPS) / planner.axis_steps_per_mm[E_AXIS],
-                       MMM_TO_MMS(EXTRUDER_RUNOUT_SPEED) * (EXTRUDER_RUNOUT_ESTEPS) / planner.axis_steps_per_mm[E_AXIS], active_extruder);
-      current_position[E_AXIS] = oldepos;
-      destination[E_AXIS] = oldedes;
-      planner.set_e_position_mm(oldepos);
-      previous_cmd_ms = ms; // refresh_cmd_timeout()
-      stepper.synchronize();
-      #if ENABLED(SWITCHING_EXTRUDER)
-        E0_ENABLE_WRITE(oldstatus);
-      #else
-        switch (active_extruder) {
-          case 0:
-            E0_ENABLE_WRITE(oldstatus);
-            break;
-          #if E_STEPPERS > 1
-            case 1:
-              E1_ENABLE_WRITE(oldstatus);
-              break;
-            #if E_STEPPERS > 2
-              case 2:
-                E2_ENABLE_WRITE(oldstatus);
-                break;
-              #if E_STEPPERS > 3
-                case 3:
-                  E3_ENABLE_WRITE(oldstatus);
-                  break;
-              #endif
-            #endif
-          #endif
-        }
-      #endif // !SWITCHING_EXTRUDER
-    }
-  #endif // EXTRUDER_RUNOUT_PREVENT
-
   #if ENABLED(DUAL_X_CARRIAGE)
     // handle delayed move timeout
     if (delayed_move_time && ELAPSED(ms, delayed_move_time + 1000UL) && IsRunning()) {
@@ -8083,10 +6855,6 @@ void manage_inactivity(bool ignore_stepper_queue/*=false*/) {
       set_destination_to_current();
       prepare_move_to_destination();
     }
-  #endif
-
-  #if ENABLED(TEMP_STAT_LEDS)
-    handle_status_leds();
   #endif
 
   planner.check_axes_activity();
@@ -8111,7 +6879,6 @@ void kill(const char* lcd_msg) {
   for (int i = 5; i--;) delay(100); // Wait a short time
 
   cli(); // Stop interrupts
-  thermalManager.disable_all_heaters();
   disable_all_steppers();
 
   #if HAS_POWER_SWITCH
@@ -8138,70 +6905,10 @@ void kill(const char* lcd_msg) {
 
 #endif // FILAMENT_RUNOUT_SENSOR
 
-#if ENABLED(FAST_PWM_FAN)
-
-  void setPwmFrequency(uint8_t pin, int val) {
-    val &= 0x07;
-    switch (digitalPinToTimer(pin)) {
-      #if defined(TCCR0A)
-        case TIMER0A:
-        case TIMER0B:
-          // TCCR0B &= ~(_BV(CS00) | _BV(CS01) | _BV(CS02));
-          // TCCR0B |= val;
-          break;
-      #endif
-      #if defined(TCCR1A)
-        case TIMER1A:
-        case TIMER1B:
-          // TCCR1B &= ~(_BV(CS10) | _BV(CS11) | _BV(CS12));
-          // TCCR1B |= val;
-          break;
-      #endif
-      #if defined(TCCR2)
-        case TIMER2:
-        case TIMER2:
-          TCCR2 &= ~(_BV(CS10) | _BV(CS11) | _BV(CS12));
-          TCCR2 |= val;
-          break;
-      #endif
-      #if defined(TCCR2A)
-        case TIMER2A:
-        case TIMER2B:
-          TCCR2B &= ~(_BV(CS20) | _BV(CS21) | _BV(CS22));
-          TCCR2B |= val;
-          break;
-      #endif
-      #if defined(TCCR3A)
-        case TIMER3A:
-        case TIMER3B:
-        case TIMER3C:
-          TCCR3B &= ~(_BV(CS30) | _BV(CS31) | _BV(CS32));
-          TCCR3B |= val;
-          break;
-      #endif
-      #if defined(TCCR4A)
-        case TIMER4A:
-        case TIMER4B:
-        case TIMER4C:
-          TCCR4B &= ~(_BV(CS40) | _BV(CS41) | _BV(CS42));
-          TCCR4B |= val;
-          break;
-      #endif
-      #if defined(TCCR5A)
-        case TIMER5A:
-        case TIMER5B:
-        case TIMER5C:
-          TCCR5B &= ~(_BV(CS50) | _BV(CS51) | _BV(CS52));
-          TCCR5B |= val;
-          break;
-      #endif
-    }
-  }
-#endif // FAST_PWM_FAN
 
 void stop() {
   plasmaManager.lock();
-  thermalManager.disable_all_heaters();
+  print_job_timer.stop();
   if (IsRunning()) {
     Running = false;
     Stopped_gcode_LastN = gcode_LastN; // Save last g_code for restart

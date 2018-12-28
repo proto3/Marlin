@@ -259,9 +259,6 @@ bool breach_software_endstops(float target[3]);
 extern millis_t previous_cmd_ms;
 inline void refresh_cmd_timeout() { previous_cmd_ms = millis(); }
 
-#if ENABLED(FAST_PWM_FAN)
-  void setPwmFrequency(uint8_t pin, int val);
-#endif
 
 /**
  * Feedrate scaling and conversion
@@ -281,7 +278,6 @@ extern float filament_size[EXTRUDERS]; // cross-sectional area of filament (in m
 extern float volumetric_multiplier[EXTRUDERS]; // reciprocal of cross-sectional area of filament (in square millimeters), stored this way to reduce computational burden in planner
 extern bool axis_known_position[3]; // axis[n].is_known
 extern bool axis_homed[3]; // axis[n].is_homed
-extern volatile bool wait_for_heatup;
 
 extern float current_position[NUM_AXIS];
 extern float position_shift[3];
@@ -302,8 +298,6 @@ extern float sw_endstop_max[3];
 // GCode support for external objects
 bool code_seen(char);
 int code_value_int();
-float code_value_temp_abs();
-float code_value_temp_diff();
 
 #if ENABLED(DELTA)
   extern float delta[3];
@@ -337,10 +331,6 @@ float code_value_temp_diff();
 
 #if ENABLED(HOST_KEEPALIVE_FEATURE)
   extern uint8_t host_keepalive_interval;
-#endif
-
-#if FAN_COUNT > 0
-  extern int fanSpeeds[FAN_COUNT];
 #endif
 
 #if ENABLED(BARICUDA)
@@ -381,10 +371,6 @@ float code_value_temp_diff();
 
 // Handling multiple extruders pins
 extern uint8_t active_extruder;
-
-#if HAS_TEMP_HOTEND || HAS_TEMP_BED
-  void print_heaterstates();
-#endif
 
 #if ENABLED(MIXING_EXTRUDER)
   extern float mixing_factor[MIXING_STEPPERS];

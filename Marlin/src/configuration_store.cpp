@@ -84,24 +84,6 @@
  * Z_DUAL_ENDSTOPS:
  *  285  M666 Z    z_endstop_adj (float)
  *
- * ULTIPANEL:
- *  289  M145 S0 H preheatHotendTemp1 (int)
- *  291  M145 S0 B preheatBedTemp1 (int)
- *  293  M145 S0 F preheatFanSpeed1 (int)
- *  295  M145 S1 H preheatHotendTemp2 (int)
- *  297  M145 S1 B preheatBedTemp2 (int)
- *  299  M145 S1 F preheatFanSpeed2 (int)
- *
- * PIDTEMP:
- *  301  M301 E0 PIDC  Kp[0], Ki[0], Kd[0], Kc[0] (float x4)
- *  317  M301 E1 PIDC  Kp[1], Ki[1], Kd[1], Kc[1] (float x4)
- *  333  M301 E2 PIDC  Kp[2], Ki[2], Kd[2], Kc[2] (float x4)
- *  349  M301 E3 PIDC  Kp[3], Ki[3], Kd[3], Kc[3] (float x4)
- *  365  M301 L        lpq_len (int)
- *
- * PIDTEMPBED:
- *  367  M304 PID  thermalManager.bedKp, thermalManager.bedKi, thermalManager.bedKd (float x3)
- *
  * DOGLCD:
  *  379  M250 C    lcd_contrast (int)
  *
@@ -129,7 +111,6 @@
 #include "language.h"
 #include "endstops.h"
 #include "planner.h"
-#include "temperature.h"
 #include "ultralcd.h"
 #include "configuration_store.h"
 
@@ -181,9 +162,6 @@ void Config_Postprocess() {
   // and init stepper.count[], planner.position[] with current_position
   planner.refresh_positioning();
 
-  #if ENABLED(PIDTEMP)
-    thermalManager.updatePID();
-  #endif
 
   calculate_volumetric_multipliers();
 }
@@ -271,34 +249,8 @@ void Config_StoreSettings()  {
     for (uint8_t q = 9; q--;) EEPROM_WRITE(dummy);
   #endif
 
-  #if DISABLED(ULTIPANEL)
-    int preheatHotendTemp1 = PREHEAT_1_TEMP_HOTEND, preheatBedTemp1 = PREHEAT_1_TEMP_BED, preheatFanSpeed1 = PREHEAT_1_FAN_SPEED,
-        preheatHotendTemp2 = PREHEAT_2_TEMP_HOTEND, preheatBedTemp2 = PREHEAT_2_TEMP_BED, preheatFanSpeed2 = PREHEAT_2_FAN_SPEED;
-  #endif // !ULTIPANEL
-
-  EEPROM_WRITE(preheatHotendTemp1);
-  EEPROM_WRITE(preheatBedTemp1);
-  EEPROM_WRITE(preheatFanSpeed1);
-  EEPROM_WRITE(preheatHotendTemp2);
-  EEPROM_WRITE(preheatBedTemp2);
-  EEPROM_WRITE(preheatFanSpeed2);
-
   for (uint8_t e = 0; e < MAX_EXTRUDERS; e++) {
 
-    #if ENABLED(PIDTEMP)
-      if (e < HOTENDS) {
-        EEPROM_WRITE(PID_PARAM(Kp, e));
-        EEPROM_WRITE(PID_PARAM(Ki, e));
-        EEPROM_WRITE(PID_PARAM(Kd, e));
-        #if ENABLED(PID_EXTRUSION_SCALING)
-          EEPROM_WRITE(PID_PARAM(Kc, e));
-        #else
-          dummy = 1.0f; // 1.0 = default kc
-          EEPROM_WRITE(dummy);
-        #endif
-      }
-      else
-    #endif // !PIDTEMP
       {
         dummy = DUMMY_PID_VALUE; // When read, will not change the existing value
         EEPROM_WRITE(dummy); // Kp
@@ -313,14 +265,8 @@ void Config_StoreSettings()  {
   #endif
   EEPROM_WRITE(lpq_len);
 
-  #if DISABLED(PIDTEMPBED)
     dummy = DUMMY_PID_VALUE;
     for (uint8_t q = 3; q--;) EEPROM_WRITE(dummy);
-  #else
-    EEPROM_WRITE(thermalManager.bedKp);
-    EEPROM_WRITE(thermalManager.bedKi);
-    EEPROM_WRITE(thermalManager.bedKd);
-  #endif
 
   #if !HAS_LCD_CONTRAST
     const int lcd_contrast = 32;
@@ -461,56 +407,15 @@ void Config_RetrieveSettings() {
       for (uint8_t q=9; q--;) EEPROM_READ(dummy);
     #endif
 
-    #if DISABLED(ULTIPANEL)
-      int preheatHotendTemp1, preheatBedTemp1, preheatFanSpeed1,
-          preheatHotendTemp2, preheatBedTemp2, preheatFanSpeed2;
-    #endif
-
-    EEPROM_READ(preheatHotendTemp1);
-    EEPROM_READ(preheatBedTemp1);
-    EEPROM_READ(preheatFanSpeed1);
-    EEPROM_READ(preheatHotendTemp2);
-    EEPROM_READ(preheatBedTemp2);
-    EEPROM_READ(preheatFanSpeed2);
-
-    #if ENABLED(PIDTEMP)
-      for (uint8_t e = 0; e < MAX_EXTRUDERS; e++) {
-        EEPROM_READ(dummy); // Kp
-        if (e < HOTENDS && dummy != DUMMY_PID_VALUE) {
-          // do not need to scale PID values as the values in EEPROM are already scaled
-          PID_PARAM(Kp, e) = dummy;
-          EEPROM_READ(PID_PARAM(Ki, e));
-          EEPROM_READ(PID_PARAM(Kd, e));
-          #if ENABLED(PID_EXTRUSION_SCALING)
-            EEPROM_READ(PID_PARAM(Kc, e));
-          #else
-            EEPROM_READ(dummy);
-          #endif
-        }
-        else {
-          for (uint8_t q=3; q--;) EEPROM_READ(dummy); // Ki, Kd, Kc
-        }
-      }
-    #else // !PIDTEMP
       // 4 x 4 = 16 slots for PID parameters
       for (uint8_t q = MAX_EXTRUDERS * 4; q--;) EEPROM_READ(dummy);  // Kp, Ki, Kd, Kc
-    #endif // !PIDTEMP
 
     #if DISABLED(PID_EXTRUSION_SCALING)
       int lpq_len;
     #endif
     EEPROM_READ(lpq_len);
 
-    #if ENABLED(PIDTEMPBED)
-      EEPROM_READ(dummy); // bedKp
-      if (dummy != DUMMY_PID_VALUE) {
-        thermalManager.bedKp = dummy;
-        EEPROM_READ(thermalManager.bedKi);
-        EEPROM_READ(thermalManager.bedKd);
-      }
-    #else
       for (uint8_t q=3; q--;) EEPROM_READ(dummy); // bedKp, bedKi, bedKd
-    #endif
 
     #if !HAS_LCD_CONTRAST
       int lcd_contrast;
@@ -618,42 +523,8 @@ void Config_ResetDefault() {
     z_endstop_adj = 0;
   #endif
 
-  #if ENABLED(ULTIPANEL)
-    preheatHotendTemp1 = PREHEAT_1_TEMP_HOTEND;
-    preheatBedTemp1 = PREHEAT_1_TEMP_BED;
-    preheatFanSpeed1 = PREHEAT_1_FAN_SPEED;
-    preheatHotendTemp2 = PREHEAT_2_TEMP_HOTEND;
-    preheatBedTemp2 = PREHEAT_2_TEMP_BED;
-    preheatFanSpeed2 = PREHEAT_2_FAN_SPEED;
-  #endif
-
   #if HAS_LCD_CONTRAST
     lcd_contrast = DEFAULT_LCD_CONTRAST;
-  #endif
-
-  #if ENABLED(PIDTEMP)
-    #if ENABLED(PID_PARAMS_PER_HOTEND) && HOTENDS > 1
-      HOTEND_LOOP()
-    #else
-      int e = 0; UNUSED(e); // only need to write once
-    #endif
-    {
-      PID_PARAM(Kp, e) = DEFAULT_Kp;
-      PID_PARAM(Ki, e) = scalePID_i(DEFAULT_Ki);
-      PID_PARAM(Kd, e) = scalePID_d(DEFAULT_Kd);
-      #if ENABLED(PID_EXTRUSION_SCALING)
-        PID_PARAM(Kc, e) = DEFAULT_Kc;
-      #endif
-    }
-    #if ENABLED(PID_EXTRUSION_SCALING)
-      lpq_len = 20; // default last-position-queue size
-    #endif
-  #endif // PIDTEMP
-
-  #if ENABLED(PIDTEMPBED)
-    thermalManager.bedKp = DEFAULT_bedKp;
-    thermalManager.bedKi = scalePID_i(DEFAULT_bedKi);
-    thermalManager.bedKd = scalePID_d(DEFAULT_bedKd);
   #endif
 
   #if ENABLED(FWRETRACT)
@@ -830,71 +701,6 @@ void Config_PrintSettings(bool forReplay) {
     SERIAL_ECHOPAIR("  M666 Z", z_endstop_adj);
     SERIAL_EOL;
   #endif // DELTA
-
-  #if ENABLED(ULTIPANEL)
-    CONFIG_ECHO_START;
-    if (!forReplay) {
-      SERIAL_ECHOLNPGM("Material heatup parameters:");
-      CONFIG_ECHO_START;
-    }
-    SERIAL_ECHOPAIR("  M145 S0 H", preheatHotendTemp1);
-    SERIAL_ECHOPAIR(" B", preheatBedTemp1);
-    SERIAL_ECHOPAIR(" F", preheatFanSpeed1);
-    SERIAL_EOL;
-    CONFIG_ECHO_START;
-    SERIAL_ECHOPAIR("  M145 S1 H", preheatHotendTemp2);
-    SERIAL_ECHOPAIR(" B", preheatBedTemp2);
-    SERIAL_ECHOPAIR(" F", preheatFanSpeed2);
-    SERIAL_EOL;
-  #endif // ULTIPANEL
-
-  #if HAS_PID_HEATING
-
-    CONFIG_ECHO_START;
-    if (!forReplay) {
-      SERIAL_ECHOLNPGM("PID settings:");
-    }
-    #if ENABLED(PIDTEMP)
-      #if HOTENDS > 1
-        if (forReplay) {
-          HOTEND_LOOP() {
-            CONFIG_ECHO_START;
-            SERIAL_ECHOPAIR("  M301 E", e);
-            SERIAL_ECHOPAIR(" P", PID_PARAM(Kp, e));
-            SERIAL_ECHOPAIR(" I", unscalePID_i(PID_PARAM(Ki, e)));
-            SERIAL_ECHOPAIR(" D", unscalePID_d(PID_PARAM(Kd, e)));
-            #if ENABLED(PID_EXTRUSION_SCALING)
-              SERIAL_ECHOPAIR(" C", PID_PARAM(Kc, e));
-              if (e == 0) SERIAL_ECHOPAIR(" L", lpq_len);
-            #endif
-            SERIAL_EOL;
-          }
-        }
-        else
-      #endif // HOTENDS > 1
-      // !forReplay || HOTENDS == 1
-      {
-        CONFIG_ECHO_START;
-        SERIAL_ECHOPAIR("  M301 P", PID_PARAM(Kp, 0)); // for compatibility with hosts, only echo values for E0
-        SERIAL_ECHOPAIR(" I", unscalePID_i(PID_PARAM(Ki, 0)));
-        SERIAL_ECHOPAIR(" D", unscalePID_d(PID_PARAM(Kd, 0)));
-        #if ENABLED(PID_EXTRUSION_SCALING)
-          SERIAL_ECHOPAIR(" C", PID_PARAM(Kc, 0));
-          SERIAL_ECHOPAIR(" L", lpq_len);
-        #endif
-        SERIAL_EOL;
-      }
-    #endif // PIDTEMP
-
-    #if ENABLED(PIDTEMPBED)
-      CONFIG_ECHO_START;
-      SERIAL_ECHOPAIR("  M304 P", thermalManager.bedKp);
-      SERIAL_ECHOPAIR(" I", unscalePID_i(thermalManager.bedKi));
-      SERIAL_ECHOPAIR(" D", unscalePID_d(thermalManager.bedKd));
-      SERIAL_EOL;
-    #endif
-
-  #endif // PIDTEMP || PIDTEMPBED
 
   #if HAS_LCD_CONTRAST
     CONFIG_ECHO_START;

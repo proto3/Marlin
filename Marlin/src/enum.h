@@ -53,12 +53,6 @@ typedef enum {
   LINEARUNIT_INCH
 } LinearUnit;
 
-typedef enum {
-  TEMPUNIT_C,
-  TEMPUNIT_K,
-  TEMPUNIT_F
-} TempUnit;
-
 /**
  * Debug flags
  * Not yet widely applied
@@ -83,26 +77,6 @@ enum EndstopEnum {
   Z_MAX,
   Z2_MIN,
   Z2_MAX
-};
-
-/**
- * Temperature
- * Stages in the ISR loop
- */
-enum TempState {
-  PrepareTemp_0,
-  MeasureTemp_0,
-  PrepareTemp_BED,
-  MeasureTemp_BED,
-  PrepareTemp_1,
-  MeasureTemp_1,
-  PrepareTemp_2,
-  MeasureTemp_2,
-  PrepareTemp_3,
-  MeasureTemp_3,
-  Prepare_FILWIDTH,
-  Measure_FILWIDTH,
-  StartupDelay // Startup, delay initial temp reading a tiny bit so the hardware can settle
 };
 
 /**
@@ -133,7 +107,6 @@ enum TempState {
     state_M,
     state_M1,
     state_M10,
-    state_M108,
     state_M11,
     state_M112,
     state_M4,

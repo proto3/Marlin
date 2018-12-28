@@ -95,10 +95,6 @@ typedef struct {
                 final_rate,                          // The minimal rate at exit
                 acceleration_steps_per_s2;           // acceleration steps/sec^2
 
-  #if FAN_COUNT > 0
-    unsigned long fan_speed[FAN_COUNT];
-  #endif
-
   #if ENABLED(BARICUDA)
     unsigned long valve_pressure, e_to_p_pressure;
   #endif
@@ -191,7 +187,7 @@ class Planner {
     static void reset_acceleration_rates();
     static void refresh_positioning();
 
-    // Manage fans, paste pressure, etc.
+    // Paste pressure, etc.
     static void check_axes_activity();
 
     /**
@@ -275,14 +271,6 @@ class Planner {
         return NULL;
     }
 
-    #if ENABLED(AUTOTEMP)
-      static float autotemp_max;
-      static float autotemp_min;
-      static float autotemp_factor;
-      static bool autotemp_enabled;
-      static void getHighESpeed();
-      static void autotemp_M109();
-    #endif
 
   private:
 

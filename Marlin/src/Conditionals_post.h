@@ -29,7 +29,7 @@
 #define CONDITIONALS_POST_H
 
   #if ENABLED(EMERGENCY_PARSER)
-    #define EMERGENCY_PARSER_CAPABILITIES " EMERGENCY_CODES:M108,M112,M410"
+    #define EMERGENCY_PARSER_CAPABILITIES " EMERGENCY_CODES:M112,M410"
   #else
     #define EMERGENCY_PARSER_CAPABILITIES ""
   #endif
@@ -254,103 +254,10 @@
   #define HAS_POWER_SWITCH (POWER_SUPPLY > 0 && PIN_EXISTS(PS_ON))
 
   /**
-   * Temp Sensor defines
-   */
-  #if TEMP_SENSOR_0 == -3
-    #define HEATER_0_USES_MAX6675
-    #define MAX6675_IS_MAX31855
-  #elif TEMP_SENSOR_0 == -2
-    #define HEATER_0_USES_MAX6675
-  #elif TEMP_SENSOR_0 == -1
-    #define HEATER_0_USES_AD595
-  #elif TEMP_SENSOR_0 == 0
-    #undef HEATER_0_MINTEMP
-    #undef HEATER_0_MAXTEMP
-  #elif TEMP_SENSOR_0 > 0
-    #define THERMISTORHEATER_0 TEMP_SENSOR_0
-    #define HEATER_0_USES_THERMISTOR
-  #endif
-
-  #if TEMP_SENSOR_1 <= -2
-    #error "MAX6675 / MAX31855 Thermocouples not supported for TEMP_SENSOR_1"
-  #elif TEMP_SENSOR_1 == -1
-    #define HEATER_1_USES_AD595
-  #elif TEMP_SENSOR_1 == 0
-    #undef HEATER_1_MINTEMP
-    #undef HEATER_1_MAXTEMP
-  #elif TEMP_SENSOR_1 > 0
-    #define THERMISTORHEATER_1 TEMP_SENSOR_1
-    #define HEATER_1_USES_THERMISTOR
-  #endif
-
-  #if TEMP_SENSOR_2 <= -2
-    #error "MAX6675 / MAX31855 Thermocouples not supported for TEMP_SENSOR_2"
-  #elif TEMP_SENSOR_2 == -1
-    #define HEATER_2_USES_AD595
-  #elif TEMP_SENSOR_2 == 0
-    #undef HEATER_2_MINTEMP
-    #undef HEATER_2_MAXTEMP
-  #elif TEMP_SENSOR_2 > 0
-    #define THERMISTORHEATER_2 TEMP_SENSOR_2
-    #define HEATER_2_USES_THERMISTOR
-  #endif
-
-  #if TEMP_SENSOR_3 <= -2
-    #error "MAX6675 / MAX31855 Thermocouples not supported for TEMP_SENSOR_3"
-  #elif TEMP_SENSOR_3 == -1
-    #define HEATER_3_USES_AD595
-  #elif TEMP_SENSOR_3 == 0
-    #undef HEATER_3_MINTEMP
-    #undef HEATER_3_MAXTEMP
-  #elif TEMP_SENSOR_3 > 0
-    #define THERMISTORHEATER_3 TEMP_SENSOR_3
-    #define HEATER_3_USES_THERMISTOR
-  #endif
-
-  #if TEMP_SENSOR_BED <= -2
-    #error "MAX6675 / MAX31855 Thermocouples not supported for TEMP_SENSOR_BED"
-  #elif TEMP_SENSOR_BED == -1
-    #define BED_USES_AD595
-  #elif TEMP_SENSOR_BED == 0
-    #undef BED_MINTEMP
-    #undef BED_MAXTEMP
-  #elif TEMP_SENSOR_BED > 0
-    #define THERMISTORBED TEMP_SENSOR_BED
-    #define BED_USES_THERMISTOR
-  #endif
-
-  /**
-   * Flags for PID handling
-   */
-  #define HAS_PID_HEATING (ENABLED(PIDTEMP) || ENABLED(PIDTEMPBED))
-  #define HAS_PID_FOR_BOTH (ENABLED(PIDTEMP) && ENABLED(PIDTEMPBED))
-
-  /**
-   * Default hotend offsets, if not defined
-   */
-  #if HOTENDS > 1
-    #ifndef HOTEND_OFFSET_X
-      #define HOTEND_OFFSET_X { 0 } // X offsets for each extruder
-    #endif
-    #ifndef HOTEND_OFFSET_Y
-      #define HOTEND_OFFSET_Y { 0 } // Y offsets for each extruder
-    #endif
-    #if !defined(HOTEND_OFFSET_Z) && (ENABLED(DUAL_X_CARRIAGE) || ENABLED(SWITCHING_EXTRUDER))
-      #define HOTEND_OFFSET_Z { 0 }
-    #endif
-  #endif
-
-  /**
    * ARRAY_BY_EXTRUDERS based on EXTRUDERS
    */
   #define ARRAY_BY_EXTRUDERS(args...) ARRAY_N(EXTRUDERS, args)
   #define ARRAY_BY_EXTRUDERS1(v1) ARRAY_BY_EXTRUDERS(v1, v1, v1, v1, v1, v1)
-
-  /**
-   * ARRAY_BY_HOTENDS based on HOTENDS
-   */
-  #define ARRAY_BY_HOTENDS(args...) ARRAY_N(HOTENDS, args)
-  #define ARRAY_BY_HOTENDS1(v1) ARRAY_BY_HOTENDS(v1, v1, v1, v1, v1, v1)
 
   /**
    * Z_DUAL_ENDSTOPS endstop reassignment
@@ -394,25 +301,6 @@
   /**
    * Shorthand for pin tests, used wherever needed
    */
-  #define HAS_TEMP_0 (PIN_EXISTS(TEMP_0) && TEMP_SENSOR_0 != 0 && TEMP_SENSOR_0 > -2)
-  #define HAS_TEMP_1 (PIN_EXISTS(TEMP_1) && TEMP_SENSOR_1 != 0 && TEMP_SENSOR_1 > -2)
-  #define HAS_TEMP_2 (PIN_EXISTS(TEMP_2) && TEMP_SENSOR_2 != 0 && TEMP_SENSOR_2 > -2)
-  #define HAS_TEMP_3 (PIN_EXISTS(TEMP_3) && TEMP_SENSOR_3 != 0 && TEMP_SENSOR_3 > -2)
-  #define HAS_TEMP_BED (PIN_EXISTS(TEMP_BED) && TEMP_SENSOR_BED != 0 && TEMP_SENSOR_BED > -2)
-  #define HAS_HEATER_0 (PIN_EXISTS(HEATER_0))
-  #define HAS_HEATER_1 (PIN_EXISTS(HEATER_1))
-  #define HAS_HEATER_2 (PIN_EXISTS(HEATER_2))
-  #define HAS_HEATER_3 (PIN_EXISTS(HEATER_3))
-  #define HAS_HEATER_BED (PIN_EXISTS(HEATER_BED))
-  #define HAS_AUTO_FAN_0 (PIN_EXISTS(EXTRUDER_0_AUTO_FAN))
-  #define HAS_AUTO_FAN_1 (PIN_EXISTS(EXTRUDER_1_AUTO_FAN))
-  #define HAS_AUTO_FAN_2 (PIN_EXISTS(EXTRUDER_2_AUTO_FAN))
-  #define HAS_AUTO_FAN_3 (PIN_EXISTS(EXTRUDER_3_AUTO_FAN))
-  #define HAS_AUTO_FAN (HAS_AUTO_FAN_0 || HAS_AUTO_FAN_1 || HAS_AUTO_FAN_2 || HAS_AUTO_FAN_3)
-  #define HAS_FAN0 (PIN_EXISTS(FAN))
-  #define HAS_FAN1 (PIN_EXISTS(FAN1) && CONTROLLERFAN_PIN != FAN1_PIN && EXTRUDER_0_AUTO_FAN_PIN != FAN1_PIN && EXTRUDER_1_AUTO_FAN_PIN != FAN1_PIN && EXTRUDER_2_AUTO_FAN_PIN != FAN1_PIN)
-  #define HAS_FAN2 (PIN_EXISTS(FAN2) && CONTROLLERFAN_PIN != FAN2_PIN && EXTRUDER_0_AUTO_FAN_PIN != FAN2_PIN && EXTRUDER_1_AUTO_FAN_PIN != FAN2_PIN && EXTRUDER_2_AUTO_FAN_PIN != FAN2_PIN)
-  #define HAS_CONTROLLERFAN (PIN_EXISTS(CONTROLLERFAN))
   #define HAS_SERVOS (defined(NUM_SERVOS) && NUM_SERVOS > 0)
   #define HAS_SERVO_0 (PIN_EXISTS(SERVO0))
   #define HAS_SERVO_1 (PIN_EXISTS(SERVO1))
@@ -478,65 +366,6 @@
   #define HAS_BUZZER (PIN_EXISTS(BEEPER) || ENABLED(LCD_USE_I2C_BUZZER))
 
   #define HAS_MOTOR_CURRENT_PWM (PIN_EXISTS(MOTOR_CURRENT_PWM_XY) || PIN_EXISTS(MOTOR_CURRENT_PWM_Z) || PIN_EXISTS(MOTOR_CURRENT_PWM_E))
-
-  #define HAS_TEMP_HOTEND (HAS_TEMP_0 || ENABLED(HEATER_0_USES_MAX6675))
-
-  #define HAS_THERMALLY_PROTECTED_BED (HAS_TEMP_BED && HAS_HEATER_BED && ENABLED(THERMAL_PROTECTION_BED))
-
-  /**
-   * This value is used by M109 when trying to calculate a ballpark safe margin
-   * to prevent wait-forever situation.
-   */
-  #ifndef EXTRUDE_MINTEMP
-   #define EXTRUDE_MINTEMP 170
-  #endif
-
-  /**
-   * Helper Macros for heaters and extruder fan
-   */
-  #define WRITE_HEATER_0P(v) WRITE(HEATER_0_PIN, v)
-  #if HOTENDS > 1 || ENABLED(HEATERS_PARALLEL)
-    #define WRITE_HEATER_1(v) WRITE(HEATER_1_PIN, v)
-    #if HOTENDS > 2
-      #define WRITE_HEATER_2(v) WRITE(HEATER_2_PIN, v)
-      #if HOTENDS > 3
-        #define WRITE_HEATER_3(v) WRITE(HEATER_3_PIN, v)
-      #endif
-    #endif
-  #endif
-  #if ENABLED(HEATERS_PARALLEL)
-    #define WRITE_HEATER_0(v) { WRITE_HEATER_0P(v); WRITE_HEATER_1(v); }
-  #else
-    #define WRITE_HEATER_0(v) WRITE_HEATER_0P(v)
-  #endif
-  #if HAS_HEATER_BED
-    #define WRITE_HEATER_BED(v) WRITE(HEATER_BED_PIN, v)
-  #endif
-
-  /**
-   * Up to 3 PWM fans
-   */
-  #if HAS_FAN2
-    #define FAN_COUNT 3
-  #elif HAS_FAN1
-    #define FAN_COUNT 2
-  #elif HAS_FAN0
-    #define FAN_COUNT 1
-  #else
-    #define FAN_COUNT 0
-  #endif
-
-  #if HAS_FAN0
-    #define WRITE_FAN(v) WRITE(FAN_PIN, v)
-    #define WRITE_FAN0(v) WRITE_FAN(v)
-  #endif
-  #if HAS_FAN1
-    #define WRITE_FAN1(v) WRITE(FAN1_PIN, v)
-  #endif
-  #if HAS_FAN2
-    #define WRITE_FAN2(v) WRITE(FAN2_PIN, v)
-  #endif
-  #define WRITE_FAN_N(n, v) WRITE_FAN##n(v)
 
   /**
    * Servos and probes

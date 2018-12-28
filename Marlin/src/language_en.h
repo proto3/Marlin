@@ -92,36 +92,6 @@
 #ifndef MSG_SET_ORIGIN
   #define MSG_SET_ORIGIN                      "Set origin"
 #endif
-#ifndef MSG_PREHEAT_1
-  #define MSG_PREHEAT_1                       "Preheat PLA"
-#endif
-#ifndef MSG_PREHEAT_1_N
-  #define MSG_PREHEAT_1_N                     MSG_PREHEAT_1 " "
-#endif
-#ifndef MSG_PREHEAT_1_ALL
-  #define MSG_PREHEAT_1_ALL                   MSG_PREHEAT_1 " All"
-#endif
-#ifndef MSG_PREHEAT_1_BEDONLY
-  #define MSG_PREHEAT_1_BEDONLY               MSG_PREHEAT_1 " Bed"
-#endif
-#ifndef MSG_PREHEAT_1_SETTINGS
-  #define MSG_PREHEAT_1_SETTINGS              MSG_PREHEAT_1 " conf"
-#endif
-#ifndef MSG_PREHEAT_2
-  #define MSG_PREHEAT_2                       "Preheat ABS"
-#endif
-#ifndef MSG_PREHEAT_2_N
-  #define MSG_PREHEAT_2_N                     MSG_PREHEAT_2 " "
-#endif
-#ifndef MSG_PREHEAT_2_ALL
-  #define MSG_PREHEAT_2_ALL                   MSG_PREHEAT_2 " All"
-#endif
-#ifndef MSG_PREHEAT_2_BEDONLY
-  #define MSG_PREHEAT_2_BEDONLY               MSG_PREHEAT_2 " Bed"
-#endif
-#ifndef MSG_PREHEAT_2_SETTINGS
-  #define MSG_PREHEAT_2_SETTINGS              MSG_PREHEAT_2 " conf"
-#endif
 #ifndef MSG_H1
   #define MSG_H1                              "1"
 #endif
@@ -212,9 +182,6 @@
 #ifndef MSG_BED
   #define MSG_BED                             "Bed"
 #endif
-#ifndef MSG_FAN_SPEED
-  #define MSG_FAN_SPEED                       "Fan speed"
-#endif
 #ifndef MSG_FLOW
   #define MSG_FLOW                            "Flow"
 #endif
@@ -229,9 +196,6 @@
 #endif
 #ifndef MSG_FACTOR
   #define MSG_FACTOR                          " " LCD_STR_THERMOMETER " Fact"
-#endif
-#ifndef MSG_AUTOTEMP
-  #define MSG_AUTOTEMP                        "Autotemp"
 #endif
 #ifndef MSG_ON
   #define MSG_ON                              "On "
@@ -319,9 +283,6 @@
 #endif
 #ifndef MSG_ESTEPS
   #define MSG_ESTEPS                          "Esteps/mm"
-#endif
-#ifndef MSG_TEMPERATURE
-  #define MSG_TEMPERATURE                     "Temperature"
 #endif
 #ifndef MSG_MOTION
   #define MSG_MOTION                          "Motion"
@@ -464,27 +425,6 @@
 #ifndef MSG_ENDSTOP_ABORT
   #define MSG_ENDSTOP_ABORT                   "Endstop abort"
 #endif
-#ifndef MSG_HEATING_FAILED_LCD
-  #define MSG_HEATING_FAILED_LCD              "Heating failed"
-#endif
-#ifndef MSG_ERR_REDUNDANT_TEMP
-  #define MSG_ERR_REDUNDANT_TEMP              "Err: REDUNDANT TEMP"
-#endif
-#ifndef MSG_THERMAL_RUNAWAY
-  #define MSG_THERMAL_RUNAWAY                 "THERMAL RUNAWAY"
-#endif
-#ifndef MSG_ERR_MAXTEMP
-  #define MSG_ERR_MAXTEMP                     "Err: MAXTEMP"
-#endif
-#ifndef MSG_ERR_MINTEMP
-  #define MSG_ERR_MINTEMP                     "Err: MINTEMP"
-#endif
-#ifndef MSG_ERR_MAXTEMP_BED
-  #define MSG_ERR_MAXTEMP_BED                 "Err: MAXTEMP BED"
-#endif
-#ifndef MSG_ERR_MINTEMP_BED
-  #define MSG_ERR_MINTEMP_BED                 "Err: MINTEMP BED"
-#endif
 #ifndef MSG_HALTED
   #define MSG_HALTED                          "MACHINE HALTED"
 #endif
@@ -499,15 +439,6 @@
 #endif
 #ifndef MSG_SHORT_MINUTE
   #define MSG_SHORT_MINUTE                    "m" // One character only
-#endif
-#ifndef MSG_HEATING
-  #define MSG_HEATING                         "Heating..."
-#endif
-#ifndef MSG_HEATING_COMPLETE
-  #define MSG_HEATING_COMPLETE                "Heating done."
-#endif
-#ifndef MSG_BED_HEATING
-  #define MSG_BED_HEATING                     "Bed Heating."
 #endif
 #ifndef MSG_BED_DONE
   #define MSG_BED_DONE                        "Bed done."
@@ -587,12 +518,6 @@
   #endif
 #endif
 
-#ifndef MSG_INFO_MIN_TEMP
-  #define MSG_INFO_MIN_TEMP                   "Min Temp"
-#endif
-#ifndef MSG_INFO_MAX_TEMP
-  #define MSG_INFO_MAX_TEMP                   "Max Temp"
-#endif
 #ifndef MSG_INFO_PSU
   #define MSG_INFO_PSU                        "Power Supply"
 #endif
