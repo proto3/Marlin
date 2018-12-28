@@ -38,7 +38,6 @@ struct printStatistics {    // 13 bytes
   uint16_t finishedPrints;  // Number of complete prints
   uint32_t printTime;       // Accumulated printing time
   uint32_t longestPrint;    // Longest successfull print job
-  double   filamentUsed;    // Accumulated filament consumed in mm
 };
 
 class PrintCounter: public Stopwatch {
@@ -106,14 +105,6 @@ class PrintCounter: public Stopwatch {
      * @return bool
      */
     bool isLoaded();
-
-    /**
-     * @brief Increments the total filament used
-     * @details The total filament used counter will be incremented by "amount".
-     *
-     * @param amount The amount of filament used in mm
-     */
-    void incFilamentUsed(double const &amount);
 
     /**
      * @brief Resets the Print Statistics

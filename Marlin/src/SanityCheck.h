@@ -72,14 +72,12 @@
 /**
  * Dual Stepper Drivers
  */
-#if ENABLED(X_DUAL_STEPPER_DRIVERS) && ENABLED(DUAL_X_CARRIAGE)
-  #error "DUAL_X_CARRIAGE is not compatible with X_DUAL_STEPPER_DRIVERS."
-#elif ENABLED(X_DUAL_STEPPER_DRIVERS) && (!HAS_X2_ENABLE || !HAS_X2_STEP || !HAS_X2_DIR)
-  #error "X_DUAL_STEPPER_DRIVERS requires X2 pins (and an extra E plug)."
+#if   ENABLED(X_DUAL_STEPPER_DRIVERS) && (!HAS_X2_ENABLE || !HAS_X2_STEP || !HAS_X2_DIR)
+  #error "X_DUAL_STEPPER_DRIVERS requires X2 pins."
 #elif ENABLED(Y_DUAL_STEPPER_DRIVERS) && (!HAS_Y2_ENABLE || !HAS_Y2_STEP || !HAS_Y2_DIR)
-  #error "Y_DUAL_STEPPER_DRIVERS requires Y2 pins (and an extra E plug)."
+  #error "Y_DUAL_STEPPER_DRIVERS requires Y2 pins."
 #elif ENABLED(Z_DUAL_STEPPER_DRIVERS) && (!HAS_Z2_ENABLE || !HAS_Z2_STEP || !HAS_Z2_DIR)
-  #error "Z_DUAL_STEPPER_DRIVERS requires Z2 pins (and an extra E plug)."
+  #error "Z_DUAL_STEPPER_DRIVERS requires Z2 pins."
 #endif
 
 /**
@@ -92,22 +90,6 @@
   #if ENABLED(DOGLCD)
     #error "LCD_PROGRESS_BAR does not apply to graphical displays."
   #endif
-  #if ENABLED(FILAMENT_LCD_DISPLAY)
-    #error "LCD_PROGRESS_BAR and FILAMENT_LCD_DISPLAY are not fully compatible. Comment out this line to use both."
-  #endif
-#endif
-
-/**
- * Options only for EXTRUDERS > 1
- */
-#if EXTRUDERS > 1
-
-  #if EXTRUDERS > 4
-    #error "The maximum number of EXTRUDERS in Marlin is 4."
-  #endif
-
-#elif ENABLED(SINGLENOZZLE)
-  #error "SINGLENOZZLE requires 2 or more EXTRUDERS."
 #endif
 
 /**
@@ -136,121 +118,6 @@
 #endif
 
 /**
- * Probes
- */
-
-#if PROBE_SELECTED
-
-  /**
-   * NUM_SERVOS is required for a Z servo probe
-   */
-  #if HAS_Z_SERVO_ENDSTOP
-    #ifndef NUM_SERVOS
-      #error "You must set NUM_SERVOS for a Z servo probe (Z_ENDSTOP_SERVO_NR)."
-    #elif Z_ENDSTOP_SERVO_NR >= NUM_SERVOS
-      #error "Z_ENDSTOP_SERVO_NR must be less than NUM_SERVOS."
-    #endif
-  #endif
-
-  /**
-   * A probe needs a pin
-   */
-  #if !PROBE_PIN_CONFIGURED
-    #error "A probe needs a pin! Use Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN or Z_MIN_PROBE_PIN."
-  #endif
-
-  /**
-   * Require a Z min pin
-   */
-  #if HAS_Z_MIN
-     // Z_MIN_PIN and Z_MIN_PROBE_PIN can't co-exist when Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN
-    #if HAS_Z_MIN_PROBE_PIN && ENABLED(Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN)
-      #error "A probe cannot have more than one pin! Use Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN or Z_MIN_PROBE_PIN."
-    #endif
-  #elif !HAS_Z_MIN_PROBE_PIN || (DISABLED(Z_MIN_PROBE_ENDSTOP) || ENABLED(DISABLE_Z_MIN_PROBE_ENDSTOP))
-    // A pin was set for the Z probe, but not enabled.
-    #error "A probe requires a Z_MIN or Z_PROBE pin. Z_MIN_PIN or Z_MIN_PROBE_PIN must point to a valid hardware pin."
-  #endif
-
-  /**
-   * Make sure the plug is enabled if it's used
-   */
-  #if ENABLED(Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN) && DISABLED(USE_ZMIN_PLUG)
-    #error "You must enable USE_ZMIN_PLUG if any probe or endstop is connected to the ZMIN plug."
-  #endif
-
-  /**
-   * Only allow one probe option to be defined
-   */
-  #if (ENABLED(FIX_MOUNTED_PROBE) && (ENABLED(Z_PROBE_ALLEN_KEY) || HAS_Z_SERVO_ENDSTOP || ENABLED(Z_PROBE_SLED))) \
-       || (ENABLED(Z_PROBE_ALLEN_KEY) && (HAS_Z_SERVO_ENDSTOP || ENABLED(Z_PROBE_SLED))) \
-       || (HAS_Z_SERVO_ENDSTOP && ENABLED(Z_PROBE_SLED))
-    #error "Please define only one type of probe: Z Servo, Z_PROBE_ALLEN_KEY, Z_PROBE_SLED, or FIX_MOUNTED_PROBE."
-  #endif
-
-  /**
-   * Don't allow nonsense probe-pin settings
-   */
-  #if ENABLED(Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN) && ENABLED(Z_MIN_PROBE_ENDSTOP)
-    #error "You can't enable both Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN and Z_MIN_PROBE_ENDSTOP."
-  #elif ENABLED(Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN) && ENABLED(DISABLE_Z_MIN_PROBE_ENDSTOP)
-    #error "Don't enable DISABLE_Z_MIN_PROBE_ENDSTOP with Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN."
-  #elif ENABLED(DISABLE_Z_MIN_PROBE_ENDSTOP) && DISABLED(Z_MIN_PROBE_ENDSTOP)
-    #error "DISABLE_Z_MIN_PROBE_ENDSTOP requires Z_MIN_PROBE_ENDSTOP to be set."
-  #endif
-
-  /**
-   * Require a Z probe pin if Z_MIN_PROBE_ENDSTOP is enabled.
-   */
-  #if ENABLED(Z_MIN_PROBE_ENDSTOP)
-    #if !HAS_Z_MIN_PROBE_PIN
-      #error "Z_MIN_PROBE_ENDSTOP requires a Z_MIN_PROBE_PIN in your board's pins_XXXX.h file."
-    #endif
-  #endif
-
-  /**
-   * Make sure Z raise values are set
-   */
-  #if !defined(Z_PROBE_DEPLOY_HEIGHT)
-    #error "You must set Z_PROBE_DEPLOY_HEIGHT in your configuration."
-  #elif !defined(Z_PROBE_TRAVEL_HEIGHT)
-    #error "You must set Z_PROBE_TRAVEL_HEIGHT in your configuration."
-  #elif Z_PROBE_DEPLOY_HEIGHT < 0
-    #error "Probes need Z_PROBE_DEPLOY_HEIGHT >= 0."
-  #elif Z_PROBE_TRAVEL_HEIGHT < 0
-    #error "Probes need Z_PROBE_TRAVEL_HEIGHT >= 0."
-  #endif
-
-#else
-
-  /**
-   * Require some kind of probe for bed leveling and probe testing
-   */
-  #if   ENABLED(Z_MIN_PROBE_REPEATABILITY_TEST)
-    #error "Z_MIN_PROBE_REPEATABILITY_TEST requires a probe! Define a Z Servo, Z_PROBE_ALLEN_KEY, Z_PROBE_SLED, or FIX_MOUNTED_PROBE."
-  #endif
-
-#endif
-
-/**
- * Make sure Z_SAFE_HOMING point is reachable
- */
-#if ENABLED(Z_SAFE_HOMING)
-  #if Z_SAFE_HOMING_X_POINT < MIN_PROBE_X || Z_SAFE_HOMING_X_POINT > MAX_PROBE_X
-      #error "Z_SAFE_HOMING_X_POINT can't be reached by the nozzle."
-  #elif Z_SAFE_HOMING_Y_POINT < MIN_PROBE_Y || Z_SAFE_HOMING_Y_POINT > MAX_PROBE_Y
-      #error "Z_SAFE_HOMING_Y_POINT can't be reached by the nozzle."
-  #endif
-#endif // Z_SAFE_HOMING
-
-/**
- * Advance Extrusion
- */
-#if ENABLED(ADVANCE) && ENABLED(LIN_ADVANCE)
-  #error "You can enable ADVANCE or LIN_ADVANCE, but not both."
-#endif
-
-/**
  * ULTIPANEL encoder
  */
 #if ENABLED(ULTIPANEL) && DISABLED(NEWPANEL) && DISABLED(SR_LCD_2W_NL) && !defined(SHIFT_CLK)
@@ -274,63 +141,6 @@
 #if (ENABLED(COREXY) && (ENABLED(COREXZ) || ENABLED(COREYZ))) \
  || (ENABLED(COREXZ) && ENABLED(COREYZ))
   #error "Please enable only one of COREXY, COREXZ, or COREYZ."
-#endif
-
-/**
- * Allen Key
- * Deploying the Allen Key probe uses big moves in z direction. Too dangerous for an unhomed z-axis.
- */
-#if ENABLED(Z_PROBE_ALLEN_KEY) && (Z_HOME_DIR < 0) && ENABLED(Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN)
-  #error "You can't home to a z min endstop with a Z_PROBE_ALLEN_KEY"
-#endif
-
-/**
- * Dual X Carriage requirements
- */
-#if ENABLED(DUAL_X_CARRIAGE)
-  #if EXTRUDERS == 1
-    #error "DUAL_X_CARRIAGE requires 2 (or more) extruders."
-  #elif ENABLED(COREXY) || ENABLED(COREXZ)
-    #error "DUAL_X_CARRIAGE cannot be used with COREXY or COREXZ."
-  #elif !HAS_X2_ENABLE || !HAS_X2_STEP || !HAS_X2_DIR
-    #error "DUAL_X_CARRIAGE requires X2 stepper pins to be defined."
-  #elif !HAS_X_MAX
-    #error "DUAL_X_CARRIAGE requires USE_XMAX_PLUG and an X Max Endstop."
-  #elif !defined(X2_HOME_POS) || !defined(X2_MIN_POS) || !defined(X2_MAX_POS)
-    #error "DUAL_X_CARRIAGE requires X2_HOME_POS, X2_MIN_POS, and X2_MAX_POS."
-  #elif X_HOME_DIR != -1 || X2_HOME_DIR != 1
-    #error "DUAL_X_CARRIAGE requires X_HOME_DIR -1 and X2_HOME_DIR 1."
-  #endif
-#endif // DUAL_X_CARRIAGE
-
-/**
- * Basic 2-nozzle duplication mode
- */
-#if ENABLED(DUAL_NOZZLE_DUPLICATION_MODE)
-  #if HOTENDS != 2
-    #error "DUAL_NOZZLE_DUPLICATION_MODE requires exactly 2 hotends."
-  #elif ENABLED(DUAL_X_CARRIAGE)
-    #error "DUAL_NOZZLE_DUPLICATION_MODE is incompatible with DUAL_X_CARRIAGE."
-  #elif ENABLED(SINGLENOZZLE)
-    #error "DUAL_NOZZLE_DUPLICATION_MODE is incompatible with SINGLENOZZLE."
-  #endif
-#endif
-
-/**
- * Test Extruder Pins
- */
-#if EXTRUDERS > 3
-  #if !PIN_EXISTS(E3_STEP) || !PIN_EXISTS(E3_DIR) || !PIN_EXISTS(E3_ENABLE)
-    #error "E3_STEP_PIN, E3_DIR_PIN, or E3_ENABLE_PIN not defined for this board."
-  #endif
-#elif EXTRUDERS > 2
-  #if !PIN_EXISTS(E2_STEP) || !PIN_EXISTS(E2_DIR) || !PIN_EXISTS(E2_ENABLE)
-    #error "E2_STEP_PIN, E2_DIR_PIN, or E2_ENABLE_PIN not defined for this board."
-  #endif
-#elif EXTRUDERS > 1
-  #if !PIN_EXISTS(E1_STEP) || !PIN_EXISTS(E1_DIR) || !PIN_EXISTS(E1_ENABLE)
-    #error "E1_STEP_PIN, E1_DIR_PIN, or E1_ENABLE_PIN not defined for this board."
-  #endif
 #endif
 
 /**
@@ -384,36 +194,22 @@
   #error "Z_DUAL_ENDSTOPS settings are simplified. Just set Z2_USE_ENDSTOP to the endstop you want to repurpose for Z2"
 #elif defined(LANGUAGE_INCLUDE)
   #error "LANGUAGE_INCLUDE has been replaced by LCD_LANGUAGE. Please update your configuration."
-#elif defined(EXTRUDER_OFFSET_X) || defined(EXTRUDER_OFFSET_Y)
-  #error "EXTRUDER_OFFSET_[XY] is deprecated. Use HOTEND_OFFSET_[XY] instead."
-#elif defined(PID_PARAMS_PER_EXTRUDER)
-  #error "PID_PARAMS_PER_EXTRUDER is deprecated. Use PID_PARAMS_PER_HOTEND instead."
-#elif defined(EXTRUDER_WATTS) || defined(BED_WATTS)
-  #error "EXTRUDER_WATTS and BED_WATTS are deprecated. Remove them from your configuration."
 #elif defined(SERVO_ENDSTOP_ANGLES)
   #error "SERVO_ENDSTOP_ANGLES is deprecated. Use Z_SERVO_ANGLES instead."
 #elif defined(X_ENDSTOP_SERVO_NR) || defined(Y_ENDSTOP_SERVO_NR)
   #error "X_ENDSTOP_SERVO_NR and Y_ENDSTOP_SERVO_NR are deprecated and should be removed."
 #elif defined(XY_TRAVEL_SPEED)
   #error "XY_TRAVEL_SPEED is deprecated. Use XY_PROBE_SPEED instead."
-#elif defined(PROBE_SERVO_DEACTIVATION_DELAY)
-  #error "PROBE_SERVO_DEACTIVATION_DELAY is deprecated. Use DEACTIVATE_SERVOS_AFTER_MOVE instead."
 #elif defined(SERVO_DEACTIVATION_DELAY)
   #error "SERVO_DEACTIVATION_DELAY is deprecated. Use SERVO_DELAY instead."
 #elif defined(ENDSTOPS_ONLY_FOR_HOMING)
   #error "ENDSTOPS_ONLY_FOR_HOMING is deprecated. Use (disable) ENDSTOPS_ALWAYS_ON_DEFAULT instead."
 #elif defined(HOMING_FEEDRATE)
-  #error "HOMING_FEEDRATE is deprecated. Set individual rates with HOMING_FEEDRATE_(XY|Z|E) instead."
+  #error "HOMING_FEEDRATE is deprecated. Set individual rates with HOMING_FEEDRATE_(XY|Z) instead."
 #elif defined(MANUAL_HOME_POSITIONS)
   #error "MANUAL_HOME_POSITIONS is deprecated. Set MANUAL_[XYZ]_HOME_POS as-needed instead."
-#elif defined(PID_ADD_EXTRUSION_RATE)
-  #error "PID_ADD_EXTRUSION_RATE is now PID_EXTRUSION_SCALING and is DISABLED by default. Are you sure you want to use this option? Please update your configuration."
 #elif defined(Z_RAISE_BEFORE_HOMING)
   #error "Z_RAISE_BEFORE_HOMING is now Z_HOMING_HEIGHT. Please update your configuration."
 #elif defined(MIN_Z_HEIGHT_FOR_HOMING)
   #error "MIN_Z_HEIGHT_FOR_HOMING is now Z_HOMING_HEIGHT. Please update your configuration."
-#elif defined(Z_RAISE_BEFORE_PROBING) || defined(Z_RAISE_AFTER_PROBING)
-  #error "Z_RAISE_(BEFORE|AFTER)_PROBING are deprecated. Use Z_PROBE_DEPLOY_HEIGHT instead."
-#elif defined(Z_RAISE_PROBE_DEPLOY_STOW) || defined(Z_RAISE_BETWEEN_PROBINGS)
-  #error "Z_RAISE_PROBE_DEPLOY_STOW and Z_RAISE_BETWEEN_PROBINGS are now Z_PROBE_DEPLOY_HEIGHT and Z_PROBE_TRAVEL_HEIGHT Please update your configuration."
 #endif

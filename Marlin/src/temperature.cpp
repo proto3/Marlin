@@ -29,7 +29,6 @@
 #include "plasma.h"
 #include "torch_height_control.h"
 
-
 #if ENABLED(USE_WATCHDOG)
   #include "watchdog.h"
 #endif
@@ -41,7 +40,6 @@ Temperature thermalManager;
  *  - Acquire updated temperature readings
  *    - Also resets the watchdog timer
  *  - Invoke thermal runaway protection
- *  - Apply filament width to the extrusion rate (may move)
  *  - Update the heated bed PID output value
  */
 void Temperature::manage_heater() {

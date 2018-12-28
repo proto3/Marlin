@@ -276,23 +276,5 @@
     #define BOOTSCREEN_TIMEOUT 2500
   #endif
 
-  /**
-   * Extruders have some combination of stepper motors and hotends
-   * so we separate these concepts into the defines:
-   *
-   *  EXTRUDERS    - Number of Selectable Tools
-   *  E_STEPPERS   - Number of actual E stepper motors
-   *  TOOL_E_INDEX - Index to use when getting/setting the tool state
-   *
-   */
-  #if ENABLED(SINGLENOZZLE)             // One hotend, multi-extruder
-    #define E_STEPPERS   EXTRUDERS
-    #define E_MANUAL     EXTRUDERS
-    #define TOOL_E_INDEX current_block->active_extruder
-  #else                                 // One stepper, E axis, and hotend per tool
-    #define E_STEPPERS   EXTRUDERS
-    #define E_MANUAL     EXTRUDERS
-    #define TOOL_E_INDEX current_block->active_extruder
-  #endif
 
 #endif //CONDITIONALS_LCD_H

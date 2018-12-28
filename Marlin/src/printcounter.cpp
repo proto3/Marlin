@@ -42,25 +42,13 @@ bool PrintCounter::isLoaded() {
   return this->loaded;
 }
 
-void PrintCounter::incFilamentUsed(double const &amount) {
-  #if ENABLED(DEBUG_PRINTCOUNTER)
-    PrintCounter::debug(PSTR("incFilamentUsed"));
-  #endif
-
-  // Refuses to update data if object is not loaded
-  if (!this->isLoaded()) return;
-
-  this->data.filamentUsed += amount; // mm
-}
-
-
 void PrintCounter::initStats() {
   #if ENABLED(DEBUG_PRINTCOUNTER)
     PrintCounter::debug(PSTR("initStats"));
   #endif
 
   this->loaded = true;
-  this->data = { 0, 0, 0, 0, 0.0 };
+  this->data = { 0, 0, 0, 0 };
 
   this->saveStats();
   eeprom_write_byte((uint8_t *) this->address, 0x16);
@@ -137,10 +125,6 @@ void PrintCounter::showStats() {
 
   SERIAL_EOL;
   SERIAL_PROTOCOLPGM(MSG_STATS);
-
-  SERIAL_ECHOPGM("Filament used: ");
-  SERIAL_ECHO(this->data.filamentUsed / 1000);
-  SERIAL_ECHOPGM("m");
 
   SERIAL_EOL;
 }

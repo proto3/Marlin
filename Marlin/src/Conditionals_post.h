@@ -86,10 +86,6 @@
   #endif
 
   /**
-   * SCARA
-   */
-
-  /**
    * Set the home position based on settings or manual overrides
    */
   #ifdef MANUAL_X_HOME_POS
@@ -115,57 +111,6 @@
   #endif
 
   /**
-   * The BLTouch Probe emulates a servo probe
-   */
-  #if ENABLED(BLTOUCH)
-    #undef Z_ENDSTOP_SERVO_NR
-    #undef Z_SERVO_ANGLES
-    #define Z_ENDSTOP_SERVO_NR 0
-    #define Z_SERVO_ANGLES {10,90} // For BLTouch 10=deploy, 90=retract
-    #undef DEACTIVATE_SERVOS_AFTER_MOVE
-    #if ENABLED(Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN)
-      #undef Z_MIN_ENDSTOP_INVERTING
-      #define Z_MIN_ENDSTOP_INVERTING false
-    #endif
-  #endif
-
-  /**
-   * Auto Bed Leveling and Z Probe Repeatability Test
-   */
-  #define HAS_PROBING_PROCEDURE (0 || ENABLED(Z_MIN_PROBE_REPEATABILITY_TEST))
-
-  // Boundaries for probing based on set limits
-  #define MIN_PROBE_X (max(X_MIN_POS, X_MIN_POS + X_PROBE_OFFSET_FROM_EXTRUDER))
-  #define MAX_PROBE_X (min(X_MAX_POS, X_MAX_POS + X_PROBE_OFFSET_FROM_EXTRUDER))
-  #define MIN_PROBE_Y (max(Y_MIN_POS, Y_MIN_POS + Y_PROBE_OFFSET_FROM_EXTRUDER))
-  #define MAX_PROBE_Y (min(Y_MAX_POS, Y_MAX_POS + Y_PROBE_OFFSET_FROM_EXTRUDER))
-
-  #define HAS_Z_SERVO_ENDSTOP (defined(Z_ENDSTOP_SERVO_NR) && Z_ENDSTOP_SERVO_NR >= 0)
-
-  /**
-   * Z Sled Probe requires Z_SAFE_HOMING
-   */
-  #if ENABLED(Z_PROBE_SLED)
-    #define Z_SAFE_HOMING
-  #endif
-
-  /**
-   * DELTA should ignore Z_SAFE_HOMING
-   */
-
-  /**
-   * Safe Homing Options
-   */
-  #if ENABLED(Z_SAFE_HOMING)
-    #ifndef Z_SAFE_HOMING_X_POINT
-      #define Z_SAFE_HOMING_X_POINT ((X_MIN_POS + X_MAX_POS) / 2)
-    #endif
-    #ifndef Z_SAFE_HOMING_Y_POINT
-      #define Z_SAFE_HOMING_Y_POINT ((Y_MIN_POS + Y_MAX_POS) / 2)
-    #endif
-  #endif
-
-  /**
    * Host keep alive
    */
   #ifndef DEFAULT_KEEPALIVE_INTERVAL
@@ -188,14 +133,6 @@
   #define MICROSTEP8 HIGH,HIGH
   #define MICROSTEP16 HIGH,HIGH
 
-  /**
-   * Advance calculated values
-   */
-  #if ENABLED(ADVANCE)
-    #define EXTRUSION_AREA (0.25 * (D_FILAMENT) * (D_FILAMENT) * M_PI)
-    #define STEPS_PER_CUBIC_MM_E (axis_steps_per_mm[E_AXIS] / (EXTRUSION_AREA))
-  #endif
-
   #if ENABLED(ULTIPANEL) && DISABLED(ELB_FULL_GRAPHIC_CONTROLLER)
     #undef SD_DETECT_INVERTED
   #endif
@@ -211,9 +148,6 @@
   #endif
   #ifndef DISABLE_INACTIVE_Z
     #define DISABLE_INACTIVE_Z DISABLE_Z
-  #endif
-  #ifndef DISABLE_INACTIVE_E
-    #define DISABLE_INACTIVE_E DISABLE_E
   #endif
 
   // Power Signal Control Definitions
@@ -283,8 +217,6 @@
   #define HAS_SERVO_1 (PIN_EXISTS(SERVO1))
   #define HAS_SERVO_2 (PIN_EXISTS(SERVO2))
   #define HAS_SERVO_3 (PIN_EXISTS(SERVO3))
-  #define HAS_FILAMENT_WIDTH_SENSOR (PIN_EXISTS(FILWIDTH))
-  #define HAS_FIL_RUNOUT (PIN_EXISTS(FIL_RUNOUT))
   #define HAS_HOME (PIN_EXISTS(HOME))
   #define HAS_KILL (PIN_EXISTS(KILL))
   #define HAS_SUICIDE (PIN_EXISTS(SUICIDE))
@@ -312,37 +244,22 @@
   #define HAS_Y2_ENABLE (PIN_EXISTS(Y2_ENABLE))
   #define HAS_Z_ENABLE (PIN_EXISTS(Z_ENABLE))
   #define HAS_Z2_ENABLE (PIN_EXISTS(Z2_ENABLE))
-  #define HAS_E0_ENABLE (PIN_EXISTS(E0_ENABLE))
-  #define HAS_E1_ENABLE (PIN_EXISTS(E1_ENABLE))
-  #define HAS_E2_ENABLE (PIN_EXISTS(E2_ENABLE))
-  #define HAS_E3_ENABLE (PIN_EXISTS(E3_ENABLE))
-  #define HAS_E4_ENABLE (PIN_EXISTS(E4_ENABLE))
   #define HAS_X_DIR (PIN_EXISTS(X_DIR))
   #define HAS_X2_DIR (PIN_EXISTS(X2_DIR))
   #define HAS_Y_DIR (PIN_EXISTS(Y_DIR))
   #define HAS_Y2_DIR (PIN_EXISTS(Y2_DIR))
   #define HAS_Z_DIR (PIN_EXISTS(Z_DIR))
   #define HAS_Z2_DIR (PIN_EXISTS(Z2_DIR))
-  #define HAS_E0_DIR (PIN_EXISTS(E0_DIR))
-  #define HAS_E1_DIR (PIN_EXISTS(E1_DIR))
-  #define HAS_E2_DIR (PIN_EXISTS(E2_DIR))
-  #define HAS_E3_DIR (PIN_EXISTS(E3_DIR))
-  #define HAS_E4_DIR (PIN_EXISTS(E4_DIR))
   #define HAS_X_STEP (PIN_EXISTS(X_STEP))
   #define HAS_X2_STEP (PIN_EXISTS(X2_STEP))
   #define HAS_Y_STEP (PIN_EXISTS(Y_STEP))
   #define HAS_Y2_STEP (PIN_EXISTS(Y2_STEP))
   #define HAS_Z_STEP (PIN_EXISTS(Z_STEP))
   #define HAS_Z2_STEP (PIN_EXISTS(Z2_STEP))
-  #define HAS_E0_STEP (PIN_EXISTS(E0_STEP))
-  #define HAS_E1_STEP (PIN_EXISTS(E1_STEP))
-  #define HAS_E2_STEP (PIN_EXISTS(E2_STEP))
-  #define HAS_E3_STEP (PIN_EXISTS(E3_STEP))
-  #define HAS_E4_STEP (PIN_EXISTS(E4_STEP))
   #define HAS_DIGIPOTSS (PIN_EXISTS(DIGIPOTSS))
   #define HAS_BUZZER (PIN_EXISTS(BEEPER) || ENABLED(LCD_USE_I2C_BUZZER))
 
-  #define HAS_MOTOR_CURRENT_PWM (PIN_EXISTS(MOTOR_CURRENT_PWM_XY) || PIN_EXISTS(MOTOR_CURRENT_PWM_Z) || PIN_EXISTS(MOTOR_CURRENT_PWM_E))
+  #define HAS_MOTOR_CURRENT_PWM (PIN_EXISTS(MOTOR_CURRENT_PWM_XY) || PIN_EXISTS(MOTOR_CURRENT_PWM_Z))
 
   /**
    * Servos and probes
@@ -353,32 +270,6 @@
       #define Z_ENDSTOP_SERVO_NR -1
     #endif
   #endif
-
-  #define PROBE_SELECTED (ENABLED(FIX_MOUNTED_PROBE) || ENABLED(Z_PROBE_ALLEN_KEY) || HAS_Z_SERVO_ENDSTOP || ENABLED(Z_PROBE_SLED))
-
-  #define PROBE_PIN_CONFIGURED (HAS_Z_MIN_PROBE_PIN || (HAS_Z_MIN && ENABLED(Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN)))
-
-  #if ENABLED(Z_PROBE_ALLEN_KEY)
-    #define PROBE_IS_TRIGGERED_WHEN_STOWED_TEST
-  #endif
-
-  /**
-   * Bed Probe dependencies
-   */
-    #undef X_PROBE_OFFSET_FROM_EXTRUDER
-    #undef Y_PROBE_OFFSET_FROM_EXTRUDER
-    #undef Z_PROBE_OFFSET_FROM_EXTRUDER
-    #define X_PROBE_OFFSET_FROM_EXTRUDER 0
-    #define Y_PROBE_OFFSET_FROM_EXTRUDER 0
-    #define Z_PROBE_OFFSET_FROM_EXTRUDER 0
-
-  /**
-   * Delta radius/rod trimmers
-   */
-
-  /**
-   * When not using other bed leveling...
-   */
 
   /**
    * Buzzer/Speaker
@@ -404,17 +295,10 @@
   #endif
 
   /**
-   * Z_HOMING_HEIGHT / Z_PROBE_TRAVEL_HEIGHT
+   * Z_HOMING_HEIGHT
    */
   #ifndef Z_HOMING_HEIGHT
-    #ifndef Z_PROBE_TRAVEL_HEIGHT
-      #define Z_HOMING_HEIGHT 0
-    #else
-      #define Z_HOMING_HEIGHT Z_PROBE_TRAVEL_HEIGHT
-    #endif
-  #endif
-  #ifndef Z_PROBE_TRAVEL_HEIGHT
-    #define Z_PROBE_TRAVEL_HEIGHT Z_HOMING_HEIGHT
+    #define Z_HOMING_HEIGHT 0
   #endif
 
 #endif // CONDITIONALS_POST_H

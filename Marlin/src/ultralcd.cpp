@@ -36,10 +36,6 @@
   #include "duration_t.h"
 #endif
 
-#if ENABLED(FILAMENT_LCD_DISPLAY)
-  millis_t previous_lcd_status_ms = 0;
-#endif
-
 uint8_t lcd_status_message_level;
 char lcd_status_message[3 * (LCD_WIDTH) + 1] = WELCOME_MSG; // worst case is kana with up to 3*LCD_WIDTH+1
 
@@ -84,11 +80,6 @@ uint8_t lcdDrawUpdate = LCDVIEW_CLEAR_CALL_REDRAW; // Set when the LCD needs to 
 
   millis_t manual_move_start_time = 0;
   int8_t manual_move_axis = (int8_t)NO_AXIS;
-  #if EXTRUDERS > 1
-    int8_t manual_move_e_index = 0;
-  #else
-    #define manual_move_e_index 0
-  #endif
 
   bool encoderRateMultiplierEnabled;
   int32_t lastEncoderMovementMillis;
@@ -103,7 +94,6 @@ uint8_t lcdDrawUpdate = LCDVIEW_CLEAR_CALL_REDRAW; // Set when the LCD needs to 
   static void lcd_move_menu();
   static void lcd_control_menu();
   static void lcd_control_motion_menu();
-  static void lcd_control_volumetric_menu();
 
   #if ENABLED(LCD_INFO_MENU)
     #if ENABLED(PRINTCOUNTER)
@@ -118,12 +108,6 @@ uint8_t lcdDrawUpdate = LCDVIEW_CLEAR_CALL_REDRAW; // Set when the LCD needs to 
   #if HAS_LCD_CONTRAST
     static void lcd_set_contrast();
   #endif
-
-
-  #if ENABLED(DELTA_CALIBRATION_MENU)
-    static void lcd_delta_calibrate_menu();
-  #endif
-
 
   // Function pointer to menu functions.
   typedef void (*screenFunc_t)();
@@ -471,9 +455,6 @@ static void lcd_status_screen() {
           currentScreen == lcd_status_screen
         #endif
       );
-      #if ENABLED(FILAMENT_LCD_DISPLAY)
-        previous_lcd_status_ms = millis();  // get status message to show up for a while
-      #endif
     }
 
     #if ENABLED(ULTIPANEL_FEEDMULTIPLY)
@@ -525,7 +506,7 @@ void kill_screen(const char* lcd_msg) {
 #if ENABLED(ULTIPANEL)
 
   inline void line_to_current(AxisEnum axis) {
-      planner.buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS], MMM_TO_MMS(manual_feedrate_mm_m[axis]), active_extruder);
+      planner.buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], MMM_TO_MMS(manual_feedrate_mm_m[axis]));
   }
 
   #if ENABLED(SDSUPPORT)
@@ -619,12 +600,6 @@ void kill_screen(const char* lcd_msg) {
   }
 
   /**
-   *
-   * "Tune" submenu items
-   *
-   */
-
-  /**
    * Set the home offset based on the current_position
    */
   void lcd_set_home_offsets() {
@@ -652,39 +627,6 @@ void kill_screen(const char* lcd_msg) {
     //
     MENU_ITEM_EDIT(int3, MSG_SPEED, &feedrate_percentage, 10, 999);
 
-    // Manual bed leveling, Bed Z:
-
-    //
-    // Flow:
-    // Flow 1:
-    // Flow 2:
-    // Flow 3:
-    // Flow 4:
-    //
-    #if EXTRUDERS == 1
-      MENU_ITEM_EDIT(int3, MSG_FLOW, &extruder_multiplier[0], 10, 999);
-    #else // EXTRUDERS > 1
-      MENU_ITEM_EDIT(int3, MSG_FLOW, &extruder_multiplier[active_extruder], 10, 999);
-      MENU_ITEM_EDIT(int3, MSG_FLOW MSG_N1, &extruder_multiplier[0], 10, 999);
-      MENU_ITEM_EDIT(int3, MSG_FLOW MSG_N2, &extruder_multiplier[1], 10, 999);
-      #if EXTRUDERS > 2
-        MENU_ITEM_EDIT(int3, MSG_FLOW MSG_N3, &extruder_multiplier[2], 10, 999);
-        #if EXTRUDERS > 3
-          MENU_ITEM_EDIT(int3, MSG_FLOW MSG_N4, &extruder_multiplier[3], 10, 999);
-        #endif //EXTRUDERS > 3
-      #endif //EXTRUDERS > 2
-    #endif //EXTRUDERS > 1
-
-    //
-    // Babystep X:
-    // Babystep Y:
-    // Babystep Z:
-    //
-
-    //
-    // Change filament
-    //
-
     END_MENU();
   }
 
@@ -697,28 +639,6 @@ void kill_screen(const char* lcd_msg) {
 
   #endif
 
-
-  /**
-   *
-   * "Prepare" submenu
-   *
-   */
-
-  #if ENABLED(DELTA_CALIBRATION_MENU)
-
-    static void lcd_delta_calibrate_menu() {
-      START_MENU();
-      MENU_ITEM(back, MSG_MAIN);
-      MENU_ITEM(gcode, MSG_AUTO_HOME, PSTR("G28"));
-      MENU_ITEM(gcode, MSG_DELTA_CALIBRATE_X, PSTR("G0 F8000 X-77.94 Y-45 Z0"));
-      MENU_ITEM(gcode, MSG_DELTA_CALIBRATE_Y, PSTR("G0 F8000 X77.94 Y-45 Z0"));
-      MENU_ITEM(gcode, MSG_DELTA_CALIBRATE_Z, PSTR("G0 F8000 X0 Y90 Z0"));
-      MENU_ITEM(gcode, MSG_DELTA_CALIBRATE_CENTER, PSTR("G0 F8000 X0 Y0 Z0"));
-      END_MENU();
-    }
-
-  #endif // DELTA_CALIBRATION_MENU
-
   float move_menu_scale;
 
   /**
@@ -727,7 +647,7 @@ void kill_screen(const char* lcd_msg) {
    */
   inline void manage_manual_move() {
     if (manual_move_axis != (int8_t)NO_AXIS && ELAPSED(millis(), manual_move_start_time) && !planner.is_full()) {
-        planner.buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS], MMM_TO_MMS(manual_feedrate_mm_m[manual_move_axis]), manual_move_e_index);
+        planner.buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], MMM_TO_MMS(manual_feedrate_mm_m[manual_move_axis]));
       manual_move_axis = (int8_t)NO_AXIS;
     }
   }
@@ -736,14 +656,7 @@ void kill_screen(const char* lcd_msg) {
    * Set a flag that lcd_update() should start a move
    * to "current_position" after a short delay.
    */
-  inline void manual_move_to_current(AxisEnum axis
-    #if E_MANUAL > 1
-      , int8_t eindex=-1
-    #endif
-  ) {
-    #if E_MANUAL > 1
-      if (axis == E_AXIS) manual_move_e_index = eindex >= 0 ? eindex : active_extruder;
-    #endif
+  inline void manual_move_to_current(AxisEnum axis) {
     manual_move_start_time = millis() + (move_menu_scale < 0.99 ? 0UL : 250UL); // delay for bigger moves
     manual_move_axis = (int8_t)axis;
   }
@@ -771,54 +684,6 @@ void kill_screen(const char* lcd_msg) {
     static void lcd_move_x() { _lcd_move_xyz(PSTR(MSG_MOVE_X), X_AXIS, sw_endstop_min[X_AXIS], sw_endstop_max[X_AXIS]); }
     static void lcd_move_y() { _lcd_move_xyz(PSTR(MSG_MOVE_Y), Y_AXIS, sw_endstop_min[Y_AXIS], sw_endstop_max[Y_AXIS]); }
   static void lcd_move_z() { _lcd_move_xyz(PSTR(MSG_MOVE_Z), Z_AXIS, sw_endstop_min[Z_AXIS], sw_endstop_max[Z_AXIS]); }
-  static void _lcd_move_e(
-    #if E_MANUAL > 1
-      int8_t eindex=-1
-    #endif
-  ) {
-    if (LCD_CLICKED) { lcd_goto_previous_menu(true); return; }
-    ENCODER_DIRECTION_NORMAL();
-    if (encoderPosition) {
-      current_position[E_AXIS] += float((int32_t)encoderPosition) * move_menu_scale;
-      encoderPosition = 0;
-      manual_move_to_current(E_AXIS
-        #if E_MANUAL > 1
-          , eindex
-        #endif
-      );
-      lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
-    }
-    if (lcdDrawUpdate) {
-      PGM_P pos_label;
-      #if E_MANUAL == 1
-        pos_label = PSTR(MSG_MOVE_E);
-      #else
-        switch (eindex) {
-          default: pos_label = PSTR(MSG_MOVE_E MSG_MOVE_E1); break;
-          case 1: pos_label = PSTR(MSG_MOVE_E MSG_MOVE_E2); break;
-          #if E_MANUAL > 2
-            case 2: pos_label = PSTR(MSG_MOVE_E MSG_MOVE_E3); break;
-            #if E_MANUAL > 3
-              case 3: pos_label = PSTR(MSG_MOVE_E MSG_MOVE_E4); break;
-            #endif
-          #endif
-        }
-      #endif
-      lcd_implementation_drawedit(pos_label, ftostr41sign(current_position[E_AXIS]));
-    }
-  }
-
-  static void lcd_move_e() { _lcd_move_e(); }
-  #if E_MANUAL > 1
-    static void lcd_move_e0() { _lcd_move_e(0); }
-    static void lcd_move_e1() { _lcd_move_e(1); }
-    #if E_MANUAL > 2
-      static void lcd_move_e2() { _lcd_move_e(2); }
-      #if E_MANUAL > 3
-        static void lcd_move_e3() { _lcd_move_e(3); }
-      #endif
-    #endif
-  #endif
 
   /**
    *
@@ -910,46 +775,15 @@ void kill_screen(const char* lcd_msg) {
     MENU_ITEM_EDIT(float3, MSG_VMAX MSG_Y, &planner.max_feedrate_mm_s[Y_AXIS], 1, 999);
     MENU_ITEM_EDIT(float3, MSG_VMAX MSG_Z, &planner.max_feedrate_mm_s[Z_AXIS], 1, 999);
     MENU_ITEM_EDIT(float3, MSG_VMIN, &planner.min_feedrate_mm_s, 0, 999);
-    MENU_ITEM_EDIT(float3, MSG_VTRAV_MIN, &planner.min_travel_feedrate_mm_s, 0, 999);
     MENU_ITEM_EDIT_CALLBACK(long5, MSG_AMAX MSG_X, &planner.max_acceleration_mm_per_s2[X_AXIS], 100, 99000, _reset_acceleration_rates);
     MENU_ITEM_EDIT_CALLBACK(long5, MSG_AMAX MSG_Y, &planner.max_acceleration_mm_per_s2[Y_AXIS], 100, 99000, _reset_acceleration_rates);
     MENU_ITEM_EDIT_CALLBACK(long5, MSG_AMAX MSG_Z, &planner.max_acceleration_mm_per_s2[Z_AXIS], 10, 99000, _reset_acceleration_rates);
-    MENU_ITEM_EDIT(float5, MSG_A_TRAVEL, &planner.travel_acceleration, 100, 99000);
     MENU_ITEM_EDIT_CALLBACK(float52, MSG_XSTEPS, &planner.axis_steps_per_mm[X_AXIS], 5, 9999, _planner_refresh_positioning);
     MENU_ITEM_EDIT_CALLBACK(float52, MSG_YSTEPS, &planner.axis_steps_per_mm[Y_AXIS], 5, 9999, _planner_refresh_positioning);
       MENU_ITEM_EDIT_CALLBACK(float51, MSG_ZSTEPS, &planner.axis_steps_per_mm[Z_AXIS], 5, 9999, _planner_refresh_positioning);
     #if ENABLED(ABORT_ON_ENDSTOP_HIT_FEATURE_ENABLED)
       MENU_ITEM_EDIT(bool, MSG_ENDSTOP_ABORT, &stepper.abort_on_endstop_hit);
     #endif
-    END_MENU();
-  }
-
-  /**
-   *
-   * "Control" > "Filament" submenu
-   *
-   */
-  static void lcd_control_volumetric_menu() {
-    START_MENU();
-    MENU_ITEM(back, MSG_CONTROL);
-
-    MENU_ITEM_EDIT_CALLBACK(bool, MSG_VOLUMETRIC_ENABLED, &volumetric_enabled, calculate_volumetric_multipliers);
-
-    if (volumetric_enabled) {
-      #if EXTRUDERS == 1
-        MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(float43, MSG_FILAMENT_DIAM, &filament_size[0], 1.5, 3.25, calculate_volumetric_multipliers);
-      #else //EXTRUDERS > 1
-        MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(float43, MSG_FILAMENT_DIAM MSG_DIAM_E1, &filament_size[0], 1.5, 3.25, calculate_volumetric_multipliers);
-        MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(float43, MSG_FILAMENT_DIAM MSG_DIAM_E2, &filament_size[1], 1.5, 3.25, calculate_volumetric_multipliers);
-        #if EXTRUDERS > 2
-          MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(float43, MSG_FILAMENT_DIAM MSG_DIAM_E3, &filament_size[2], 1.5, 3.25, calculate_volumetric_multipliers);
-          #if EXTRUDERS > 3
-            MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(float43, MSG_FILAMENT_DIAM MSG_DIAM_E4, &filament_size[3], 1.5, 3.25, calculate_volumetric_multipliers);
-          #endif //EXTRUDERS > 3
-        #endif //EXTRUDERS > 2
-      #endif //EXTRUDERS > 1
-    }
-
     END_MENU();
   }
 
@@ -1076,10 +910,6 @@ void kill_screen(const char* lcd_msg) {
 
         STATIC_ITEM(MSG_INFO_PRINT_LONGEST ": ", false, false);                                        // Longest job time:
         STATIC_ITEM("", false, false, buffer);                                                         // 99y 364d 23h 59m 59s
-
-        sprintf_P(buffer, PSTR("%im"), stats.filamentUsed / 1000);
-        STATIC_ITEM(MSG_INFO_PRINT_FILAMENT ": ", false, false);                                       // Extruded total:
-        STATIC_ITEM("", false, false, buffer);                                                         // 125m
         END_SCREEN();
       }
     #endif // PRINTCOUNTER
@@ -1118,7 +948,6 @@ void kill_screen(const char* lcd_msg) {
       STATIC_ITEM(STRING_DISTRIBUTION_DATE);                     // YYYY-MM-DD HH:MM
       STATIC_ITEM(MACHINE_NAME);                                 // My3DPrinter
       STATIC_ITEM(WEBSITE_URL);                                  // www.my3dprinter.com
-      STATIC_ITEM(MSG_INFO_EXTRUDERS ": " STRINGIFY(EXTRUDERS)); // Extruders: 2
       END_SCREEN();
     }
 
@@ -1665,10 +1494,6 @@ void lcd_finishstatus(bool persist=false) {
     #endif
   #endif
   lcdDrawUpdate = LCDVIEW_CLEAR_CALL_REDRAW;
-
-  #if ENABLED(FILAMENT_LCD_DISPLAY)
-    previous_lcd_status_ms = millis();  //get status message to show up for a while
-  #endif
 }
 
 #if ENABLED(LCD_PROGRESS_BAR) && PROGRESS_MSG_EXPIRE > 0

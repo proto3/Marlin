@@ -40,7 +40,6 @@
 
 // Change EEPROM version if these are changed:
 #define EEPROM_OFFSET 100
-#define MAX_EXTRUDERS 4
 
 /**
  * V24 EEPROM Layout:
@@ -52,57 +51,17 @@
  *  122  M203 XYZE planner.max_feedrate_mm_s (float x4)
  *  138  M201 XYZE planner.max_acceleration_mm_per_s2 (uint32_t x4)
  *  154  M204 P    planner.acceleration (float)
- *  158  M204 R    planner.retract_acceleration (float)
- *  162  M204 T    planner.travel_acceleration (float)
  *  166  M205 S    planner.min_feedrate_mm_s (float)
- *  170  M205 T    planner.min_travel_feedrate_mm_s (float)
  *  174  M205 B    planner.min_segment_time (ulong)
  *  178  M205 X    planner.max_xy_jerk (float)
  *  182  M205 Z    planner.max_z_jerk (float)
- *  186  M205 E    planner.max_e_jerk (float)
  *  190  M206 XYZ  home_offset (float x3)
- *
- * Mesh bed leveling:
- *  202  M420 S    status (uint8)
- *  203            z_offset (float)
- *  207            mesh_num_x (uint8 as set in firmware)
- *  208            mesh_num_y (uint8 as set in firmware)
- *  209 G29 S3 XYZ z_values[][] (float x9, by default, up to float x 81)
- *
- * AUTO BED LEVELING
- *  245  M851      zprobe_zoffset (float)
- *
- * DELTA:
- *  249  M666 XYZ  endstop_adj (float x3)
- *  261  M665 R    delta_radius (float)
- *  265  M665 L    delta_diagonal_rod (float)
- *  269  M665 S    delta_segments_per_second (float)
- *  273  M665 A    delta_diagonal_rod_trim_tower_1 (float)
- *  277  M665 B    delta_diagonal_rod_trim_tower_2 (float)
- *  281  M665 C    delta_diagonal_rod_trim_tower_3 (float)
  *
  * Z_DUAL_ENDSTOPS:
  *  285  M666 Z    z_endstop_adj (float)
  *
  * DOGLCD:
  *  379  M250 C    lcd_contrast (int)
- *
- * SCARA:
- *  381  M365 XYZ  axis_scaling (float x3)
- *
- * FWRETRACT:
- *  393  M209 S    autoretract_enabled (bool)
- *  394  M207 S    retract_length (float)
- *  398  M207 W    retract_length_swap (float)
- *  402  M207 F    retract_feedrate_mm_s (float)
- *  406  M207 Z    retract_zlift (float)
- *  410  M208 S    retract_recover_length (float)
- *  414  M208 W    retract_recover_length_swap (float)
- *  418  M208 F    retract_recover_feedrate_mm_s (float)
- *
- * Volumetric Extrusion:
- *  422  M200 D    volumetric_enabled (bool)
- *  423  M200 T D  filament_size (float x4) (T0..3)
  *
  *  439  This Slot is Available!
  *
@@ -113,7 +72,6 @@
 #include "planner.h"
 #include "ultralcd.h"
 #include "configuration_store.h"
-
 
 uint16_t eeprom_checksum;
 const char version[4] = EEPROM_VERSION;
@@ -149,15 +107,9 @@ void Config_Postprocess() {
   // steps per s2 needs to be updated to agree with units per s2
   planner.reset_acceleration_rates();
 
-  // Make sure delta kinematics are updated before refreshing the
-  // planner position so the stepper counts will be set correctly.
-
   // Refresh steps_to_mm with the reciprocal of axis_steps_per_mm
   // and init stepper.count[], planner.position[] with current_position
   planner.refresh_positioning();
-
-
-  calculate_volumetric_multipliers();
 }
 
 #if ENABLED(EEPROM_SETTINGS)
@@ -186,78 +138,25 @@ void Config_StoreSettings()  {
   EEPROM_WRITE(planner.max_feedrate_mm_s);
   EEPROM_WRITE(planner.max_acceleration_mm_per_s2);
   EEPROM_WRITE(planner.acceleration);
-  EEPROM_WRITE(planner.retract_acceleration);
-  EEPROM_WRITE(planner.travel_acceleration);
   EEPROM_WRITE(planner.min_feedrate_mm_s);
-  EEPROM_WRITE(planner.min_travel_feedrate_mm_s);
   EEPROM_WRITE(planner.min_segment_time);
   EEPROM_WRITE(planner.max_xy_jerk);
   EEPROM_WRITE(planner.max_z_jerk);
-  EEPROM_WRITE(planner.max_e_jerk);
   EEPROM_WRITE(home_offset);
 
-    // For disabled MBL write a default mesh
-    uint8_t mesh_num_x = 3,
-            mesh_num_y = 3,
-            dummy_uint8 = 0;
-    dummy = 0.0f;
-    EEPROM_WRITE(dummy_uint8);
-    EEPROM_WRITE(dummy);
-    EEPROM_WRITE(mesh_num_x);
-    EEPROM_WRITE(mesh_num_y);
-    for (uint8_t q = 0; q < mesh_num_x * mesh_num_y; q++) EEPROM_WRITE(dummy);
-
-    float zprobe_zoffset = 0;
-  EEPROM_WRITE(zprobe_zoffset);
-
-  // 9 floats for DELTA / Z_DUAL_ENDSTOPS
-  #if   ENABLED(Z_DUAL_ENDSTOPS)
-    EEPROM_WRITE(z_endstop_adj);            // 1 float
-    dummy = 0.0f;
-    for (uint8_t q = 8; q--;) EEPROM_WRITE(dummy);
+  #if ENABLED(Z_DUAL_ENDSTOPS)
+    EEPROM_WRITE(z_endstop_adj);
   #else
-    dummy = 0.0f;
-    for (uint8_t q = 9; q--;) EEPROM_WRITE(dummy);
+    EEPROM_WRITE(dummy);
   #endif
-
-  for (uint8_t e = 0; e < MAX_EXTRUDERS; e++) {
-
-      {
-        dummy = DUMMY_PID_VALUE; // When read, will not change the existing value
-        EEPROM_WRITE(dummy); // Kp
-        dummy = 0.0f;
-        for (uint8_t q = 3; q--;) EEPROM_WRITE(dummy); // Ki, Kd, Kc
-      }
-
-  } // Hotends Loop
-
-  #if DISABLED(PID_EXTRUSION_SCALING)
-    int lpq_len = 20;
-  #endif
-  EEPROM_WRITE(lpq_len);
-
-    dummy = DUMMY_PID_VALUE;
-    for (uint8_t q = 3; q--;) EEPROM_WRITE(dummy);
 
   #if !HAS_LCD_CONTRAST
     const int lcd_contrast = 32;
   #endif
   EEPROM_WRITE(lcd_contrast);
 
-    dummy = 1.0f;
-    EEPROM_WRITE(dummy);
-
-
-  EEPROM_WRITE(volumetric_enabled);
-
-  // Save filament sizes
-  for (uint8_t q = 0; q < MAX_EXTRUDERS; q++) {
-    if (q < COUNT(filament_size)) dummy = filament_size[q];
-    EEPROM_WRITE(dummy);
-  }
-
-  uint16_t final_checksum = eeprom_checksum,
-           eeprom_size = eeprom_index;
+  uint16_t final_checksum = eeprom_checksum;
+  uint16_t eeprom_size = eeprom_index;
 
   eeprom_index = EEPROM_OFFSET;
   EEPROM_WRITE(version);
@@ -282,15 +181,11 @@ void Config_RetrieveSettings() {
   uint16_t stored_checksum;
   EEPROM_READ(stored_checksum);
 
-  //  SERIAL_ECHOPAIR("Version: [", ver);
-  //  SERIAL_ECHOPAIR("] Stored version: [", stored_ver);
-  //  SERIAL_ECHOLNPGM("]");
-
   if (strncmp(version, stored_ver, 3) != 0) {
     Config_ResetDefault();
   }
   else {
-    float dummy = 0;
+    float dummy = 0.0f;
 
     eeprom_checksum = 0; // clear before reading first "real data"
 
@@ -298,62 +193,24 @@ void Config_RetrieveSettings() {
     EEPROM_READ(planner.axis_steps_per_mm);
     EEPROM_READ(planner.max_feedrate_mm_s);
     EEPROM_READ(planner.max_acceleration_mm_per_s2);
-
     EEPROM_READ(planner.acceleration);
-    EEPROM_READ(planner.retract_acceleration);
-    EEPROM_READ(planner.travel_acceleration);
     EEPROM_READ(planner.min_feedrate_mm_s);
-    EEPROM_READ(planner.min_travel_feedrate_mm_s);
     EEPROM_READ(planner.min_segment_time);
     EEPROM_READ(planner.max_xy_jerk);
     EEPROM_READ(planner.max_z_jerk);
-    EEPROM_READ(planner.max_e_jerk);
     EEPROM_READ(home_offset);
 
-    uint8_t dummy_uint8 = 0, mesh_num_x = 0, mesh_num_y = 0;
-    EEPROM_READ(dummy_uint8);
-    EEPROM_READ(dummy);
-    EEPROM_READ(mesh_num_x);
-    EEPROM_READ(mesh_num_y);
-      // MBL is disabled - skip the stored data
-      for (uint8_t q = 0; q < mesh_num_x * mesh_num_y; q++) EEPROM_READ(dummy);
-
-      float zprobe_zoffset = 0;
-    EEPROM_READ(zprobe_zoffset);
-
-    #if   ENABLED(Z_DUAL_ENDSTOPS)
+    #if ENABLED(Z_DUAL_ENDSTOPS)
       EEPROM_READ(z_endstop_adj);
-      dummy = 0.0f;
-      for (uint8_t q=8; q--;) EEPROM_READ(dummy);
     #else
+      EEPROM_READ(dummy);
       dummy = 0.0f;
-      for (uint8_t q=9; q--;) EEPROM_READ(dummy);
     #endif
-
-      // 4 x 4 = 16 slots for PID parameters
-      for (uint8_t q = MAX_EXTRUDERS * 4; q--;) EEPROM_READ(dummy);  // Kp, Ki, Kd, Kc
-
-    #if DISABLED(PID_EXTRUSION_SCALING)
-      int lpq_len;
-    #endif
-    EEPROM_READ(lpq_len);
-
-      for (uint8_t q=3; q--;) EEPROM_READ(dummy); // bedKp, bedKi, bedKd
 
     #if !HAS_LCD_CONTRAST
       int lcd_contrast;
     #endif
     EEPROM_READ(lcd_contrast);
-
-      EEPROM_READ(dummy);
-
-
-    EEPROM_READ(volumetric_enabled);
-
-    for (uint8_t q = 0; q < MAX_EXTRUDERS; q++) {
-      EEPROM_READ(dummy);
-      if (q < COUNT(filament_size)) filament_size[q] = dummy;
-    }
 
     if (eeprom_checksum == stored_checksum) {
       Config_Postprocess();
@@ -383,37 +240,26 @@ void Config_ResetDefault() {
   float tmp1[] = DEFAULT_AXIS_STEPS_PER_UNIT;
   float tmp2[] = DEFAULT_MAX_FEEDRATE;
   long tmp3[] = DEFAULT_MAX_ACCELERATION;
-  LOOP_XYZE(i) {
+  LOOP_XYZ(i) {
     planner.axis_steps_per_mm[i] = tmp1[i];
     planner.max_feedrate_mm_s[i] = tmp2[i];
     planner.max_acceleration_mm_per_s2[i] = tmp3[i];
   }
 
   planner.acceleration = DEFAULT_ACCELERATION;
-  planner.retract_acceleration = DEFAULT_RETRACT_ACCELERATION;
-  planner.travel_acceleration = DEFAULT_TRAVEL_ACCELERATION;
   planner.min_feedrate_mm_s = DEFAULT_MINIMUMFEEDRATE;
   planner.min_segment_time = DEFAULT_MINSEGMENTTIME;
-  planner.min_travel_feedrate_mm_s = DEFAULT_MINTRAVELFEEDRATE;
   planner.max_xy_jerk = DEFAULT_XYJERK;
   planner.max_z_jerk = DEFAULT_ZJERK;
-  planner.max_e_jerk = DEFAULT_EJERK;
   home_offset[X_AXIS] = home_offset[Y_AXIS] = home_offset[Z_AXIS] = 0;
 
-
-
-  #if   ENABLED(Z_DUAL_ENDSTOPS)
+  #if ENABLED(Z_DUAL_ENDSTOPS)
     z_endstop_adj = 0;
   #endif
 
   #if HAS_LCD_CONTRAST
     lcd_contrast = DEFAULT_LCD_CONTRAST;
   #endif
-
-
-  volumetric_enabled = false;
-  for (uint8_t q = 0; q < COUNT(filament_size); q++)
-    filament_size[q] = DEFAULT_NOMINAL_FILAMENT_DIA;
 
   endstops.enable_globally(
     #if ENABLED(ENDSTOPS_ALWAYS_ON_DEFAULT)
@@ -448,11 +294,9 @@ void Config_PrintSettings(bool forReplay) {
   SERIAL_ECHOPAIR("  M92 X", planner.axis_steps_per_mm[X_AXIS]);
   SERIAL_ECHOPAIR(" Y", planner.axis_steps_per_mm[Y_AXIS]);
   SERIAL_ECHOPAIR(" Z", planner.axis_steps_per_mm[Z_AXIS]);
-  SERIAL_ECHOPAIR(" E", planner.axis_steps_per_mm[E_AXIS]);
   SERIAL_EOL;
 
   CONFIG_ECHO_START;
-
 
   if (!forReplay) {
     SERIAL_ECHOLNPGM("Maximum feedrates (mm/s):");
@@ -461,7 +305,6 @@ void Config_PrintSettings(bool forReplay) {
   SERIAL_ECHOPAIR("  M203 X", planner.max_feedrate_mm_s[X_AXIS]);
   SERIAL_ECHOPAIR(" Y", planner.max_feedrate_mm_s[Y_AXIS]);
   SERIAL_ECHOPAIR(" Z", planner.max_feedrate_mm_s[Z_AXIS]);
-  SERIAL_ECHOPAIR(" E", planner.max_feedrate_mm_s[E_AXIS]);
   SERIAL_EOL;
 
   CONFIG_ECHO_START;
@@ -472,29 +315,24 @@ void Config_PrintSettings(bool forReplay) {
   SERIAL_ECHOPAIR("  M201 X", planner.max_acceleration_mm_per_s2[X_AXIS]);
   SERIAL_ECHOPAIR(" Y", planner.max_acceleration_mm_per_s2[Y_AXIS]);
   SERIAL_ECHOPAIR(" Z", planner.max_acceleration_mm_per_s2[Z_AXIS]);
-  SERIAL_ECHOPAIR(" E", planner.max_acceleration_mm_per_s2[E_AXIS]);
   SERIAL_EOL;
   CONFIG_ECHO_START;
   if (!forReplay) {
-    SERIAL_ECHOLNPGM("Accelerations: P=printing, R=retract and T=travel");
+    SERIAL_ECHOLNPGM("Accelerations: P=printing and T=travel");
     CONFIG_ECHO_START;
   }
   SERIAL_ECHOPAIR("  M204 P", planner.acceleration);
-  SERIAL_ECHOPAIR(" R", planner.retract_acceleration);
-  SERIAL_ECHOPAIR(" T", planner.travel_acceleration);
   SERIAL_EOL;
 
   CONFIG_ECHO_START;
   if (!forReplay) {
-    SERIAL_ECHOLNPGM("Advanced variables: S=Min feedrate (mm/s), T=Min travel feedrate (mm/s), B=minimum segment time (ms), X=maximum XY jerk (mm/s),  Z=maximum Z jerk (mm/s),  E=maximum E jerk (mm/s)");
+    SERIAL_ECHOLNPGM("Advanced variables: S=Min feedrate (mm/s), B=minimum segment time (ms), X=maximum XY jerk (mm/s),  Z=maximum Z jerk (mm/s)");
     CONFIG_ECHO_START;
   }
   SERIAL_ECHOPAIR("  M205 S", planner.min_feedrate_mm_s);
-  SERIAL_ECHOPAIR(" T", planner.min_travel_feedrate_mm_s);
   SERIAL_ECHOPAIR(" B", planner.min_segment_time);
   SERIAL_ECHOPAIR(" X", planner.max_xy_jerk);
   SERIAL_ECHOPAIR(" Z", planner.max_z_jerk);
-  SERIAL_ECHOPAIR(" E", planner.max_e_jerk);
   SERIAL_EOL;
 
   CONFIG_ECHO_START;
@@ -527,47 +365,6 @@ void Config_PrintSettings(bool forReplay) {
     SERIAL_ECHOPAIR("  M250 C", lcd_contrast);
     SERIAL_EOL;
   #endif
-
-
-  /**
-   * Volumetric extrusion M200
-   */
-  if (!forReplay) {
-    CONFIG_ECHO_START;
-    SERIAL_ECHOPGM("Filament settings:");
-    if (volumetric_enabled)
-      SERIAL_EOL;
-    else
-      SERIAL_ECHOLNPGM(" Disabled");
-  }
-
-  CONFIG_ECHO_START;
-  SERIAL_ECHOPAIR("  M200 D", filament_size[0]);
-  SERIAL_EOL;
-  #if EXTRUDERS > 1
-    CONFIG_ECHO_START;
-    SERIAL_ECHOPAIR("  M200 T1 D", filament_size[1]);
-    SERIAL_EOL;
-    #if EXTRUDERS > 2
-      CONFIG_ECHO_START;
-      SERIAL_ECHOPAIR("  M200 T2 D", filament_size[2]);
-      SERIAL_EOL;
-      #if EXTRUDERS > 3
-        CONFIG_ECHO_START;
-        SERIAL_ECHOPAIR("  M200 T3 D", filament_size[3]);
-        SERIAL_EOL;
-      #endif
-    #endif
-  #endif
-
-  if (!volumetric_enabled) {
-    CONFIG_ECHO_START;
-    SERIAL_ECHOLNPGM("  M200 D0");
-  }
-
-  /**
-   * Auto Bed Leveling
-   */
 }
 
 #endif // !DISABLE_M503

@@ -253,10 +253,6 @@ void Endstops::update() {
     if (stepper.motor_direction(X_AXIS))   // stepping along -X axis (regular Cartesian bot)
   #endif
       { // -direction
-        #if ENABLED(DUAL_X_CARRIAGE)
-          // with 2 x-carriages, endstops are only checked in the homing direction for the active extruder
-          if ((stepper.current_block->active_extruder == 0 && X_HOME_DIR == -1) || (stepper.current_block->active_extruder != 0 && X2_HOME_DIR == -1))
-        #endif
           {
             #if HAS_X_MIN
               UPDATE_ENDSTOP(X, MIN);
@@ -264,10 +260,6 @@ void Endstops::update() {
           }
       }
       else { // +direction
-        #if ENABLED(DUAL_X_CARRIAGE)
-          // with 2 x-carriages, endstops are only checked in the homing direction for the active extruder
-          if ((stepper.current_block->active_extruder == 0 && X_HOME_DIR == 1) || (stepper.current_block->active_extruder != 0 && X2_HOME_DIR == 1))
-        #endif
           {
             #if HAS_X_MAX
               UPDATE_ENDSTOP(X, MAX);

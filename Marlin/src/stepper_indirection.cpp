@@ -166,7 +166,6 @@ void tmc_init() {
   L6470 stepperE3(E3_ENABLE_PIN);
 #endif
 
-
 // init routine
 #if ENABLED(HAVE_L6470DRIVER)
 void L6470_init() {

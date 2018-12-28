@@ -23,7 +23,7 @@
 #ifndef MACROS_H
 #define MACROS_H
 
-#define NUM_AXIS 4
+#define NUM_AXIS 3
 
 #define FORCE_INLINE __attribute__((always_inline)) inline
 

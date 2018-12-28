@@ -35,7 +35,6 @@
 #include "types.h"
 #include "MarlinConfig.h"
 
-
 class Planner;
 extern Planner planner;
 
@@ -50,29 +49,15 @@ extern Planner planner;
  */
 typedef struct {
 
-  unsigned char active_extruder;            // The extruder to move (if E move)
-
   // Fields used by the bresenham algorithm for tracing the line
   long steps[NUM_AXIS];                     // Step count along each axis
   unsigned long step_event_count;           // The number of step events required to complete this block
-
 
   long accelerate_until,                    // The index of the step event on which to stop acceleration
        decelerate_after,                    // The index of the step event on which to start decelerating
        acceleration_rate;                   // The acceleration rate used for acceleration calculation
 
   unsigned char direction_bits;             // The direction bit set for this block (refers to *_DIRECTION_BIT in config.h)
-
-  // Advance extrusion
-  #if ENABLED(LIN_ADVANCE)
-    bool use_advance_lead;
-    int e_speed_multiplier8; // Factorised by 2^8 to avoid float
-  #elif ENABLED(ADVANCE)
-    long advance_rate;
-    volatile long initial_advance;
-    volatile long final_advance;
-    float advance;
-  #endif
 
   // Fields used by the motion planner to manage acceleration
   float nominal_speed,                               // The nominal speed for this block in mm/sec
@@ -89,9 +74,7 @@ typedef struct {
                 final_rate,                          // The minimal rate at exit
                 acceleration_steps_per_s2;           // acceleration steps/sec^2
 
-
   volatile char busy;
-
 } block_t;
 
 #define BLOCK_MOD(n) ((n)&(BLOCK_BUFFER_SIZE-1))
@@ -99,7 +82,6 @@ typedef struct {
 class Planner {
 
   public:
-
     /**
      * A ring buffer of moves described in steps
      */
@@ -117,15 +99,10 @@ class Planner {
     static float min_feedrate_mm_s;
     static float acceleration;         // Normal acceleration mm/s^2  DEFAULT ACCELERATION for all printing moves. M204 SXXXX
     static float retract_acceleration; // Retract acceleration mm/s^2 filament pull-back and push-forward while standing still in the other axes M204 TXXXX
-    static float travel_acceleration;  // Travel acceleration mm/s^2  DEFAULT ACCELERATION for all NON printing moves. M204 MXXXX
     static float max_xy_jerk;          // The largest speed change requiring no acceleration
     static float max_z_jerk;
-    static float max_e_jerk;
-    static float min_travel_feedrate_mm_s;
-
 
   private:
-
     /**
      * The current position of the tool in absolute steps
      * Recalculated if any axis_steps_per_mm are changed by gcode
@@ -142,13 +119,6 @@ class Planner {
      */
     static float previous_nominal_speed;
 
-    #if ENABLED(DISABLE_INACTIVE_EXTRUDER)
-      /**
-       * Counters to manage disabling inactive extruders
-       */
-      static uint8_t g_uc_extruder_last_move[EXTRUDERS];
-    #endif // DISABLE_INACTIVE_EXTRUDER
-
     #ifdef XY_FREQUENCY_LIMIT
       // Used for the frequency limit
       #define MAX_FREQ_TIME long(1000000.0/XY_FREQUENCY_LIMIT)
@@ -160,17 +130,8 @@ class Planner {
 
   public:
 
-    /**
-     * Instance Methods
-     */
-
     Planner();
-
     void init();
-
-    /**
-     * Static (class) Methods
-     */
 
     static void reset_acceleration_rates();
     static void refresh_positioning();
@@ -182,18 +143,9 @@ class Planner {
      * Number of moves currently in the planner
      */
     static uint8_t movesplanned() { return BLOCK_MOD(block_buffer_head - block_buffer_tail + BLOCK_BUFFER_SIZE); }
-
     static bool is_full() { return (block_buffer_tail == BLOCK_MOD(block_buffer_head + 1)); }
-
-
-      static void buffer_line(const float& x, const float& y, const float& z, const float& e, float fr_mm_s, const uint8_t extruder);
-      static void set_position_mm(const float& x, const float& y, const float& z, const float& e);
-
-
-    /**
-     * Set the E position (mm) of the planner (and the E stepper)
-     */
-    static void set_e_position_mm(const float& e);
+    static void buffer_line(const float& x, const float& y, const float& z, float fr_mm_s);
+    static void set_position_mm(const float& x, const float& y, const float& z);
 
     /**
      * Set the Z position (steps) of the planner
@@ -228,9 +180,7 @@ class Planner {
         return NULL;
     }
 
-
   private:
-
     /**
      * Get the index of the next / previous block in the ring buffer
      */
@@ -279,7 +229,6 @@ class Planner {
     static void recalculate_trapezoids();
 
     static void recalculate();
-
 };
 
 #endif // PLANNER_H

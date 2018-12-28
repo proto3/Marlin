@@ -62,7 +62,6 @@
 
 // Dual X Steppers
 // Uncomment this option to drive two X axis motors.
-// The next unused E driver will be assigned to the second X stepper.
 //#define X_DUAL_STEPPER_DRIVERS
 #if ENABLED(X_DUAL_STEPPER_DRIVERS)
   // Set true if the two X motors need to rotate in opposite directions
@@ -72,7 +71,6 @@
 
 // Dual Y Steppers
 // Uncomment this option to drive two Y axis motors.
-// The next unused E driver will be assigned to the second Y stepper.
 //#define Y_DUAL_STEPPER_DRIVERS
 #if ENABLED(Y_DUAL_STEPPER_DRIVERS)
   // Set true if the two Y motors need to rotate in opposite directions
@@ -81,7 +79,6 @@
 
 // A single Z stepper driver is usually used to drive 2 stepper motors.
 // Uncomment this option to use a separate stepper driver for each Z axis motor.
-// The next unused E driver will be assigned to the second Z stepper.
 //#define Z_DUAL_STEPPER_DRIVERS
 
 #if ENABLED(Z_DUAL_STEPPER_DRIVERS)
@@ -103,45 +100,6 @@
 
 #endif // Z_DUAL_STEPPER_DRIVERS
 
-// Enable this for dual x-carriage printers.
-// A dual x-carriage design has the advantage that the inactive extruder can be parked which
-// prevents hot-end ooze contaminating the print. It also reduces the weight of each x-carriage
-// allowing faster printing speeds. Connect your X2 stepper to the first unused E plug.
-//#define DUAL_X_CARRIAGE
-#if ENABLED(DUAL_X_CARRIAGE)
-  // Configuration for second X-carriage
-  // Note: the first x-carriage is defined as the x-carriage which homes to the minimum endstop;
-  // the second x-carriage always homes to the maximum endstop.
-  #define X2_MIN_POS 80     // set minimum to ensure second x-carriage doesn't hit the parked first X-carriage
-  #define X2_MAX_POS 353    // set maximum to the distance between toolheads when both heads are homed
-  #define X2_HOME_DIR 1     // the second X-carriage always homes to the maximum endstop position
-  #define X2_HOME_POS X2_MAX_POS // default home position is the maximum carriage position
-      // However: In this mode the HOTEND_OFFSET_X value for the second extruder provides a software
-      // override for X2_HOME_POS. This also allow recalibration of the distance between the two endstops
-      // without modifying the firmware (through the "M218 T1 X???" command).
-      // Remember: you should set the second extruder x-offset to 0 in your slicer.
-
-  // There are a few selectable movement modes for dual x-carriages using M605 S<mode>
-  //    Mode 0: Full control. The slicer has full control over both x-carriages and can achieve optimal travel results
-  //                           as long as it supports dual x-carriages. (M605 S0)
-  //    Mode 1: Auto-park mode. The firmware will automatically park and unpark the x-carriages on tool changes so
-  //                           that additional slicer support is not required. (M605 S1)
-  //    Mode 2: Duplication mode. The firmware will transparently make the second x-carriage and extruder copy all
-  //                           actions of the first x-carriage. This allows the printer to print 2 arbitrary items at
-  //                           once. (2nd extruder x offset and temp offset are set using: M605 S2 [Xnnn] [Rmmm])
-
-  // This is the default power-up mode which can be later using M605.
-  #define DEFAULT_DUAL_X_CARRIAGE_MODE 0
-
-  // Default settings in "Auto-park Mode"
-  #define TOOLCHANGE_PARK_ZLIFT   0.2      // the distance to raise Z axis when parking an extruder
-  #define TOOLCHANGE_UNPARK_ZLIFT 1        // the distance to raise Z axis when unparking an extruder
-
-  // Default x offset in duplication mode (typically set to half print bed width)
-  #define DEFAULT_DUPLICATION_X_OFFSET 100
-
-#endif //DUAL_X_CARRIAGE
-
 // @section homing
 
 //homing hits the endstop, then retracts by this distance, before it tries to slowly bump again:
@@ -156,16 +114,12 @@
 
 // @section machine
 
-#define AXIS_RELATIVE_MODES {false, false, false, false}
-
-// Allow duplication mode with a basic dual-nozzle extruder
-//#define DUAL_NOZZLE_DUPLICATION_MODE
+#define AXIS_RELATIVE_MODES {false, false, false}
 
 // By default pololu step drivers require an active high signal. However, some high power drivers require an active low signal as step.
 #define INVERT_X_STEP_PIN false
 #define INVERT_Y_STEP_PIN false
 #define INVERT_Z_STEP_PIN false
-#define INVERT_E_STEP_PIN false
 
 // Default stepper release if idle. Set to 0 to deactivate.
 // Steppers will shut down DEFAULT_STEPPER_DEACTIVE_TIME seconds after the last move when DISABLE_INACTIVE_? is true.
@@ -174,15 +128,13 @@
 #define DISABLE_INACTIVE_X true
 #define DISABLE_INACTIVE_Y true
 #define DISABLE_INACTIVE_Z true  // set to false if the nozzle will fall down on your printed part when print has finished.
-#define DISABLE_INACTIVE_E true
 
 #define DEFAULT_MINIMUMFEEDRATE       0.0     // minimum feedrate
-#define DEFAULT_MINTRAVELFEEDRATE     0.0
 
 // @section lcd
 
 #if ENABLED(ULTIPANEL)
-  #define MANUAL_FEEDRATE {50*60, 50*60, 4*60, 60} // Feedrates for manual moves along X, Y, Z, E from panel
+  #define MANUAL_FEEDRATE {50*60, 50*60, 50*60} // Feedrates for manual moves along X, Y, Z from panel
   #define ULTIPANEL_FEEDMULTIPLY  // Comment to disable setting feedrate multiplier via encoder
 #endif
 
@@ -246,7 +198,7 @@
   #define SD_DETECT_INVERTED
 
   #define SD_FINISHED_STEPPERRELEASE true  //if sd support and the file is finished: disable steppers?
-  #define SD_FINISHED_RELEASECOMMAND "M84 X Y Z E" // You might want to keep the z enabled so your bed stays in place.
+  #define SD_FINISHED_RELEASECOMMAND "M84 X Y Z" // You might want to keep the z enabled so your bed stays in place.
 
   #define SDCARD_RATHERRECENTFIRST  //reverse file order of sd card menu display. Its sorted practically after the file system block order.
   // if a file is deleted, it frees a block. hence, the order is not purely chronological. To still have auto0.g accessible, there is again the option to do that.
@@ -301,44 +253,6 @@
   //#define WATCHDOG_RESET_MANUAL
 #endif
 
-// @section lcd
-
-// Babystepping enables the user to control the axis in tiny amounts, independently from the normal printing process
-// it can e.g. be used to change z-positions in the print startup phase in real-time
-// does not respect endstops!
-//#define BABYSTEPPING
-
-// @section extruder
-
-// extruder advance constant (s2/mm3)
-//
-// advance (steps) = STEPS_PER_CUBIC_MM_E * EXTRUDER_ADVANCE_K * cubic mm per second ^ 2
-//
-// Hooke's law says:    force = k * distance
-// Bernoulli's principle says:  v ^ 2 / 2 + g . h + pressure / density = constant
-// so: v ^ 2 is proportional to number of steps we advance the extruder
-//#define ADVANCE
-
-#if ENABLED(ADVANCE)
-  #define EXTRUDER_ADVANCE_K .0
-  #define D_FILAMENT 2.85
-#endif
-
-// Implementation of a linear pressure control
-// Assumption: advance = k * (delta velocity)
-// K=0 means advance disabled. A good value for a gregs wade extruder will be around K=75
-//#define LIN_ADVANCE
-
-#if ENABLED(LIN_ADVANCE)
-  #define LIN_ADVANCE_K 75
-#endif
-
-// @section leveling
-
-// Default mesh area is an area with an inset margin on the print area.
-// Below are the macros that are used to define the borders for the mesh area,
-// made available here for specialized needs, ie dual extruder setup.
-
 // @section extras
 
 // Arc interpretation settings:
@@ -346,7 +260,7 @@
 #define MM_PER_ARC_SEGMENT 1
 #define N_ARC_CORRECTION 25
 
-// Support for G5 with XYZE destination and IJPQ offsets. Requires ~2666 bytes.
+// Support for G5 with XYZ destination and IJPQ offsets. Requires ~2666 bytes.
 //#define BEZIER_CURVE_SUPPORT
 
 const unsigned int dropsegments = 5; //everything with less than this number of steps will be ignored as move and joined with the next movement
@@ -395,21 +309,6 @@ const unsigned int dropsegments = 5; //everything with less than this number of 
 // Some clients will have this feature soon. This could make the NO_TIMEOUTS unnecessary.
 //#define ADVANCED_OK
 
-// @section fwretract
-
-// Firmware based and LCD controlled retract
-// M207 and M208 can be used to define parameters for the retraction.
-// The retraction can be called by the slicer using G10 and G11
-// until then, intended retractions can be detected by moves that only extrude and the direction.
-// the moves are than replaced by the firmware controlled ones.
-
-//#define FWRETRACT  //ONLY PARTIALLY TESTED
-
-// Add support for experimental filament exchange support M600; requires display
-#if ENABLED(ULTIPANEL)
-  // #define FILAMENT_CHANGE_FEATURE             // Enable filament exchange menu and M600 g-code (used for runout sensor too)
-#endif
-
 /******************************************************************************\
  * enable this section if you have TMC26X motor drivers.
  * you need to import the TMC26XStepper library into the Arduino IDE for this
@@ -449,26 +348,6 @@ const unsigned int dropsegments = 5; //everything with less than this number of 
   #define Z2_MAX_CURRENT 1000  //in mA
   #define Z2_SENSE_RESISTOR 91 //in mOhms
   #define Z2_MICROSTEPS 16     //number of microsteps
-
-  //#define E0_IS_TMC
-  #define E0_MAX_CURRENT 1000  //in mA
-  #define E0_SENSE_RESISTOR 91 //in mOhms
-  #define E0_MICROSTEPS 16     //number of microsteps
-
-  //#define E1_IS_TMC
-  #define E1_MAX_CURRENT 1000  //in mA
-  #define E1_SENSE_RESISTOR 91 //in mOhms
-  #define E1_MICROSTEPS 16     //number of microsteps
-
-  //#define E2_IS_TMC
-  #define E2_MAX_CURRENT 1000  //in mA
-  #define E2_SENSE_RESISTOR 91 //in mOhms
-  #define E2_MICROSTEPS 16     //number of microsteps
-
-  //#define E3_IS_TMC
-  #define E3_MAX_CURRENT 1000  //in mA
-  #define E3_SENSE_RESISTOR 91 //in mOhms
-  #define E3_MICROSTEPS 16     //number of microsteps
 
 #endif
 
@@ -517,30 +396,6 @@ const unsigned int dropsegments = 5; //everything with less than this number of 
   #define Z2_K_VAL 50          // 0 - 255, Higher values, are higher power. Be careful not to go too high
   #define Z2_OVERCURRENT 2000  //maxc current in mA. If the current goes over this value, the driver will switch off
   #define Z2_STALLCURRENT 1500 //current in mA where the driver will detect a stall
-
-  //#define E0_IS_L6470
-  #define E0_MICROSTEPS 16     //number of microsteps
-  #define E0_K_VAL 50          // 0 - 255, Higher values, are higher power. Be careful not to go too high
-  #define E0_OVERCURRENT 2000  //maxc current in mA. If the current goes over this value, the driver will switch off
-  #define E0_STALLCURRENT 1500 //current in mA where the driver will detect a stall
-
-  //#define E1_IS_L6470
-  #define E1_MICROSTEPS 16     //number of microsteps
-  #define E1_K_VAL 50          // 0 - 255, Higher values, are higher power. Be careful not to go too high
-  #define E1_OVERCURRENT 2000  //maxc current in mA. If the current goes over this value, the driver will switch off
-  #define E1_STALLCURRENT 1500 //current in mA where the driver will detect a stall
-
-  //#define E2_IS_L6470
-  #define E2_MICROSTEPS 16     //number of microsteps
-  #define E2_K_VAL 50          // 0 - 255, Higher values, are higher power. Be careful not to go too high
-  #define E2_OVERCURRENT 2000  //maxc current in mA. If the current goes over this value, the driver will switch off
-  #define E2_STALLCURRENT 1500 //current in mA where the driver will detect a stall
-
-  //#define E3_IS_L6470
-  #define E3_MICROSTEPS 16     //number of microsteps
-  #define E3_K_VAL 50          // 0 - 255, Higher values, are higher power. Be careful not to go too high
-  #define E3_OVERCURRENT 2000  //maxc current in mA. If the current goes over this value, the driver will switch off
-  #define E3_STALLCURRENT 1500 //current in mA where the driver will detect a stall
 
 #endif
 

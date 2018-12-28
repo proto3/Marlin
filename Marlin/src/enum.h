@@ -39,14 +39,12 @@ enum AxisEnum {
   B_AXIS  = 1,
   Z_AXIS  = 2,
   C_AXIS  = 2,
-  E_AXIS  = 3,
-  X_HEAD  = 4,
-  Y_HEAD  = 5,
-  Z_HEAD  = 6
+  X_HEAD  = 3,
+  Y_HEAD  = 4,
+  Z_HEAD  = 5
 };
 
 #define LOOP_XYZ(VAR)  for (uint8_t VAR=X_AXIS; VAR<=Z_AXIS; VAR++)
-#define LOOP_XYZE(VAR) for (uint8_t VAR=X_AXIS; VAR<=E_AXIS; VAR++)
 
 typedef enum {
   LINEARUNIT_MM,

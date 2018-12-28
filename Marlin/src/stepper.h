@@ -101,26 +101,8 @@ class Stepper {
     #endif
 
     // Counter variables for the Bresenham line tracer
-    static long counter_X, counter_Y, counter_Z, counter_E;
+    static long counter_X, counter_Y, counter_Z;
     static volatile unsigned long step_events_completed; // The number of step events executed in the current block
-
-    #if ENABLED(ADVANCE) || ENABLED(LIN_ADVANCE)
-      static unsigned char old_OCR0A;
-      static volatile unsigned char eISR_Rate;
-      #if ENABLED(LIN_ADVANCE)
-        static volatile int e_steps[E_STEPPERS];
-        static int extruder_advance_k;
-        static int final_estep_rate;
-        static int current_estep_rate[E_STEPPERS]; // Actual extruder speed [steps/s]
-        static int current_adv_steps[E_STEPPERS];  // The amount of current added esteps due to advance.
-                                                  // i.e., the current amount of pressure applied
-                                                  // to the spring (=filament).
-      #else
-        static long e_steps[E_STEPPERS];
-        static long advance_rate, advance, final_advance;
-        static long old_advance;
-      #endif
-    #endif // ADVANCE or LIN_ADVANCE
 
     static long acceleration_time, deceleration_time;
     //unsigned long accelerate_until, decelerate_after, acceleration_rate, initial_rate, final_rate, nominal_rate;
@@ -153,10 +135,6 @@ class Stepper {
     //
     static bool axis_locked[NUM_AXIS];
 
-    //
-    // Mixing extruder mix counters
-    //
-
   public:
 
     //
@@ -172,12 +150,7 @@ class Stepper {
     //
     // Interrupt Service Routines
     //
-
     static void isr();
-
-    #if ENABLED(ADVANCE) || ENABLED(LIN_ADVANCE)
-      static void advance_isr();
-    #endif
 
     //
     // Block until all buffered steps are executed
@@ -197,8 +170,7 @@ class Stepper {
     //
     // Set the current position in steps
     //
-    static void set_position(const long& x, const long& y, const long& z, const long& e);
-    static void set_e_position(const long& e);
+    static void set_position(const long& x, const long& y, const long& z);
 
     //
     // Set direction bits for all steppers
@@ -260,7 +232,6 @@ class Stepper {
       static FORCE_INLINE void set_z2_lock(bool state) { locked_z2_motor = state; }
     #endif
 
-
     static inline void kill_current_block() {
       step_events_completed = current_block->step_event_count;
     }
@@ -277,10 +248,6 @@ class Stepper {
       return endstops_trigsteps[axis] * planner.steps_to_mm[axis];
     }
 
-    #if ENABLED(LIN_ADVANCE)
-      void advance_M905(const float &k);
-      FORCE_INLINE int get_advance_k() { return extruder_advance_k; }
-    #endif
 
   private:
 
@@ -328,26 +295,10 @@ class Stepper {
     // block begins.
     static FORCE_INLINE void trapezoid_generator_reset() {
 
-      static int8_t last_extruder = -1;
-
-      if (current_block->direction_bits != last_direction_bits || current_block->active_extruder != last_extruder) {
+      if (current_block->direction_bits != last_direction_bits) {
         last_direction_bits = current_block->direction_bits;
-        last_extruder = current_block->active_extruder;
         set_directions();
       }
-
-      #if ENABLED(ADVANCE)
-
-        advance = current_block->initial_advance;
-        final_advance = current_block->final_advance;
-
-        // Do E steps + advance steps
-          // ...for the active extruder
-          e_steps[TOOL_E_INDEX] += ((advance >> 8) - old_advance);
-
-        old_advance = advance >> 8;
-
-      #endif
 
       deceleration_time = 0;
       // step_rate to timer interval
@@ -357,13 +308,6 @@ class Stepper {
       acc_step_rate = current_block->initial_rate;
       acceleration_time = calc_timer(acc_step_rate);
       OCR1A = acceleration_time;
-
-      #if ENABLED(LIN_ADVANCE)
-        if (current_block->use_advance_lead) {
-          current_estep_rate[current_block->active_extruder] = ((unsigned long)acc_step_rate * current_block->e_speed_multiplier8) >> 8;
-          final_estep_rate = (current_block->nominal_rate * current_block->e_speed_multiplier8) >> 8;
-        }
-      #endif
 
       // SERIAL_ECHO_START;
       // SERIAL_ECHOPGM("advance :");
@@ -378,7 +322,6 @@ class Stepper {
 
     static void digipot_init();
     static void microstep_init();
-
 };
 
 #endif // STEPPER_H

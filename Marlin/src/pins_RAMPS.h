@@ -109,9 +109,6 @@
 #define TEMP_1_PIN         15   // ANALOG NUMBERING
 #define TEMP_BED_PIN       14   // ANALOG NUMBERING
 
-#if ENABLED(Z_PROBE_SLED)
-  #define SLED_PIN           -1
-#endif
 
 // Augmentation for auto-assigning RAMPS plugs
 #if DISABLED(IS_RAMPS_EEB) && DISABLED(IS_RAMPS_EEF) && DISABLED(IS_RAMPS_EFB) && DISABLED(IS_RAMPS_EFF) && DISABLED(IS_RAMPS_SF) && !PIN_EXISTS(MOSFET_D)

@@ -406,20 +406,7 @@ static void lcd_implementation_status_screen() {
   #else
     u8g.setPrintPos(0, 63);
   #endif
-  #if DISABLED(FILAMENT_LCD_DISPLAY)
-    lcd_print(lcd_status_message);
-  #else
-    if (PENDING(millis(), previous_lcd_status_ms + 5000UL)) {  //Display both Status message line and Filament display on the last line
-      lcd_print(lcd_status_message);
-    }
-    else {
-      lcd_printPGM(PSTR("dia:"));
-      lcd_print(ftostr12ns(filament_width_meas));
-      lcd_printPGM(PSTR(" factor:"));
-      lcd_print(itostr3(100.0 * volumetric_multiplier[FILAMENT_SENSOR_EXTRUDER_NUM]));
-      lcd_print('%');
-    }
-  #endif
+  lcd_print(lcd_status_message);
 }
 
 static void lcd_implementation_mark_as_selected(uint8_t row, bool isSelected) {

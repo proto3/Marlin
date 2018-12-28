@@ -109,14 +109,8 @@ FORCE_INLINE void serialprintPGM(const char* str) {
   }
 }
 
-void idle(bool fast = false
-);
-
+void idle(bool fast = false);
 void manage_inactivity(bool ignore_stepper_queue = false);
-
-#if ENABLED(DUAL_X_CARRIAGE) || ENABLED(DUAL_NOZZLE_DUPLICATION_MODE)
-  extern bool extruder_duplication_enabled;
-#endif
 
 #if HAS_X2_ENABLE
   #define  enable_x() do{ X_ENABLE_WRITE( X_ENABLE_ON); X2_ENABLE_WRITE( X_ENABLE_ON); }while(0)
@@ -151,42 +145,8 @@ void manage_inactivity(bool ignore_stepper_queue = false);
   #define disable_z() NOOP
 #endif
 
-
-  #if HAS_E0_ENABLE
-    #define  enable_e0() E0_ENABLE_WRITE( E_ENABLE_ON)
-    #define disable_e0() E0_ENABLE_WRITE(!E_ENABLE_ON)
-  #else
-    #define  enable_e0() NOOP
-    #define disable_e0() NOOP
-  #endif
-
-  #if E_STEPPERS > 1 && HAS_E1_ENABLE
-    #define  enable_e1() E1_ENABLE_WRITE( E_ENABLE_ON)
-    #define disable_e1() E1_ENABLE_WRITE(!E_ENABLE_ON)
-  #else
-    #define  enable_e1() NOOP
-    #define disable_e1() NOOP
-  #endif
-
-  #if E_STEPPERS > 2 && HAS_E2_ENABLE
-    #define  enable_e2() E2_ENABLE_WRITE( E_ENABLE_ON)
-    #define disable_e2() E2_ENABLE_WRITE(!E_ENABLE_ON)
-  #else
-    #define  enable_e2() NOOP
-    #define disable_e2() NOOP
-  #endif
-
-  #if E_STEPPERS > 3 && HAS_E3_ENABLE
-    #define  enable_e3() E3_ENABLE_WRITE( E_ENABLE_ON)
-    #define disable_e3() E3_ENABLE_WRITE(!E_ENABLE_ON)
-  #else
-    #define  enable_e3() NOOP
-    #define disable_e3() NOOP
-  #endif
-
-
 /**
- * The axis order in all axis related arrays is X, Y, Z, E
+ * The axis order in all axis related arrays is X, Y, Z
  */
 #define _AXIS(AXIS) AXIS ##_AXIS
 
@@ -210,7 +170,6 @@ void kill(const char*);
 void quickstop_stepper();
 void autohome(bool x, bool y, bool z);
 
-
 extern uint8_t marlin_debug_flags;
 #define DEBUGGING(F) (marlin_debug_flags & (DEBUG_## F))
 
@@ -229,7 +188,6 @@ bool breach_software_endstops(float target[3]);
 extern millis_t previous_cmd_ms;
 inline void refresh_cmd_timeout() { previous_cmd_ms = millis(); }
 
-
 /**
  * Feedrate scaling and conversion
  */
@@ -242,10 +200,6 @@ extern int feedrate_percentage;
 #define MMM_TO_MMS_SCALED(MM_M) (MMS_SCALED(MMM_TO_MMS(MM_M)))
 
 extern bool axis_relative_modes[];
-extern bool volumetric_enabled;
-extern int extruder_multiplier[EXTRUDERS]; // sets extrude multiply factor (in percent) for each extruder individually
-extern float filament_size[EXTRUDERS]; // cross-sectional area of filament (in millimeters), typically around 1.75 or 2.85, 0 disables the volumetric calculations for the extruder.
-extern float volumetric_multiplier[EXTRUDERS]; // reciprocal of cross-sectional area of filament (in square millimeters), stored this way to reduce computational burden in planner
 extern bool axis_known_position[3]; // axis[n].is_known
 extern bool axis_homed[3]; // axis[n].is_homed
 
@@ -269,23 +223,13 @@ extern float sw_endstop_max[3];
 bool code_seen(char);
 int code_value_int();
 
-
 #if ENABLED(Z_DUAL_ENDSTOPS)
   extern float z_endstop_adj;
 #endif
 
-
 #if ENABLED(HOST_KEEPALIVE_FEATURE)
   extern uint8_t host_keepalive_interval;
 #endif
-
-
-
-
-#if ENABLED(PID_EXTRUSION_SCALING)
-  extern int lpq_len;
-#endif
-
 
 // Print job timer
 #if ENABLED(PRINTCOUNTER)
@@ -293,12 +237,6 @@ int code_value_int();
 #else
   extern Stopwatch print_job_timer;
 #endif
-
-// Handling multiple extruders pins
-extern uint8_t active_extruder;
-
-
-void calculate_volumetric_multipliers();
 
 // Buzzer
 #if HAS_BUZZER && PIN_EXISTS(BEEPER)

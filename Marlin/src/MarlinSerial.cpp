@@ -30,9 +30,7 @@
 */
 
 #include "MarlinSerial.h"
-
 #include "stepper.h"
-
 #include "Marlin.h"
 
 #ifndef USBCON

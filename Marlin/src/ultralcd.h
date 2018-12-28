@@ -76,10 +76,6 @@
     FORCE_INLINE void lcd_buttons_update() {}
   #endif
 
-  #if ENABLED(FILAMENT_LCD_DISPLAY)
-    extern millis_t previous_lcd_status_ms;
-  #endif
-
   bool lcd_blink();
 
   #if ENABLED(ULTIPANEL)
