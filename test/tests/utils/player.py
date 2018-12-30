@@ -17,12 +17,16 @@ class Player:
     joy_y = 0
     thc = 0
 
-    def __init__(self, output_basename, device='/dev/ttyUSB0', baudrate=115200):
+    def __init__(self, output_basename, device='/dev/ttyUSB0', baudrate=115200, use_cache=False):
         self.output_basename = output_basename
         self.events = list()
         self.next_slot = 0
         self.nb_step_loaded = -1
         self.event_count = 0
+        self.use_cache = use_cache
+
+        if(self.use_cache):
+            return
 
         # try to connect on serial port
         try:
@@ -123,16 +127,20 @@ class Player:
         # if not thc is None:
         #     if thc : self._set_pin(Port.B, 2) else : self._unset_pin(Port.B, 2)
 
-        self._send(str(timestamp)  + " " +
-            str(self.portf) + " " +
-            str(self.portk) + " " +
-            str(self.joy_x) + " " +
-            str(self.joy_y) + " " +
-            str(self.thc))
+        if(not self.use_cache):
+            self._send(str(timestamp)  + " " +
+                str(self.portf) + " " +
+                str(self.portk) + " " +
+                str(self.joy_x) + " " +
+                str(self.joy_y) + " " +
+                str(self.thc))
 
-        time.sleep(0.1)
+            time.sleep(0.1)
 
     def run(self):
+        if(self.use_cache):
+            return self.events
+
         duration = float(self.next_slot) / 100
         self.s.set_capture_seconds(duration + 0.5)
         self.s.capture_start()
@@ -168,12 +176,14 @@ class Player:
         return self.events
 
     def close(self):
-        self.ser.close()
-        self.event_file.close()
+        if(not self.use_cache):
+            self.ser.close()
+            self.event_file.close()
 
     def add_event(self, event):
         self.events.append(self.next_slot * 10)
-        self.event_file.write(str(self.next_slot) + " [" + str(self.event_count) + "] " + event + "\n")
+        if(not self.use_cache):
+            self.event_file.write(str(self.next_slot) + " [" + str(self.event_count) + "] " + event + "\n")
         self.event_count += 1
 
     def wait_ms(self, t):
