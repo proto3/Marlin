@@ -2,8 +2,8 @@
 #include "plasma.h"
 #include "torch_height_control.h"
 
-#define TURN_PLASMA_ON  digitalWrite(PLASMA_CONTROL_PIN, PLASMA_CONTROL_INVERTING ? LOW : HIGH);
-#define TURN_PLASMA_OFF digitalWrite(PLASMA_CONTROL_PIN, PLASMA_CONTROL_INVERTING ? HIGH : LOW);
+#define TURN_PLASMA_ON  WRITE(PLASMA_CONTROL_PIN, PLASMA_CONTROL_INVERTING ? LOW : HIGH);
+#define TURN_PLASMA_OFF WRITE(PLASMA_CONTROL_PIN, PLASMA_CONTROL_INVERTING ? HIGH : LOW);
 #define IS_PLASMA_TRANSFERRED (digitalRead(PLASMA_TRANSFER_PIN) == (PLASMA_TRANSFER_INVERTING ? LOW : HIGH))
 
 PlasmaState Plasma::state = Off;
@@ -16,11 +16,11 @@ uint32_t Plasma::_cutting_feedrate_mm_m = 5000;
 
 //----------------------------------------------------------------------------//
 void Plasma::init() {
-  pinMode(PLASMA_CONTROL_PIN, OUTPUT);
+  SET_OUTPUT(PLASMA_CONTROL_PIN);
   #if PLASMA_TRANSFER_PULLUP
-    pinMode(PLASMA_TRANSFER_PIN, INPUT_PULLUP);
+    SET_INPUT_PULLUP(PLASMA_TRANSFER_PIN);
   #else
-    pinMode(PLASMA_TRANSFER_PIN, INPUT);
+    SET_INPUT(PLASMA_TRANSFER_PIN);
   #endif
   TURN_PLASMA_OFF
 }

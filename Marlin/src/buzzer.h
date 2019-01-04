@@ -64,7 +64,6 @@ class Buzzer {
 
     /**
      * @brief Turn off a digital PIN
-     * @details Alias of digitalWrite(PIN, LOW) using FastIO
      */
     void off() {
       WRITE(BEEPER_PIN, LOW);
@@ -72,7 +71,6 @@ class Buzzer {
 
     /**
      * @brief Turn on a digital PIN
-     * @details Alias of digitalWrite(PIN, HIGH) using FastIO
      */
     void on() {
       WRITE(BEEPER_PIN, HIGH);

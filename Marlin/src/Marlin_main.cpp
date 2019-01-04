@@ -418,8 +418,7 @@ bool enqueue_and_echo_command(const char* cmd, bool say_ok/*=false*/) {
 
 void setup_killpin() {
   #if HAS_KILL
-    SET_INPUT(KILL_PIN);
-    WRITE(KILL_PIN, HIGH);
+    SET_INPUT_PULLUP(KILL_PIN);
     #if (digitalPinToInterrupt(KILL_PIN) != NOT_AN_INTERRUPT)
       attachInterrupt(digitalPinToInterrupt(KILL_PIN), kill_pin_handler, KILL_PRESSED_ON);
     #endif
@@ -430,8 +429,7 @@ void setup_killpin() {
 // Set home pin
 void setup_homepin(void) {
   #if HAS_HOME
-    SET_INPUT(HOME_PIN);
-    WRITE(HOME_PIN, HIGH);
+    SET_INPUT_PULLUP(HOME_PIN);
   #endif
 }
 
@@ -499,10 +497,9 @@ void servo_init() {
  */
 #if HAS_STEPPER_RESET
   void disableStepperDrivers() {
-    pinMode(STEPPER_RESET_PIN, OUTPUT);
-    digitalWrite(STEPPER_RESET_PIN, LOW);  // drive it down to hold in reset motor driver chips
+    OUT_WRITE(STEPPER_RESET_PIN, LOW);  // drive it down to hold in reset motor driver chips
   }
-  void enableStepperDrivers() { pinMode(STEPPER_RESET_PIN, INPUT); }  // set to input, which allows it to be pulled high by pullups
+  void enableStepperDrivers() { SET_INPUT(STEPPER_RESET_PIN); }  // set to input, which allows it to be pulled high by pullups
 #endif
 
 /**
@@ -617,13 +614,11 @@ void setup() {
   setup_homepin();
 
   #ifdef STAT_LED_RED
-    pinMode(STAT_LED_RED, OUTPUT);
-    digitalWrite(STAT_LED_RED, LOW); // turn it off
+    OUT_WRITE(STAT_LED_RED, LOW); // turn it off
   #endif
 
   #ifdef STAT_LED_BLUE
-    pinMode(STAT_LED_BLUE, OUTPUT);
-    digitalWrite(STAT_LED_BLUE, LOW); // turn it off
+    OUT_WRITE(STAT_LED_BLUE, LOW); // turn it off
   #endif
 
   lcd_init();
@@ -2174,7 +2169,7 @@ void kill(const char* lcd_msg) {
   disable_all_steppers();
 
   #if HAS_POWER_SWITCH
-    pinMode(PS_ON_PIN, INPUT);
+    SET_INPUT(PS_ON_PIN);
   #endif
 
   suicide();
