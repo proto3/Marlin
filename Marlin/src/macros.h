@@ -29,7 +29,7 @@
 
 // Bracket code that shouldn't be interrupted
 #ifndef CRITICAL_SECTION_START
-  #define CRITICAL_SECTION_START  unsigned char _sreg = SREG; cli();
+  #define CRITICAL_SECTION_START  uint8_t _sreg = SREG; cli();
   #define CRITICAL_SECTION_END    SREG = _sreg;
 #endif
 
@@ -111,7 +111,7 @@
 
 #define PIN_EXISTS(PN) (defined(PN ##_PIN) && PN ##_PIN >= 0)
 
-#define PENDING(NOW,SOON) ((long)(NOW-(SOON))<0)
+#define PENDING(NOW,SOON) ((int32_t)(NOW-(SOON))<0)
 #define ELAPSED(NOW,SOON) (!PENDING(NOW,SOON))
 
 #define NOOP do{} while(0)

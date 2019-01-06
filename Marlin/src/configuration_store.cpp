@@ -61,7 +61,7 @@
  *  285  M666 Z    z_endstop_adj (float)
  *
  * DOGLCD:
- *  379  M250 C    lcd_contrast (int)
+ *  379  M250 C    lcd_contrast (int16_t)
  *
  *  439  This Slot is Available!
  *
@@ -78,11 +78,11 @@
 uint16_t eeprom_checksum;
 const char version[4] = EEPROM_VERSION;
 
-void _EEPROM_writeData(int &pos, uint8_t* value, uint8_t size) {
+void _EEPROM_writeData(int16_t &pos, uint8_t* value, uint8_t size) {
   uint8_t c;
   while (size--) {
-    eeprom_write_byte((unsigned char*)pos, *value);
-    c = eeprom_read_byte((unsigned char*)pos);
+    eeprom_write_byte((uint8_t*)pos, *value);
+    c = eeprom_read_byte((uint8_t*)pos);
     if (c != *value) {
       SERIAL_ECHO_START;
       SERIAL_ECHOLNPGM(MSG_ERR_EEPROM_WRITE);
@@ -92,9 +92,9 @@ void _EEPROM_writeData(int &pos, uint8_t* value, uint8_t size) {
     value++;
   };
 }
-void _EEPROM_readData(int &pos, uint8_t* value, uint8_t size) {
+void _EEPROM_readData(int16_t &pos, uint8_t* value, uint8_t size) {
   do {
-    uint8_t c = eeprom_read_byte((unsigned char*)pos);
+    uint8_t c = eeprom_read_byte((uint8_t*)pos);
     *value = c;
     eeprom_checksum += c;
     pos++;
@@ -117,7 +117,7 @@ void Config_Postprocess() {
 #if ENABLED(EEPROM_SETTINGS)
 
   #define DUMMY_PID_VALUE 3000.0f
-  #define EEPROM_START() int eeprom_index = EEPROM_OFFSET
+  #define EEPROM_START() int16_t eeprom_index = EEPROM_OFFSET
   #define EEPROM_SKIP(VAR) eeprom_index += sizeof(VAR)
   #define EEPROM_WRITE(VAR) _EEPROM_writeData(eeprom_index, (uint8_t*)&VAR, sizeof(VAR))
   #define EEPROM_READ(VAR) _EEPROM_readData(eeprom_index, (uint8_t*)&VAR, sizeof(VAR))
@@ -157,7 +157,7 @@ void Config_StoreSettings()  {
   #endif
 
   #if !HAS_LCD_CONTRAST
-    const int lcd_contrast = 32;
+    const int16_t lcd_contrast = 32;
   #endif
   EEPROM_WRITE(lcd_contrast);
 
@@ -220,7 +220,7 @@ void Config_RetrieveSettings() {
     #endif
 
     #if !HAS_LCD_CONTRAST
-      int lcd_contrast;
+      int16_t lcd_contrast;
     #endif
     EEPROM_READ(lcd_contrast);
 
@@ -251,7 +251,7 @@ void Config_RetrieveSettings() {
 void Config_ResetDefault() {
   float tmp1[] = DEFAULT_AXIS_STEPS_PER_UNIT;
   float tmp2[] = DEFAULT_MAX_FEEDRATE;
-  long tmp3[] = DEFAULT_MAX_ACCELERATION;
+  int32_t tmp3[] = DEFAULT_MAX_ACCELERATION;
   LOOP_XYZ(i) {
     planner.axis_steps_per_mm[i] = tmp1[i];
     planner.max_feedrate_mm_s[i] = tmp2[i];

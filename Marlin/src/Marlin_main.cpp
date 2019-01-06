@@ -138,7 +138,7 @@ static float destination[NUM_AXIS] = { 0.0 };
 bool axis_known_position[3] = { false };
 bool axis_homed[3] = { false };
 
-static long gcode_N, gcode_LastN, Stopped_gcode_LastN = 0;
+static int32_t gcode_N, gcode_LastN, Stopped_gcode_LastN = 0;
 
 static char command_queue[BUFSIZE][MAX_CMD_SIZE];
 static char* cmd, *cmd_args;
@@ -159,7 +159,7 @@ const float homing_feedrate_mm_m[] = {
   HOMING_FEEDRATE_Z, 0
 };
 static float feedrate_mm_m = 1500.0, saved_feedrate_mm_m;
-int feedrate_percentage = 100, saved_feedrate_percentage;
+int16_t feedrate_percentage = 100, saved_feedrate_percentage;
 
 bool axis_relative_modes[] = AXIS_RELATIVE_MODES;
 
@@ -181,7 +181,7 @@ const char errormagic[] PROGMEM = "Error:";
 const char echomagic[] PROGMEM = "echo:";
 const char axis_codes[NUM_AXIS] = {'X', 'Y', 'Z'};
 
-static int serial_count = 0;
+static int16_t serial_count = 0;
 
 // GCode parameter pointer used by code_seen(), code_value_float(), etc.
 static char* seen_pointer;
@@ -189,7 +189,7 @@ static char* seen_pointer;
 // Next Immediate GCode Command pointer. NULL if none.
 const char* queued_commands_P = NULL;
 
-const int sensitive_pins[] = SENSITIVE_PINS; ///< Sensitive pin list for M42
+const int16_t sensitive_pins[] = SENSITIVE_PINS; ///< Sensitive pin list for M42
 
 // Inactivity shutdown
 millis_t previous_cmd_ms = 0;
@@ -226,7 +226,7 @@ static millis_t stepper_inactive_time = (DEFAULT_STEPPER_DEACTIVE_TIME) * 1000UL
 #endif
 
 #if HAS_Z_SERVO_ENDSTOP
-  const int z_servo_angle[2] = Z_SERVO_ANGLES;
+  const int16_t z_servo_angle[2] = Z_SERVO_ANGLES;
 #endif
 
 
@@ -296,11 +296,11 @@ void set_current_from_steppers_for_axis(AxisEnum axis);
 #endif
 
 void serial_echopair_P(const char* s_P, char v)          { serialprintPGM(s_P); SERIAL_CHAR(v); }
-void serial_echopair_P(const char* s_P, int v)           { serialprintPGM(s_P); SERIAL_ECHO(v); }
-void serial_echopair_P(const char* s_P, long v)          { serialprintPGM(s_P); SERIAL_ECHO(v); }
+void serial_echopair_P(const char* s_P, int16_t v)           { serialprintPGM(s_P); SERIAL_ECHO(v); }
+void serial_echopair_P(const char* s_P, int32_t v)          { serialprintPGM(s_P); SERIAL_ECHO(v); }
 void serial_echopair_P(const char* s_P, float v)         { serialprintPGM(s_P); SERIAL_ECHO(v); }
 void serial_echopair_P(const char* s_P, double v)        { serialprintPGM(s_P); SERIAL_ECHO(v); }
-void serial_echopair_P(const char* s_P, unsigned long v) { serialprintPGM(s_P); SERIAL_ECHO(v); }
+void serial_echopair_P(const char* s_P, uint32_t v) { serialprintPGM(s_P); SERIAL_ECHO(v); }
 
 static void report_current_position();
 
@@ -337,7 +337,7 @@ extern "C" {
 #endif //!SDSUPPORT
 
 #if ENABLED(DIGIPOT_I2C)
-  extern void digipot_i2c_set_current(int channel, float current);
+  extern void digipot_i2c_set_current(int16_t channel, float current);
   extern void digipot_i2c_init();
 #endif
 
@@ -569,7 +569,7 @@ void setup() {
   SERIAL_ECHOPGM(MSG_FREE_MEMORY);
   SERIAL_ECHO(freeMemory());
   SERIAL_ECHOPGM(MSG_PLANNER_BUFFER_BYTES);
-  SERIAL_ECHOLN((int)sizeof(block_t)*BLOCK_BUFFER_SIZE);
+  SERIAL_ECHOLN((int16_t)sizeof(block_t)*BLOCK_BUFFER_SIZE);
 
   // Send "ok" after commands by default
   for (int8_t i = 0; i < BUFSIZE; i++) send_ok[i] = true;
@@ -756,7 +756,7 @@ inline void get_serial_commands() {
       if (IsStopped()) {
         char* gpos = strchr(command, 'G');
         if (gpos) {
-          int codenum = strtol(gpos + 1, NULL, 10);
+          int16_t codenum = strtol(gpos + 1, NULL, 10);
           switch (codenum) {
             case 0:
             case 1:
@@ -803,7 +803,7 @@ inline void get_serial_commands() {
 }
 
 inline bool code_has_value() {
-  int i = 1;
+  int16_t i = 1;
   char c = seen_pointer[i];
   while (c == ' ') c = seen_pointer[++i];
   if (c == '-' || c == '+') c = seen_pointer[++i];
@@ -815,11 +815,11 @@ inline float code_value_float() {
   return strtod(seen_pointer + 1, NULL);
 }
 
-inline unsigned long code_value_ulong() { return strtoul(seen_pointer + 1, NULL, 10); }
+inline uint32_t code_value_ulong() { return strtoul(seen_pointer + 1, NULL, 10); }
 
-inline long code_value_long() { return strtol(seen_pointer + 1, NULL, 10); }
+inline int32_t code_value_long() { return strtol(seen_pointer + 1, NULL, 10); }
 
-inline int code_value_int() { return (int)strtol(seen_pointer + 1, NULL, 10); }
+inline int16_t code_value_int() { return (int16_t)strtol(seen_pointer + 1, NULL, 10); }
 
 inline uint16_t code_value_ushort() { return (uint16_t)strtoul(seen_pointer + 1, NULL, 10); }
 
@@ -840,19 +840,19 @@ inline bool code_value_bool() { return code_value_byte() > 0; }
     }
   }
 
-  inline float axis_unit_factor(int axis) {
+  inline float axis_unit_factor(int16_t axis) {
     return linear_unit_factor;
   }
 
   inline float code_value_linear_units() { return code_value_float() * linear_unit_factor; }
-  inline float code_value_axis_units(int axis) { return code_value_float() * axis_unit_factor(axis); }
-  inline float code_value_per_axis_unit(int axis) { return code_value_float() / axis_unit_factor(axis); }
+  inline float code_value_axis_units(int16_t axis) { return code_value_float() * axis_unit_factor(axis); }
+  inline float code_value_per_axis_unit(int16_t axis) { return code_value_float() / axis_unit_factor(axis); }
 
 #else
 
   inline float code_value_linear_units() { return code_value_float(); }
-  inline float code_value_axis_units(int axis) { UNUSED(axis); return code_value_float(); }
-  inline float code_value_per_axis_unit(int axis) { UNUSED(axis); return code_value_float(); }
+  inline float code_value_axis_units(int16_t axis) { UNUSED(axis); return code_value_float(); }
+  inline float code_value_per_axis_unit(int16_t axis) { UNUSED(axis); return code_value_float(); }
 
 #endif
 
@@ -869,12 +869,12 @@ bool code_seen(char code) {
   { return pgm_read_##reader##_near(p); }
 
 DEFINE_PGM_READ_ANY(float,       float);
-DEFINE_PGM_READ_ANY(signed char, byte);
+DEFINE_PGM_READ_ANY(int8_t, byte);
 
 #define XYZ_CONSTS_FROM_CONFIG(type, array, CONFIG) \
   static const PROGMEM type array##_P[3] =        \
       { X_##CONFIG, Y_##CONFIG, Z_##CONFIG };     \
-  static inline type array(int axis)          \
+  static inline type array(int16_t axis)          \
   { return pgm_read_any(&array##_P[axis]); }
 
 XYZ_CONSTS_FROM_CONFIG(float, base_min_pos,   MIN_POS);
@@ -882,7 +882,7 @@ XYZ_CONSTS_FROM_CONFIG(float, base_max_pos,   MAX_POS);
 XYZ_CONSTS_FROM_CONFIG(float, base_home_pos,  HOME_POS);
 XYZ_CONSTS_FROM_CONFIG(float, max_length,     MAX_LENGTH);
 XYZ_CONSTS_FROM_CONFIG(float, home_bump_mm,   HOME_BUMP_MM);
-XYZ_CONSTS_FROM_CONFIG(signed char, home_dir, HOME_DIR);
+XYZ_CONSTS_FROM_CONFIG(int8_t, home_dir, HOME_DIR);
 
 
 /**
@@ -910,8 +910,8 @@ static void set_axis_is_at_home(AxisEnum axis) {
  * Some planner shorthand inline functions
  */
 inline float get_homing_bump_feedrate(AxisEnum axis) {
-  const int homing_bump_divisor[] = HOMING_BUMP_DIVISOR;
-  int hbd = homing_bump_divisor[axis];
+  const int16_t homing_bump_divisor[] = HOMING_BUMP_DIVISOR;
+  int16_t hbd = homing_bump_divisor[axis];
   if (hbd < 1) {
     hbd = 10;
     SERIAL_ECHO_START;
@@ -1049,7 +1049,7 @@ static void homeaxis(AxisEnum axis) {
   if (!(axis == X_AXIS ? HOMEAXIS_DO(X) : axis == Y_AXIS ? HOMEAXIS_DO(Y) : axis == Z_AXIS ? HOMEAXIS_DO(Z) : 0))
     return;
 
-  int axis_home_dir = home_dir(axis);
+  int16_t axis_home_dir = home_dir(axis);
 
   // Set the axis position as setup for the move
   current_position[axis] = 0;
@@ -1307,7 +1307,7 @@ inline void gcode_G4() {
     current_position[X_AXIS] = current_position[Y_AXIS] = 0.0;
     sync_plan_position();
 
-    int x_axis_home_dir = home_dir(X_AXIS);
+    int16_t x_axis_home_dir = home_dir(X_AXIS);
 
     float mlx = max_length(X_AXIS);
     float mly = max_length(Y_AXIS);
@@ -1836,7 +1836,7 @@ void ok_to_send() {
       while (NUMERIC_SIGNED(*p))
         SERIAL_ECHO(*p++);
     }
-    SERIAL_PROTOCOLPGM(" P"); SERIAL_PROTOCOL(int(BLOCK_BUFFER_SIZE - planner.movesplanned() - 1));
+    SERIAL_PROTOCOLPGM(" P"); SERIAL_PROTOCOL(int16_t(BLOCK_BUFFER_SIZE - planner.movesplanned() - 1));
     SERIAL_PROTOCOLPGM(" B"); SERIAL_PROTOCOL(BUFSIZE - commands_in_queue);
   #endif
   SERIAL_EOL;
@@ -2129,8 +2129,8 @@ void manage_inactivity(bool ignore_stepper_queue/*=false*/) {
   #if HAS_HOME
     // Check to see if we have to home, use poor man's debouncer
     // ---------------------------------------------------------
-    static int homeDebounceCount = 0;   // poor man's debouncing count
-    const int HOME_DEBOUNCE_DELAY = 2500;
+    static int16_t homeDebounceCount = 0;   // poor man's debouncing count
+    const int16_t HOME_DEBOUNCE_DELAY = 2500;
     if (!READ(HOME_PIN)) {
       if (!homeDebounceCount) {
         enqueue_and_echo_commands_P(PSTR("G28"));
@@ -2162,7 +2162,7 @@ void kill(const char* lcd_msg) {
     UNUSED(lcd_msg);
   #endif
 
-  for (int i = 5; i--;)
+  for (int16_t i = 5; i--;)
     delay(100); // Wait a short time
 
   cli(); // Stop interrupts

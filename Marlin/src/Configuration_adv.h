@@ -263,7 +263,7 @@
 // Support for G5 with XYZ destination and IJPQ offsets. Requires ~2666 bytes.
 //#define BEZIER_CURVE_SUPPORT
 
-const unsigned int dropsegments = 5; //everything with less than this number of steps will be ignored as move and joined with the next movement
+const uint16_t dropsegments = 5; //everything with less than this number of steps will be ignored as move and joined with the next movement
 
 //===========================================================================
 //================================= Buffers =================================

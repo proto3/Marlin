@@ -176,7 +176,7 @@
 
 #include "utf_mapper.h"
 
-int lcd_contrast;
+int16_t lcd_contrast;
 static char currentfont = 0;
 
 static void lcd_setFont(char font_nr) {
@@ -202,7 +202,7 @@ char lcd_print(char c) {
 
 char lcd_print(const char* str) {
   char c;
-  int i = 0;
+  int16_t i = 0;
   char n = 0;
   while ((c = str[i++])) {
     n += lcd_print(c);
@@ -259,15 +259,15 @@ static void lcd_implementation_init() {
       }
     #endif // SHOW_CUSTOM_BOOTSCREEN
 
-    int offx = (u8g.getWidth() - (START_BMPWIDTH)) / 2;
+    int16_t offx = (u8g.getWidth() - (START_BMPWIDTH)) / 2;
 
     #if ENABLED(START_BMPHIGH)
-      int offy = 0;
+      int16_t offy = 0;
     #else
-      int offy = DOG_CHAR_HEIGHT;
+      int16_t offy = DOG_CHAR_HEIGHT;
     #endif
 
-    int txt1X = (u8g.getWidth() - (sizeof(STRING_SPLASH_LINE1) - 1) * (DOG_CHAR_WIDTH)) / 2;
+    int16_t txt1X = (u8g.getWidth() - (sizeof(STRING_SPLASH_LINE1) - 1) * (DOG_CHAR_WIDTH)) / 2;
 
     if (show_bootscreen) {
       u8g.firstPage();
@@ -277,7 +277,7 @@ static void lcd_implementation_init() {
         #ifndef STRING_SPLASH_LINE2
           u8g.drawStr(txt1X, u8g.getHeight() - (DOG_CHAR_HEIGHT), STRING_SPLASH_LINE1);
         #else
-          int txt2X = (u8g.getWidth() - (sizeof(STRING_SPLASH_LINE2) - 1) * (DOG_CHAR_WIDTH)) / 2;
+          int16_t txt2X = (u8g.getWidth() - (sizeof(STRING_SPLASH_LINE2) - 1) * (DOG_CHAR_WIDTH)) / 2;
           u8g.drawStr(txt1X, u8g.getHeight() - (DOG_CHAR_HEIGHT) * 3 / 2, STRING_SPLASH_LINE1);
           u8g.drawStr(txt2X, u8g.getHeight() - (DOG_CHAR_HEIGHT) * 1 / 2, STRING_SPLASH_LINE2);
         #endif
@@ -346,7 +346,7 @@ static void lcd_implementation_status_screen() {
     // SD Card Progress bar and clock
     if (IS_RUNNING || IS_SUSPENDED) {
       // Progress bar solid part
-      u8g.drawBox(55-19, 50, (unsigned int)(71 * card.percentDone() * 0.01), 2 - (TALL_FONT_CORRECTION));
+      u8g.drawBox(55-19, 50, (uint16_t)(71 * card.percentDone() * 0.01), 2 - (TALL_FONT_CORRECTION));
     }
 
     u8g.setPrintPos(67-19,48);

@@ -90,15 +90,15 @@ extern const char echomagic[] PROGMEM;
 #define SERIAL_ECHOPAIR(name,value) (serial_echopair_P(PSTR(name),(value)))
 
 void serial_echopair_P(const char* s_P, char v);
-void serial_echopair_P(const char* s_P, int v);
-void serial_echopair_P(const char* s_P, long v);
+void serial_echopair_P(const char* s_P, int16_t v);
+void serial_echopair_P(const char* s_P, int32_t v);
 void serial_echopair_P(const char* s_P, float v);
 void serial_echopair_P(const char* s_P, double v);
-void serial_echopair_P(const char* s_P, unsigned long v);
-FORCE_INLINE void serial_echopair_P(const char* s_P, uint8_t v) { serial_echopair_P(s_P, (int)v); }
-FORCE_INLINE void serial_echopair_P(const char* s_P, uint16_t v) { serial_echopair_P(s_P, (int)v); }
-FORCE_INLINE void serial_echopair_P(const char* s_P, bool v) { serial_echopair_P(s_P, (int)v); }
-FORCE_INLINE void serial_echopair_P(const char* s_P, void *v) { serial_echopair_P(s_P, (unsigned long)v); }
+void serial_echopair_P(const char* s_P, uint32_t v);
+FORCE_INLINE void serial_echopair_P(const char* s_P, uint8_t v) { serial_echopair_P(s_P, (int16_t)v); }
+FORCE_INLINE void serial_echopair_P(const char* s_P, uint16_t v) { serial_echopair_P(s_P, (int16_t)v); }
+FORCE_INLINE void serial_echopair_P(const char* s_P, bool v) { serial_echopair_P(s_P, (int16_t)v); }
+FORCE_INLINE void serial_echopair_P(const char* s_P, void *v) { serial_echopair_P(s_P, (uint32_t)v); }
 
 // Things to write to serial from Program memory. Saves 400 to 2k of RAM.
 FORCE_INLINE void serialprintPGM(const char* str) {
@@ -194,7 +194,7 @@ inline void refresh_cmd_timeout() { previous_cmd_ms = millis(); }
 /**
  * Feedrate scaling and conversion
  */
-extern int feedrate_percentage;
+extern int16_t feedrate_percentage;
 
 #define MMM_TO_MMS(MM_M) ((MM_M)/60.0)
 #define MMS_TO_MMM(MM_S) ((MM_S)*60.0)
@@ -224,7 +224,7 @@ extern float sw_endstop_max[3];
 
 // GCode support for external objects
 bool code_seen(char);
-int code_value_int();
+int16_t code_value_int();
 
 #if ENABLED(Z_DUAL_ENDSTOPS)
   extern float z_endstop_adj;

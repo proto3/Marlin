@@ -93,42 +93,42 @@ class Stepper {
 
   private:
 
-    static unsigned char last_direction_bits;        // The next stepping-bits to be output
-    static unsigned int cleaning_buffer_counter;
+    static uint8_t last_direction_bits;        // The next stepping-bits to be output
+    static uint16_t cleaning_buffer_counter;
 
     #if ENABLED(Z_DUAL_ENDSTOPS)
       static bool locked_z_motor, locked_z2_motor;
     #endif
 
     // Counter variables for the Bresenham line tracer
-    static long counter_X, counter_Y, counter_Z;
-    static volatile unsigned long step_events_completed; // The number of step events executed in the current block
+    static int32_t counter_X, counter_Y, counter_Z;
+    static volatile uint32_t step_events_completed; // The number of step events executed in the current block
 
-    static long acceleration_time, deceleration_time;
-    //unsigned long accelerate_until, decelerate_after, acceleration_rate, initial_rate, final_rate, nominal_rate;
-    static unsigned short acc_step_rate; // needed for deceleration start point
+    static int32_t acceleration_time, deceleration_time;
+    //uint32_t accelerate_until, decelerate_after, acceleration_rate, initial_rate, final_rate, nominal_rate;
+    static uint16_t acc_step_rate; // needed for deceleration start point
     static uint8_t step_loops, step_loops_nominal;
     static unsigned short OCR1A_nominal;
 
-    static volatile long endstops_trigsteps[3];
-    static volatile long endstops_stepsTotal, endstops_stepsDone;
+    static volatile int32_t endstops_trigsteps[3];
+    static volatile int32_t endstops_stepsTotal, endstops_stepsDone;
 
     #if HAS_MOTOR_CURRENT_PWM
       #ifndef PWM_MOTOR_CURRENT
         #define PWM_MOTOR_CURRENT DEFAULT_PWM_MOTOR_CURRENT
       #endif
-      static constexpr int motor_current_setting[3] = PWM_MOTOR_CURRENT;
+      static constexpr int16_t motor_current_setting[3] = PWM_MOTOR_CURRENT;
     #endif
 
     //
     // Positions of stepper motors, in step units
     //
-    static volatile long count_position[NUM_AXIS];
+    static volatile int32_t count_position[NUM_AXIS];
 
     //
     // Current direction of stepper motors (+1 or -1)
     //
-    static volatile signed char count_direction[NUM_AXIS];
+    static volatile int8_t count_direction[NUM_AXIS];
 
     //
     // When an axis is locked, stepper won't touch it's pins
@@ -170,7 +170,7 @@ class Stepper {
     //
     // Set the current position in steps
     //
-    static void set_position(const long& x, const long& y, const long& z);
+    static void set_position(const int32_t& x, const int32_t& y, const int32_t& z);
 
     //
     // Set direction bits for all steppers
@@ -180,7 +180,7 @@ class Stepper {
     //
     // Get the position of a stepper, in steps
     //
-    static long position(AxisEnum axis);
+    static int32_t position(AxisEnum axis);
 
     //
     // Report the positions of the steppers, in steps
@@ -219,10 +219,10 @@ class Stepper {
     static FORCE_INLINE bool motor_direction(AxisEnum axis) { return TEST(last_direction_bits, axis); }
 
     #if HAS_DIGIPOTSS
-      static void digitalPotWrite(int address, int value);
+      static void digitalPotWrite(int16_t address, int16_t value);
     #endif
     static void microstep_ms(uint8_t driver, int8_t ms1, int8_t ms2);
-    static void digipot_current(uint8_t driver, int current);
+    static void digipot_current(uint8_t driver, int16_t current);
     static void microstep_mode(uint8_t driver, uint8_t stepping);
     static void microstep_readings();
 

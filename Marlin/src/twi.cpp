@@ -46,7 +46,7 @@ static volatile uint8_t twi_sendStop;			// should the transaction end with a sto
 static volatile uint8_t twi_inRepStart;			// in the middle of a repeated start
 
 static void (*twi_onSlaveTransmit)(void);
-static void (*twi_onSlaveReceive)(uint8_t*, int);
+static void (*twi_onSlaveReceive)(uint8_t*, int16_t);
 
 static uint8_t twi_masterBuffer[TWI_BUFFER_LENGTH];
 static volatile uint8_t twi_masterBufferIndex;
@@ -361,7 +361,7 @@ uint8_t twi_transmit(const uint8_t* data, uint8_t length)
  * Input    function: callback function to use
  * Output   none
  */
-void twi_attachSlaveRxEvent( void (*function)(uint8_t*, int) )
+void twi_attachSlaveRxEvent( void (*function)(uint8_t*, int16_t) )
 {
   twi_onSlaveReceive = function;
 }

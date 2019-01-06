@@ -82,7 +82,7 @@ float Planner::max_feedrate_mm_s[NUM_AXIS], // Max speeds in mm per second
       Planner::axis_steps_per_mm[NUM_AXIS],
       Planner::steps_to_mm[NUM_AXIS];
 
-unsigned long Planner::max_acceleration_steps_per_s2[NUM_AXIS],
+uint32_t Planner::max_acceleration_steps_per_s2[NUM_AXIS],
               Planner::max_acceleration_mm_per_s2[NUM_AXIS]; // Use M201 to override by software
 
 millis_t Planner::min_segment_time;
@@ -93,16 +93,16 @@ float Planner::min_feedrate_mm_s,
 
 // private:
 
-long Planner::position[NUM_AXIS] = { 0 };
+int32_t Planner::position[NUM_AXIS] = { 0 };
 
 float Planner::previous_speed[NUM_AXIS],
       Planner::previous_nominal_speed;
 
 #ifdef XY_FREQUENCY_LIMIT
   // Old direction bits. Used for speed calculations
-  unsigned char Planner::old_direction_bits = 0;
+  uint8_t Planner::old_direction_bits = 0;
   // Segment times (in µs). Used for speed calculations
-  long Planner::axis_segment_time[2][3] = { {MAX_FREQ_TIME + 1, 0, 0}, {MAX_FREQ_TIME + 1, 0, 0} };
+  int32_t Planner::axis_segment_time[2][3] = { {MAX_FREQ_TIME + 1, 0, 0}, {MAX_FREQ_TIME + 1, 0, 0} };
 #endif
 
 /**
@@ -123,14 +123,14 @@ void Planner::init() {
  * by the provided factors.
  */
 void Planner::calculate_trapezoid_for_block(block_t* block, float entry_factor, float exit_factor) {
-  unsigned long initial_rate = ceil(block->nominal_rate * entry_factor),
+  uint32_t initial_rate = ceil(block->nominal_rate * entry_factor),
                 final_rate = ceil(block->nominal_rate * exit_factor); // (steps per second)
 
   // Limit minimal step rate (Otherwise the timer will overflow.)
   NOLESS(initial_rate, 120);
   NOLESS(final_rate, 120);
 
-  long accel = block->acceleration_steps_per_s2;
+  int32_t accel = block->acceleration_steps_per_s2;
   int32_t accelerate_steps = ceil(estimate_acceleration_distance(initial_rate, block->nominal_rate, accel));
   int32_t decelerate_steps = floor(estimate_acceleration_distance(block->nominal_rate, final_rate, -accel));
 
@@ -328,7 +328,7 @@ void Planner::recalculate() {
  * Paste extruder pressure,
  */
 void Planner::check_axes_activity() {
-  unsigned char axis_active[NUM_AXIS] = { 0 };
+  uint8_t axis_active[NUM_AXIS] = { 0 };
 
   if (blocks_queued()) {
     block_t* block;
@@ -360,7 +360,7 @@ void Planner::check_axes_activity() {
   void Planner::buffer_line(const float& x, const float& y, const float& z, float fr_mm_s)
 {
   // Calculate the buffer head after we push this byte
-  int next_buffer_head = next_block_index(block_buffer_head);
+  int16_t next_buffer_head = next_block_index(block_buffer_head);
 
   // If the buffer is full: good! That means we are well ahead of the robot.
   // Rest here until there is room in the buffer.
@@ -369,13 +369,13 @@ void Planner::check_axes_activity() {
   // The target position of the tool in absolute steps
   // Calculate target position in absolute steps
   //this should be done after the wait, because otherwise a M92 code within the gcode disrupts this calculation somehow
-  long target[NUM_AXIS] = {
+  int32_t target[NUM_AXIS] = {
     lround(x * axis_steps_per_mm[X_AXIS]),
     lround(y * axis_steps_per_mm[Y_AXIS]),
     lround(z * axis_steps_per_mm[Z_AXIS])
   };
 
-  long dx = target[X_AXIS] - position[X_AXIS],
+  int32_t dx = target[X_AXIS] - position[X_AXIS],
        dy = target[Y_AXIS] - position[Y_AXIS],
        dz = target[Z_AXIS] - position[Z_AXIS];
 
@@ -519,7 +519,7 @@ void Planner::check_axes_activity() {
   // Calculate moves/second for this move. No divide by zero due to previous checks.
   float inverse_mm_s = fr_mm_s * inverse_millimeters;
 
-  int moves_queued = movesplanned();
+  int16_t moves_queued = movesplanned();
 
   // Slow down when the buffer starts to empty, rather than wait at the corner for a buffer refill
   #if ENABLED(OLD_SLOWDOWN) || ENABLED(SLOWDOWN)
@@ -529,7 +529,7 @@ void Planner::check_axes_activity() {
     #endif
     #if ENABLED(SLOWDOWN)
       //  segment time im micro seconds
-      unsigned long segment_time = lround(1000000.0/inverse_mm_s);
+      uint32_t segment_time = lround(1000000.0/inverse_mm_s);
       if (mq) {
         if (segment_time < min_segment_time) {
           // buffer is draining, add extra time.  The amount of time added increases if the buffer is still emptied more.
@@ -558,11 +558,11 @@ void Planner::check_axes_activity() {
   #ifdef XY_FREQUENCY_LIMIT
 
     // Check and limit the xy direction change frequency
-    unsigned char direction_change = block->direction_bits ^ old_direction_bits;
+    uint8_t direction_change = block->direction_bits ^ old_direction_bits;
     old_direction_bits = block->direction_bits;
     segment_time = lround((float)segment_time / speed_factor);
 
-    long xs0 = axis_segment_time[X_AXIS][0],
+    int32_t xs0 = axis_segment_time[X_AXIS][0],
          xs1 = axis_segment_time[X_AXIS][1],
          xs2 = axis_segment_time[X_AXIS][2],
          ys0 = axis_segment_time[Y_AXIS][0],
@@ -583,7 +583,7 @@ void Planner::check_axes_activity() {
     }
     ys0 = axis_segment_time[Y_AXIS][0] = ys0 + segment_time;
 
-    long max_x_segment_time = max(xs0, max(xs1, xs2)),
+    int32_t max_x_segment_time = max(xs0, max(xs1, xs2)),
          max_y_segment_time = max(ys0, max(ys1, ys2)),
          min_xy_segment_time = min(max_x_segment_time, max_y_segment_time);
     if (min_xy_segment_time < MAX_FREQ_TIME) {
@@ -612,7 +612,7 @@ void Planner::check_axes_activity() {
     block->acceleration_steps_per_s2 = (max_acceleration_steps_per_s2[Z_AXIS] * block->step_event_count) / block->steps[Z_AXIS];
 
   block->acceleration = block->acceleration_steps_per_s2 / steps_per_mm;
-  block->acceleration_rate = (long)(block->acceleration_steps_per_s2 * 16777216.0 / ((F_CPU) * 0.125));
+  block->acceleration_rate = (int32_t)(block->acceleration_steps_per_s2 * 16777216.0 / ((F_CPU) * 0.125));
 
   // Start with a safe speed
   float vmax_junction = max_xy_jerk * 0.5,
@@ -681,7 +681,7 @@ void Planner::check_axes_activity() {
   void Planner::set_position_mm(const float& x, const float& y, const float& z)
   {
 
-    long nx = position[X_AXIS] = lround(x * axis_steps_per_mm[X_AXIS]),
+    int32_t nx = position[X_AXIS] = lround(x * axis_steps_per_mm[X_AXIS]),
          ny = position[Y_AXIS] = lround(y * axis_steps_per_mm[Y_AXIS]),
          nz = position[Z_AXIS] = lround(z * axis_steps_per_mm[Z_AXIS]);
     stepper.set_position(nx, ny, nz);
@@ -693,7 +693,7 @@ void Planner::check_axes_activity() {
 /**
  * Directly set the planner Z position.
  */
-void Planner::set_z_position_step(const long& z) {
+void Planner::set_z_position_step(const int32_t& z) {
   position[Z_AXIS] = z;
   previous_speed[Z_AXIS] = 0.0;
 }

@@ -73,34 +73,34 @@ block_t* Stepper::current_block = NULL;  // A pointer to the block currently bei
 
 // private:
 
-unsigned char Stepper::last_direction_bits = 0;        // The next stepping-bits to be output
-unsigned int Stepper::cleaning_buffer_counter = 0;
+uint8_t Stepper::last_direction_bits = 0;        // The next stepping-bits to be output
+uint16_t Stepper::cleaning_buffer_counter = 0;
 
 #if ENABLED(Z_DUAL_ENDSTOPS)
   bool Stepper::locked_z_motor = false;
   bool Stepper::locked_z2_motor = false;
 #endif
 
-long  Stepper::counter_X = 0,
+int32_t  Stepper::counter_X = 0,
       Stepper::counter_Y = 0,
       Stepper::counter_Z = 0;
 
-volatile unsigned long Stepper::step_events_completed = 0; // The number of step events executed in the current block
+volatile uint32_t Stepper::step_events_completed = 0; // The number of step events executed in the current block
 
 
-long Stepper::acceleration_time, Stepper::deceleration_time;
+int32_t Stepper::acceleration_time, Stepper::deceleration_time;
 
-volatile long Stepper::count_position[NUM_AXIS] = { 0 };
-volatile signed char Stepper::count_direction[NUM_AXIS] = { 1, 1, 1 };
+volatile int32_t Stepper::count_position[NUM_AXIS] = { 0 };
+volatile int8_t Stepper::count_direction[NUM_AXIS] = { 1, 1, 1 };
 
 bool Stepper::axis_locked[NUM_AXIS] = {false, false, false};
 
 
-unsigned short Stepper::acc_step_rate; // needed for deceleration start point
+uint16_t Stepper::acc_step_rate; // needed for deceleration start point
 uint8_t Stepper::step_loops, Stepper::step_loops_nominal;
-unsigned short Stepper::OCR1A_nominal;
+uint16_t Stepper::OCR1A_nominal;
 
-volatile long Stepper::endstops_trigsteps[3];
+volatile int32_t Stepper::endstops_trigsteps[3];
 
 #if ENABLED(X_DUAL_STEPPER_DRIVERS)
   #define X_APPLY_DIR(v,Q) do{ X_DIR_WRITE(v); X2_DIR_WRITE((v) != INVERT_X2_VS_X_DIR); }while(0)
@@ -340,8 +340,8 @@ void Stepper::isr() {
 
 
     // Calculate new timer value
-    unsigned short timer, step_rate;
-    if (step_events_completed <= (unsigned long)current_block->accelerate_until) {
+    uint16_t timer, step_rate;
+    if (step_events_completed <= (uint32_t)current_block->accelerate_until) {
 
       MultiU24X32toH16(acc_step_rate, acceleration_time, current_block->acceleration_rate);
       acc_step_rate += current_block->initial_rate;
@@ -356,7 +356,7 @@ void Stepper::isr() {
 
 
     }
-    else if (step_events_completed > (unsigned long)current_block->decelerate_after) {
+    else if (step_events_completed > (uint32_t)current_block->decelerate_after) {
       MultiU24X32toH16(step_rate, deceleration_time, current_block->acceleration_rate);
 
       if (step_rate <= acc_step_rate) { // Still decelerating?
@@ -545,7 +545,7 @@ void Stepper::take_control_on(AxisEnum axis)
  * This allows get_axis_position_mm to correctly
  * derive the current XYZ position later on.
  */
-void Stepper::set_position(const long& x, const long& y, const long& z) {
+void Stepper::set_position(const int32_t& x, const int32_t& y, const int32_t& z) {
   CRITICAL_SECTION_START;
 
   #if ENABLED(COREXY)
@@ -577,9 +577,9 @@ void Stepper::set_position(const long& x, const long& y, const long& z) {
 /**
  * Get a stepper's position in steps.
  */
-long Stepper::position(AxisEnum axis) {
+int32_t Stepper::position(AxisEnum axis) {
   CRITICAL_SECTION_START;
-  long count_pos = count_position[axis];
+  int32_t count_pos = count_position[axis];
   CRITICAL_SECTION_END;
   return count_pos;
 }
@@ -594,7 +594,7 @@ float Stepper::get_axis_position_mm(AxisEnum axis) {
     // Requesting one of the "core" axes?
     if (axis == CORE_AXIS_1 || axis == CORE_AXIS_2) {
       CRITICAL_SECTION_START;
-      long pos1 = count_position[CORE_AXIS_1],
+      int32_t pos1 = count_position[CORE_AXIS_1],
            pos2 = count_position[CORE_AXIS_2];
       CRITICAL_SECTION_END;
       // ((a1+a2)+(a1-a2))/2 -> (a1+a2+a1-a2)/2 -> (a1+a1)/2 -> a1
@@ -639,7 +639,7 @@ void Stepper::endstop_triggered(AxisEnum axis) {
 
 void Stepper::report_positions() {
   CRITICAL_SECTION_START;
-  long xpos = count_position[X_AXIS],
+  int32_t xpos = count_position[X_AXIS],
        ypos = count_position[Y_AXIS],
        zpos = count_position[Z_AXIS];
   CRITICAL_SECTION_END;
@@ -679,7 +679,7 @@ void Stepper::shift_z_position(int8_t shift)
 
 #if HAS_DIGIPOTSS
   // From Arduino DigitalPotControl example
-  void Stepper::digitalPotWrite(int address, int value) {
+  void Stepper::digitalPotWrite(int16_t address, int16_t value) {
     WRITE(DIGIPOTSS_PIN, LOW); // take the SS pin low to select the chip
     SPI.transfer(address); //  send in the address and value via SPI:
     SPI.transfer(value);
@@ -717,7 +717,7 @@ void Stepper::digipot_init() {
   #endif
 }
 
-void Stepper::digipot_current(uint8_t driver, int current) {
+void Stepper::digipot_current(uint8_t driver, int16_t current) {
   #if HAS_DIGIPOTSS
     const uint8_t digipot_ch[] = DIGIPOT_CHANNELS;
     digitalPotWrite(digipot_ch[driver], current);

@@ -121,7 +121,7 @@ struct duration_t {
    *  59s
    */
   void toString(char *buffer) const {
-    int y = this->year(),
+    int16_t y = this->year(),
         d = this->day() % 365,
         h = this->hour() % 24,
         m = this->minute() % 60,
@@ -145,7 +145,7 @@ struct duration_t {
    *  1193046:59
    */
   void toDigital(char *buffer) const {
-    int h = this->hour() % 24,
+    int16_t h = this->hour() % 24,
         m = this->minute() % 60;
 
     sprintf_P(buffer, PSTR("%02i:%02i"), h, m);
@@ -158,7 +158,7 @@ struct duration_t {
    * @param buffer The array pointed to must be able to accommodate 9 bytes
    */
   void toDigitalSeconds(char *buffer) const {
-    int h = (this->hour() % 24) % 99,
+    int16_t h = (this->hour() % 24) % 99,
         m = this->minute() % 60,
         s = this->second() % 60;
 

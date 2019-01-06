@@ -41,7 +41,7 @@
     #define START_BMPBYTEWIDTH   14
     #define START_BMPBYTES      532 // START_BMPWIDTH * START_BMPHEIGHT / 8
 
-    const unsigned char start_bmp[START_BMPBYTES] PROGMEM = {
+    const uint8_t start_bmp[START_BMPBYTES] PROGMEM = {
       0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
       0x0F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
       0x1E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0xFF, 0xFF,
@@ -118,7 +118,7 @@
 #define STATUS_SCREENWIDTH      11 //Width in pixels
 #define STATUS_SCREENHEIGHT     24 //Height in pixels
 #define STATUS_SCREENBYTEWIDTH   2 //Width in bytes
-const unsigned char status_screen0_bmp[] PROGMEM = { //AVR-GCC, WinAVR
+const uint8_t status_screen0_bmp[] PROGMEM = { //AVR-GCC, WinAVR
   0xFF, 0xE0,
   0xFF, 0xE0,
   0x7F, 0xC0,
@@ -148,7 +148,7 @@ const unsigned char status_screen0_bmp[] PROGMEM = { //AVR-GCC, WinAVR
 #define STATUS_SCREENWIDTH      11 //Width in pixels
 #define STATUS_SCREENHEIGHT     24 //Height in pixels
 #define STATUS_SCREENBYTEWIDTH   2 //Width in bytes
-const unsigned char status_screen1_bmp[] PROGMEM = { //AVR-GCC, WinAVR
+const uint8_t status_screen1_bmp[] PROGMEM = { //AVR-GCC, WinAVR
   0xFF, 0xE0,
   0xFF, 0xE0,
   0x7F, 0xC0,

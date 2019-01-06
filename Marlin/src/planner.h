@@ -50,14 +50,14 @@ extern Planner planner;
 typedef struct {
 
   // Fields used by the bresenham algorithm for tracing the line
-  long steps[NUM_AXIS];                     // Step count along each axis
-  unsigned long step_event_count;           // The number of step events required to complete this block
+  int32_t steps[NUM_AXIS];                     // Step count along each axis
+  uint32_t step_event_count;           // The number of step events required to complete this block
 
-  long accelerate_until,                    // The index of the step event on which to stop acceleration
+  int32_t accelerate_until,                    // The index of the step event on which to stop acceleration
        decelerate_after,                    // The index of the step event on which to start decelerating
        acceleration_rate;                   // The acceleration rate used for acceleration calculation
 
-  unsigned char direction_bits;             // The direction bit set for this block (refers to *_DIRECTION_BIT in config.h)
+  uint8_t direction_bits;             // The direction bit set for this block (refers to *_DIRECTION_BIT in config.h)
 
   // Fields used by the motion planner to manage acceleration
   float nominal_speed,                               // The nominal speed for this block in mm/sec
@@ -65,11 +65,11 @@ typedef struct {
         max_entry_speed,                             // Maximum allowable junction entry speed in mm/sec
         millimeters,                                 // The total travel of this block in mm
         acceleration;                                // acceleration mm/sec^2
-  unsigned char recalculate_flag,                    // Planner flag to recalculate trapezoids on entry junction
+  uint8_t recalculate_flag,                    // Planner flag to recalculate trapezoids on entry junction
                 nominal_length_flag;                 // Planner flag for nominal speed always reached
 
   // Settings for the trapezoid generator
-  unsigned long nominal_rate,                        // The nominal step rate for this block in step_events/sec
+  uint32_t nominal_rate,                        // The nominal step rate for this block in step_events/sec
                 initial_rate,                        // The jerk-adjusted step rate at start of block
                 final_rate,                          // The minimal rate at exit
                 acceleration_steps_per_s2;           // acceleration steps/sec^2
@@ -92,8 +92,8 @@ class Planner {
     static float max_feedrate_mm_s[NUM_AXIS]; // Max speeds in mm per second
     static float axis_steps_per_mm[NUM_AXIS];
     static float steps_to_mm[NUM_AXIS];
-    static unsigned long max_acceleration_steps_per_s2[NUM_AXIS];
-    static unsigned long max_acceleration_mm_per_s2[NUM_AXIS]; // Use M201 to override by software
+    static uint32_t max_acceleration_steps_per_s2[NUM_AXIS];
+    static uint32_t max_acceleration_mm_per_s2[NUM_AXIS]; // Use M201 to override by software
 
     static millis_t min_segment_time;
     static float min_feedrate_mm_s;
@@ -107,7 +107,7 @@ class Planner {
      * The current position of the tool in absolute steps
      * Recalculated if any axis_steps_per_mm are changed by gcode
      */
-    static long position[NUM_AXIS];
+    static int32_t position[NUM_AXIS];
 
     /**
      * Speed of previous path line segment
@@ -121,11 +121,11 @@ class Planner {
 
     #ifdef XY_FREQUENCY_LIMIT
       // Used for the frequency limit
-      #define MAX_FREQ_TIME long(1000000.0/XY_FREQUENCY_LIMIT)
+      #define MAX_FREQ_TIME int32_t(1000000.0/XY_FREQUENCY_LIMIT)
       // Old direction bits. Used for speed calculations
-      static unsigned char old_direction_bits;
+      static uint8_t old_direction_bits;
       // Segment times (in µs). Used for speed calculations
-      static long axis_segment_time[2][3];
+      static int32_t axis_segment_time[2][3];
     #endif
 
   public:
@@ -150,7 +150,7 @@ class Planner {
     /**
      * Set the Z position (steps) of the planner
      */
-    static void set_z_position_step(const long& z);
+    static void set_z_position_step(const int32_t& z);
 
     /**
      * Does the buffer have any blocks queued?

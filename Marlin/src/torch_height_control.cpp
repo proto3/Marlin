@@ -13,10 +13,10 @@ int16_t TorchHeightController::_speed = 0;
 int16_t TorchHeightController::_max_acc = 0;
 int8_t TorchHeightController::_dir = 1;
 uint16_t TorchHeightController::_max_stopping_distance = 0xFFFF;
-unsigned long TorchHeightController::_retract_mm = PLASMA_THC_RETRACT_MM;
-long TorchHeightController::_z_top_pos = 0;
-long TorchHeightController::_z_bottom_pos = 0;
-long TorchHeightController::_safe_pos = 0;
+uint32_t TorchHeightController::_retract_mm = PLASMA_THC_RETRACT_MM;
+int32_t TorchHeightController::_z_top_pos = 0;
+int32_t TorchHeightController::_z_bottom_pos = 0;
+int32_t TorchHeightController::_safe_pos = 0;
 
 int16_t TorchHeightController::_new_target_speed = 25000;
 int16_t TorchHeightController::_counter = 0;
@@ -69,7 +69,7 @@ bool TorchHeightController::disable()
 //----------------------------------------------------------------------------//
 void TorchHeightController::_step_to_safe_pos()
 {
-  long z_pos = stepper.position(Z_AXIS);
+  int32_t z_pos = stepper.position(Z_AXIS);
   // Z is far enough from top, use max speed
   if(_safe_pos - z_pos > _max_stopping_distance)
   {
@@ -94,7 +94,7 @@ void TorchHeightController::_step_to_safe_pos()
 void TorchHeightController::update(PlasmaState plasma_state)
 {
   int32_t voltage_mv = ADS1015_device.read();
-  long z_pos = stepper.position(Z_AXIS);
+  int32_t z_pos = stepper.position(Z_AXIS);
 
   switch(plasma_state)
   {
@@ -183,12 +183,12 @@ void TorchHeightController::update(PlasmaState plasma_state)
   RESUME_TIMER4;
 }
 //----------------------------------------------------------------------------//
-void TorchHeightController::set_mm_to_retract(unsigned long mm)
+void TorchHeightController::set_mm_to_retract(uint32_t mm)
 {
   _retract_mm = mm;
 }
 //----------------------------------------------------------------------------//
-void TorchHeightController::set_max_acc_step_s2(unsigned long max_acc)
+void TorchHeightController::set_max_acc_step_s2(uint32_t max_acc)
 {
   // store acceleration in milliseconds as update will be called at 1kHz
   _max_acc = max_acc / 1000;

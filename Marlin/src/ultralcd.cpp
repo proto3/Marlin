@@ -119,25 +119,25 @@ uint8_t lcdDrawUpdate = LCDVIEW_CLEAR_CALL_REDRAW; // Set when the LCD needs to 
   static void menu_action_gcode(const char* pgcode);
   static void menu_action_function(screenFunc_t data);
   static void menu_action_setting_edit_bool(const char* pstr, bool* ptr);
-  static void menu_action_setting_edit_int3(const char* pstr, int* ptr, int minValue, int maxValue);
+  static void menu_action_setting_edit_int3(const char* pstr, int16_t* ptr, int16_t minValue, int16_t maxValue);
   static void menu_action_setting_edit_float3(const char* pstr, float* ptr, float minValue, float maxValue);
   static void menu_action_setting_edit_float32(const char* pstr, float* ptr, float minValue, float maxValue);
   static void menu_action_setting_edit_float43(const char* pstr, float* ptr, float minValue, float maxValue);
   static void menu_action_setting_edit_float5(const char* pstr, float* ptr, float minValue, float maxValue);
   static void menu_action_setting_edit_float51(const char* pstr, float* ptr, float minValue, float maxValue);
   static void menu_action_setting_edit_float52(const char* pstr, float* ptr, float minValue, float maxValue);
-  static void menu_action_setting_edit_long5(const char* pstr, unsigned long* ptr, unsigned long minValue, unsigned long maxValue);
-  static void menu_action_setting_edit_long50(const char* pstr, unsigned long* ptr, unsigned long minValue, unsigned long maxValue);
+  static void menu_action_setting_edit_long5(const char* pstr, uint32_t* ptr, uint32_t minValue, uint32_t maxValue);
+  static void menu_action_setting_edit_long50(const char* pstr, uint32_t* ptr, uint32_t minValue, uint32_t maxValue);
   static void menu_action_setting_edit_callback_bool(const char* pstr, bool* ptr, screenFunc_t callbackFunc);
-  static void menu_action_setting_edit_callback_int3(const char* pstr, int* ptr, int minValue, int maxValue, screenFunc_t callbackFunc);
+  static void menu_action_setting_edit_callback_int3(const char* pstr, int16_t* ptr, int16_t minValue, int16_t maxValue, screenFunc_t callbackFunc);
   static void menu_action_setting_edit_callback_float3(const char* pstr, float* ptr, float minValue, float maxValue, screenFunc_t callbackFunc);
   static void menu_action_setting_edit_callback_float32(const char* pstr, float* ptr, float minValue, float maxValue, screenFunc_t callbackFunc);
   static void menu_action_setting_edit_callback_float43(const char* pstr, float* ptr, float minValue, float maxValue, screenFunc_t callbackFunc);
   static void menu_action_setting_edit_callback_float5(const char* pstr, float* ptr, float minValue, float maxValue, screenFunc_t callbackFunc);
   static void menu_action_setting_edit_callback_float51(const char* pstr, float* ptr, float minValue, float maxValue, screenFunc_t callbackFunc);
   static void menu_action_setting_edit_callback_float52(const char* pstr, float* ptr, float minValue, float maxValue, screenFunc_t callbackFunc);
-  static void menu_action_setting_edit_callback_long5(const char* pstr, unsigned long* ptr, unsigned long minValue, unsigned long maxValue, screenFunc_t callbackFunc);
-  static void menu_action_setting_edit_callback_long50(const char* pstr, unsigned long* ptr, unsigned long minValue, unsigned long maxValue, screenFunc_t callbackFunc);
+  static void menu_action_setting_edit_callback_long5(const char* pstr, uint32_t* ptr, uint32_t minValue, uint32_t maxValue, screenFunc_t callbackFunc);
+  static void menu_action_setting_edit_callback_long50(const char* pstr, uint32_t* ptr, uint32_t minValue, uint32_t maxValue, screenFunc_t callbackFunc);
 
   #if ENABLED(SDSUPPORT)
     static void lcd_sdcard_menu();
@@ -461,7 +461,7 @@ static void lcd_status_screen() {
     }
 
     #if ENABLED(ULTIPANEL_FEEDMULTIPLY)
-      int new_frm = feedrate_percentage + (int32_t)encoderPosition;
+      int16_t new_frm = feedrate_percentage + (int32_t)encoderPosition;
       // Dead zone at 100% feedrate
       if ((feedrate_percentage < 100 && new_frm > 100) || (feedrate_percentage > 100 && new_frm < 100)) {
         feedrate_percentage = 100;
@@ -990,14 +990,14 @@ void kill_screen(const char* lcd_msg) {
    *
    * The "menu_edit_type" macro generates the functions needed to edit a numerical value.
    *
-   * For example, menu_edit_type(int, int3, itostr3, 1) expands into these functions:
+   * For example, menu_edit_type(int16_t, int3, itostr3, 1) expands into these functions:
    *
    *   bool _menu_edit_int3();
-   *   void menu_edit_int3(); // edit int (interactively)
-   *   void menu_edit_callback_int3(); // edit int (interactively) with callback on completion
-   *   static void _menu_action_setting_edit_int3(const char* pstr, int* ptr, int minValue, int maxValue);
-   *   static void menu_action_setting_edit_int3(const char* pstr, int* ptr, int minValue, int maxValue);
-   *   static void menu_action_setting_edit_callback_int3(const char* pstr, int* ptr, int minValue, int maxValue, screenFunc_t callback); // edit int with callback
+   *   void menu_edit_int3(); // edit int16_t (interactively)
+   *   void menu_edit_callback_int3(); // edit int16_t (interactively) with callback on completion
+   *   static void _menu_action_setting_edit_int3(const char* pstr, int16_t* ptr, int16_t minValue, int16_t maxValue);
+   *   static void menu_action_setting_edit_int3(const char* pstr, int16_t* ptr, int16_t minValue, int16_t maxValue);
+   *   static void menu_action_setting_edit_callback_int3(const char* pstr, int16_t* ptr, int16_t minValue, int16_t maxValue, screenFunc_t callback); // edit int16_t with callback
    *
    * You can then use one of the menu macros to present the edit interface:
    *   MENU_ITEM_EDIT(int3, MSG_SPEED, &feedrate_percentage, 10, 999)
@@ -1047,15 +1047,15 @@ void kill_screen(const char* lcd_msg) {
       callbackFunc = callback; \
     }
 
-  menu_edit_type(int, int3, itostr3, 1);
+  menu_edit_type(int16_t, int3, itostr3, 1);
   menu_edit_type(float, float3, ftostr3, 1);
   menu_edit_type(float, float32, ftostr32, 100);
   menu_edit_type(float, float43, ftostr43sign, 1000);
   menu_edit_type(float, float5, ftostr5rj, 0.01);
   menu_edit_type(float, float51, ftostr51sign, 10);
   menu_edit_type(float, float52, ftostr52sign, 100);
-  menu_edit_type(unsigned long, long5, ftostr5rj, 0.01);
-  menu_edit_type(unsigned long, long50, ftostr5rj, 0.02);
+  menu_edit_type(uint32_t, long5, ftostr5rj, 0.01);
+  menu_edit_type(uint32_t, long50, ftostr5rj, 0.02);
 
   /**
    *
@@ -1063,7 +1063,7 @@ void kill_screen(const char* lcd_msg) {
    *
    */
   #if ENABLED(REPRAPWORLD_KEYPAD)
-    static void _reprapworld_keypad_move(AxisEnum axis, int dir) {
+    static void _reprapworld_keypad_move(AxisEnum axis, int16_t dir) {
       move_menu_scale = REPRAPWORLD_KEYPAD_MOVE_STEP;
       encoderPosition = dir;
       switch (axis) {
@@ -1087,7 +1087,7 @@ void kill_screen(const char* lcd_msg) {
    * Audio feedback for controller clicks
    *
    */
-  void lcd_buzz(long duration, uint16_t freq) {
+  void lcd_buzz(int32_t duration, uint16_t freq) {
     #if ENABLED(LCD_USE_I2C_BUZZER)
       lcd.buzz(duration, freq);
     #elif PIN_EXISTS(BEEPER)
@@ -1212,8 +1212,8 @@ void lcd_init() {
   #endif
 }
 
-int lcd_strlen(const char* s) {
-  int i = 0, j = 0;
+int16_t lcd_strlen(const char* s) {
+  int16_t i = 0, j = 0;
   while (s[i]) {
     #if ENABLED(MAPPER_NON)
       j++;
@@ -1225,8 +1225,8 @@ int lcd_strlen(const char* s) {
   return j;
 }
 
-int lcd_strlen_P(const char* s) {
-  int j = 0;
+int16_t lcd_strlen_P(const char* s) {
+  int16_t j = 0;
   while (pgm_read_byte(s)) {
     #if ENABLED(MAPPER_NON)
       j++;
@@ -1534,7 +1534,7 @@ void lcd_setalertstatuspgm(const char* message) {
 void lcd_reset_alert_level() { lcd_status_message_level = 0; }
 
 #if HAS_LCD_CONTRAST
-  void set_lcd_contrast(int value) {
+  void set_lcd_contrast(int16_t value) {
     lcd_contrast = constrain(value, LCD_CONTRAST_MIN, LCD_CONTRAST_MAX);
     u8g.setContrast(lcd_contrast);
   }
@@ -1683,14 +1683,14 @@ void lcd_reset_alert_level() { lcd_status_message_level = 0; }
 char conv[8];
 
 // Convert float to rj string with 123 or -12 format
-char *ftostr3(const float& x) { return itostr3((int)x); }
+char *ftostr3(const float& x) { return itostr3((int16_t)x); }
 
 // Convert float to rj string with _123, -123, _-12, or __-1 format
-char *ftostr4sign(const float& x) { return itostr4sign((int)x); }
+char *ftostr4sign(const float& x) { return itostr4sign((int16_t)x); }
 
-// Convert unsigned int to string with 12 format
+// Convert uint16_t to string with 12 format
 char* itostr2(const uint8_t& x) {
-  int xx = x;
+  int16_t xx = x;
   conv[0] = DIGIMOD(xx / 10);
   conv[1] = DIGIMOD(xx);
   conv[2] = '\0';
@@ -1699,7 +1699,7 @@ char* itostr2(const uint8_t& x) {
 
 // Convert float to string with +123.4 / -123.4 format
 char* ftostr41sign(const float& x) {
-  int xx = int(abs(x * 10)) % 10000;
+  int16_t xx = int16_t(abs(x * 10)) % 10000;
   conv[0] = x >= 0 ? '+' : '-';
   conv[1] = DIGIMOD(xx / 1000);
   conv[2] = DIGIMOD(xx / 100);
@@ -1729,7 +1729,7 @@ char *ftostr3e(const float& x) {
 
 // Convert signed float to string with 023.45 / -23.45 format
 char *ftostr32(const float& x) {
-  long xx = abs(x * 100);
+  int32_t xx = abs(x * 100);
   conv[0] = x >= 0 ? DIGIMOD(xx / 10000) : '-';
   conv[1] = DIGIMOD(xx / 1000);
   conv[2] = DIGIMOD(xx / 100);
@@ -1742,7 +1742,7 @@ char *ftostr32(const float& x) {
 
 // Convert signed float to string (6 digit) with -1.234 / _0.000 / +1.234 format
 char* ftostr43sign(const float& x, char plus/*=' '*/) {
-  long xx = x * 1000;
+  int32_t xx = x * 1000;
   if (xx == 0)
     conv[0] = ' ';
   else if (xx > 0)
@@ -1762,7 +1762,7 @@ char* ftostr43sign(const float& x, char plus/*=' '*/) {
 
 // Convert unsigned float to string with 1.23 format
 char* ftostr12ns(const float& x) {
-  long xx = x * 100;
+  int32_t xx = x * 100;
   xx = abs(xx);
   conv[0] = DIGIMOD(xx / 100);
   conv[1] = '.';
@@ -1772,9 +1772,9 @@ char* ftostr12ns(const float& x) {
   return conv;
 }
 
-// Convert signed int to lj string with +012 / -012 format
-char* itostr3sign(const int& x) {
-  int xx;
+// Convert signed int16_t to lj string with +012 / -012 format
+char* itostr3sign(const int16_t& x) {
+  int16_t xx;
   if (x >= 0) {
     conv[0] = '+';
     xx = x;
@@ -1792,9 +1792,9 @@ char* itostr3sign(const int& x) {
   return conv;
 }
 
-// Convert signed int to rj string with 123 or -12 format
-char* itostr3(const int& x) {
-  int xx = x;
+// Convert signed int16_t to rj string with 123 or -12 format
+char* itostr3(const int16_t& x) {
+  int16_t xx = x;
   if (xx < 0) {
     conv[0] = '-';
     xx = -xx;
@@ -1808,8 +1808,8 @@ char* itostr3(const int& x) {
   return conv;
 }
 
-// Convert unsigned int to lj string with 123 format
-char* itostr3left(const int& xx) {
+// Convert uint16_t to lj string with 123 format
+char* itostr3left(const int16_t& xx) {
   if (xx >= 100) {
     conv[0] = DIGIMOD(xx / 100);
     conv[1] = DIGIMOD(xx / 10);
@@ -1828,9 +1828,9 @@ char* itostr3left(const int& xx) {
   return conv;
 }
 
-// Convert signed int to rj string with 1234 or -123 format
-char* itostr4(const int& x) {
-  int xx = x;
+// Convert int16_t to rj string with 1234 or -123 format
+char* itostr4(const int16_t& x) {
+  int16_t xx = x;
   if (xx < 0) {
     conv[0] = '-';
     xx = -xx;
@@ -1845,10 +1845,10 @@ char* itostr4(const int& x) {
   return conv;
 }
 
-// Convert signed int to rj string with _123, -123, _-12, or __-1 format
-char *itostr4sign(const int& x) {
-  int xx = abs(x);
-  int sign = 0;
+// Convert int16_t to rj string with _123, -123, _-12, or __-1 format
+char *itostr4sign(const int16_t& x) {
+  int16_t xx = abs(x);
+  int16_t sign = 0;
   if (xx >= 100) {
     conv[1] = DIGIMOD(xx / 100);
     conv[2] = DIGIMOD(xx / 10);
@@ -1869,7 +1869,7 @@ char *itostr4sign(const int& x) {
   return conv;
 }
 
-// Convert signed int16_t to rj string with 12345 or -1234 format
+// Convert int16_t to rj string with 12345 or -1234 format
 char* itostr5(const int16_t& x) {
   int16_t xx = x;
   if (xx < 0) {
@@ -1889,7 +1889,7 @@ char* itostr5(const int16_t& x) {
 
 // Convert unsigned float to rj string with 12345 format
 char* ftostr5rj(const float& x) {
-  long xx = abs(x);
+  int32_t xx = abs(x);
   conv[0] = xx >= 10000 ? DIGIMOD(xx / 10000) : ' ';
   conv[1] = xx >= 1000 ? DIGIMOD(xx / 1000) : ' ';
   conv[2] = xx >= 100 ? DIGIMOD(xx / 100) : ' ';
@@ -1901,7 +1901,7 @@ char* ftostr5rj(const float& x) {
 
 // Convert signed float to string with +1234.5 format
 char* ftostr51sign(const float& x) {
-  long xx = abs(x * 10);
+  int32_t xx = abs(x * 10);
   conv[0] = (x >= 0) ? '+' : '-';
   conv[1] = DIGIMOD(xx / 10000);
   conv[2] = DIGIMOD(xx / 1000);
@@ -1915,7 +1915,7 @@ char* ftostr51sign(const float& x) {
 
 // Convert signed float to string with +123.45 format
 char* ftostr52sign(const float& x) {
-  long xx = abs(x * 100);
+  int32_t xx = abs(x * 100);
   conv[0] = (x >= 0) ? '+' : '-';
   conv[1] = DIGIMOD(xx / 10000);
   conv[2] = DIGIMOD(xx / 1000);
@@ -1929,7 +1929,7 @@ char* ftostr52sign(const float& x) {
 
 // Convert signed float to space-padded string with -_23.4_ format
 char* ftostr52sp(const float& x) {
-  long xx = x * 100;
+  int32_t xx = x * 100;
   uint8_t dig;
   if (xx < 0) { // negative val = -_0
     xx = -xx;

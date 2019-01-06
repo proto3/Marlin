@@ -84,7 +84,7 @@ void CardReader::lsDive(const char *prepend, SdFile parent, const char * const m
 
       // Allocate enough stack space for the full path to a folder, trailing slash, and nul
       boolean prepend_is_empty = (prepend[0] == '\0');
-      int len = (prepend_is_empty ? 1 : strlen(prepend)) + strlen(lfilename) + 1 + 1;
+      int16_t len = (prepend_is_empty ? 1 : strlen(prepend)) + strlen(lfilename) + 1 + 1;
       char path[len];
 
       // Append the FOLDERNAME12/ to the passed string.
@@ -158,7 +158,7 @@ void CardReader::ls()  {
   void CardReader::printLongPath(char *path) {
     lsAction = LS_GetFilename;
 
-    int i, pathLen = strlen(path);
+    int16_t i, pathLen = strlen(path);
 
     // SERIAL_ECHOPGM("Full Path: "); SERIAL_ECHOLN(path);
 
@@ -339,8 +339,8 @@ bool CardReader::openFile(const char* name, bool read, bool push_current/*=false
     dirname_start = &name[1];
     while (dirname_start != NULL) {
       dirname_end = strchr(dirname_start, '/');
-      //SERIAL_ECHOPGM("start:");SERIAL_ECHOLN((int)(dirname_start - name));
-      //SERIAL_ECHOPGM("end  :");SERIAL_ECHOLN((int)(dirname_end - name));
+      //SERIAL_ECHOPGM("start:");SERIAL_ECHOLN((int16_t)(dirname_start - name));
+      //SERIAL_ECHOPGM("end  :");SERIAL_ECHOLN((int16_t)(dirname_end - name));
       if (dirname_end != NULL && dirname_end > dirname_start) {
         char subdirname[FILENAME_LENGTH];
         strncpy(subdirname, dirname_start, dirname_end - dirname_start);
@@ -422,8 +422,8 @@ void CardReader::removeFile(char* name) {
     dirname_start = strchr(name, '/') + 1;
     while (dirname_start != NULL) {
       dirname_end = strchr(dirname_start, '/');
-      //SERIAL_ECHOPGM("start:");SERIAL_ECHOLN((int)(dirname_start - name));
-      //SERIAL_ECHOPGM("end  :");SERIAL_ECHOLN((int)(dirname_end - name));
+      //SERIAL_ECHOPGM("start:");SERIAL_ECHOLN((int16_t)(dirname_start - name));
+      //SERIAL_ECHOPGM("end  :");SERIAL_ECHOLN((int16_t)(dirname_end - name));
       if (dirname_end != NULL && dirname_end > dirname_start) {
         char subdirname[FILENAME_LENGTH];
         strncpy(subdirname, dirname_start, dirname_end - dirname_start);
@@ -558,7 +558,7 @@ void CardReader::updir() {
 
 bool CardReader::get_next_command(char* cmd)
 {
-    int idx = 0;
+    int16_t idx = 0;
     bool comment = false;
 
     int16_t result = this->get();

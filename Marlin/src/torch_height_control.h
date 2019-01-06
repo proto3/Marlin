@@ -8,8 +8,8 @@ class TorchHeightController {
     static void init();
     static void enable();
     static bool disable();
-    static void set_mm_to_retract(unsigned long);
-    static void set_max_acc_step_s2(unsigned long);
+    static void set_mm_to_retract(uint32_t);
+    static void set_max_acc_step_s2(uint32_t);
 
     static void update(PlasmaState);
     static void ovf_isr();
@@ -27,11 +27,11 @@ class TorchHeightController {
     static int16_t _speed;
     static int16_t _max_acc;
     static int8_t _dir;
-    static unsigned long _retract_mm;
+    static uint32_t _retract_mm;
     static uint16_t _max_stopping_distance;
-    static long _z_top_pos;
-    static long _z_bottom_pos;
-    static long _safe_pos;
+    static int32_t _z_top_pos;
+    static int32_t _z_bottom_pos;
+    static int32_t _safe_pos;
 
     static int16_t _new_target_speed;
     static int16_t _counter;

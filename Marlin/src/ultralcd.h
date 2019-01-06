@@ -30,8 +30,8 @@
   #define BUTTON_EXISTS(BN) (defined(BTN_## BN) && BTN_## BN >= 0)
   #define BUTTON_PRESSED(BN) !READ(BTN_## BN)
 
-  int lcd_strlen(const char* s);
-  int lcd_strlen_P(const char* s);
+  int16_t lcd_strlen(const char* s);
+  int16_t lcd_strlen_P(const char* s);
   void lcd_update(bool fast=false);
   void lcd_init();
   bool lcd_hasstatus();
@@ -44,7 +44,7 @@
   void kill_screen(const char* lcd_msg);
 
   #if HAS_BUZZER
-    void lcd_buzz(long duration, uint16_t freq);
+    void lcd_buzz(int32_t duration, uint16_t freq);
   #endif
 
   #if ENABLED(LCD_PROGRESS_BAR) && PROGRESS_MSG_EXPIRE > 0
@@ -52,8 +52,8 @@
   #endif
 
   #if ENABLED(DOGLCD)
-    extern int lcd_contrast;
-    void set_lcd_contrast(int value);
+    extern int16_t lcd_contrast;
+    void set_lcd_contrast(int16_t value);
   #elif ENABLED(SHOW_BOOTSCREEN)
     void bootscreen();
   #endif
@@ -154,12 +154,12 @@
 #endif //ULTRA_LCD
 
 char* itostr2(const uint8_t& x);
-char* itostr3sign(const int& x);
-char* itostr3(const int& x);
-char* itostr3left(const int& x);
-char* itostr4(const int& x);
-char* itostr4sign(const int& x);
-char* itostr5(const int& x);
+char* itostr3sign(const int16_t& x);
+char* itostr3(const int16_t& x);
+char* itostr3left(const int16_t& x);
+char* itostr4(const int16_t& x);
+char* itostr4sign(const int16_t& x);
+char* itostr5(const int16_t& x);
 
 char* ftostr3(const float& x);
 char* ftostr4sign(const float& x);
