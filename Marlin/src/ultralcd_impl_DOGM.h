@@ -43,7 +43,6 @@
  * These are common LCD 128x64 pixel graphic displays.
  */
 #include "ultralcd.h"
-#include "ultralcd_st7920_u8glib_rrd.h"
 #include "dogm_bitmaps.h"
 #include "duration_t.h"
 #include "plasma.h"
@@ -137,8 +136,7 @@
 #if ENABLED(REPRAPWORLD_GRAPHICAL_LCD)
   U8GLIB_ST7920_128X64_4X u8g(LCD_PINS_RS);
 #elif ENABLED(U8GLIB_ST7920)
-  //U8GLIB_ST7920_128X64_RRD u8g(0,0,0);
-  U8GLIB_ST7920_128X64_RRD u8g(0);
+  U8GLIB_ST7920_128X64_1X u8g(LCD_PINS_D4, LCD_PINS_ENABLE, LCD_PINS_RS);
 #elif ENABLED(CARTESIO_UI)
   // The CartesioUI display
   #if DOGLCD_MOSI != -1 && DOGLCD_SCK != -1
@@ -453,7 +451,7 @@ static void lcd_implementation_drawmenu_generic(bool isSelected, uint8_t row, co
 
   lcd_implementation_mark_as_selected(row, isSelected);
 
-  while (c = pgm_read_byte(pstr)) {
+  while ((c = pgm_read_byte(pstr))) {
     n -= lcd_print(c);
     pstr++;
   }
@@ -470,7 +468,7 @@ static void _drawmenu_setting_edit_generic(bool isSelected, uint8_t row, const c
 
   lcd_implementation_mark_as_selected(row, isSelected);
 
-  while (c = pgm_read_byte(pstr)) {
+  while ((c = pgm_read_byte(pstr))) {
     n -= lcd_print(c);
     pstr++;
   }

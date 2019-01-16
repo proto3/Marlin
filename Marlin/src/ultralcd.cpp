@@ -556,6 +556,11 @@ void kill_screen(const char* lcd_msg) {
    *
    */
 
+   void sd_refresh()
+   {
+     card.initsd();
+   }
+
   static void lcd_main_menu() {
     START_MENU();
     MENU_ITEM(back, "Return");
@@ -584,14 +589,14 @@ void kill_screen(const char* lcd_msg) {
         else {
           MENU_ITEM(submenu, MSG_CARD_MENU, lcd_sdcard_menu);
           #if !PIN_EXISTS(SD_DETECT)
-            MENU_ITEM(gcode, MSG_CNG_SDCARD, PSTR("M21"));  // SD-card changed by user
+            MENU_ITEM(function, MSG_CNG_SDCARD, sd_refresh);  // SD-card changed by user
           #endif
         }
       }
       else {
         MENU_ITEM(submenu, MSG_NO_CARD, lcd_sdcard_menu);
         #if !PIN_EXISTS(SD_DETECT)
-          MENU_ITEM(gcode, MSG_INIT_SDCARD, PSTR("M21")); // Manually initialize the SD-card via user interface
+          MENU_ITEM(function, MSG_INIT_SDCARD, sd_refresh); // Manually initialize the SD-card via user interface
         #endif
       }
     #endif //SDSUPPORT
@@ -862,14 +867,14 @@ void kill_screen(const char* lcd_msg) {
       if(card.cardOK) {
         uint16_t fileCnt = card.getnrfilenames();
         card.getWorkDirName();
-        if (card.filename[0] == '/') {
-          #if !PIN_EXISTS(SD_DETECT)
-            MENU_ITEM(function, LCD_STR_REFRESH MSG_REFRESH, lcd_sd_refresh);
-          #endif
-        }
-        else {
-          MENU_ITEM(function, LCD_STR_FOLDER "..", lcd_sd_updir);
-        }
+        // if (card.filename[0] == '/') {
+        //   #if !PIN_EXISTS(SD_DETECT)
+        //     MENU_ITEM(function, LCD_STR_REFRESH MSG_REFRESH, lcd_sd_refresh);
+        //   #endif
+        // }
+        // else {
+        //   MENU_ITEM(function, LCD_STR_FOLDER "..", lcd_sd_updir);
+        // }
 
         for (uint16_t i = 0; i < fileCnt; i++) {
           if (_menuLineNr == _thisItemNr) {

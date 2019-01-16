@@ -496,7 +496,7 @@ void Planner::check_axes_activity() {
       delta_mm[C_AXIS] = (dy - dz) * steps_to_mm[C_AXIS];
     #endif
   #else
-    float delta_mm[4];
+    float delta_mm[3];
     delta_mm[X_AXIS] = dx * steps_to_mm[X_AXIS];
     delta_mm[Y_AXIS] = dy * steps_to_mm[Y_AXIS];
     delta_mm[Z_AXIS] = dz * steps_to_mm[Z_AXIS];
@@ -554,7 +554,7 @@ void Planner::check_axes_activity() {
     if (cs > mf) speed_factor = min(speed_factor, mf / cs);
   }
 
-  // Max segement time in us.
+  // Max segment time in us.
   #ifdef XY_FREQUENCY_LIMIT
 
     // Check and limit the xy direction change frequency
@@ -612,7 +612,7 @@ void Planner::check_axes_activity() {
     block->acceleration_steps_per_s2 = (max_acceleration_steps_per_s2[Z_AXIS] * block->step_event_count) / block->steps[Z_AXIS];
 
   block->acceleration = block->acceleration_steps_per_s2 / steps_per_mm;
-  block->acceleration_rate = (int32_t)(block->acceleration_steps_per_s2 * 16777216.0 / ((F_CPU) * 0.125));
+  block->acceleration_rate = (int32_t)(block->acceleration_steps_per_s2 * 16777216.0 / STEPPER_TIMER_RATE);
 
   // Start with a safe speed
   float vmax_junction = max_xy_jerk * 0.5,
@@ -623,7 +623,8 @@ void Planner::check_axes_activity() {
   vmax_junction = min(vmax_junction, block->nominal_speed);
   float safe_speed = vmax_junction;
 
-  if ((moves_queued > 1) && (previous_nominal_speed > 0.0001)) {
+  if ((moves_queued >= 1) && (previous_nominal_speed > 0.0001))
+  {
     float dsx = current_speed[X_AXIS] - previous_speed[X_AXIS],
           dsy = current_speed[Y_AXIS] - previous_speed[Y_AXIS],
           dsz = fabs(csz - previous_speed[Z_AXIS]),

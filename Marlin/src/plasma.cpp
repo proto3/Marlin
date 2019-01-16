@@ -6,6 +6,8 @@
 #define TURN_PLASMA_OFF WRITE(PLASMA_CONTROL_PIN, PLASMA_CONTROL_INVERTING ? HIGH : LOW);
 #define IS_PLASMA_TRANSFERRED (digitalRead(PLASMA_TRANSFER_PIN) == (PLASMA_TRANSFER_INVERTING ? LOW : HIGH))
 
+Plasma plasmaManager;
+
 PlasmaState Plasma::state = Off;
 bool Plasma::stop_pending = false;
 bool Plasma::locked_flag = true;

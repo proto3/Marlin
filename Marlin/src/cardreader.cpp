@@ -73,7 +73,7 @@ void CardReader::lsDive(const char *prepend, SdFile parent, const char * const m
   uint8_t cnt = 0;
 
   // Read the next entry from a directory
-  while (parent.readDir(p, longFilename) > 0) {
+  while (parent.readDir(p/*, longFilename*/) > 0) {
 
     // If the entry is a directory and the action is LS_SerialPrint
     if (DIR_IS_SUBDIR(&p) && lsAction != LS_Count && lsAction != LS_GetFilename) {
@@ -221,7 +221,7 @@ void CardReader::initsd() {
     #define SPI_SPEED SPI_FULL_SPEED
   #endif
 
-  if (!card.init(SPI_SPEED,SDSS)
+  if (!card.init(SPI_SPEED, BUILTIN_SDCARD)
     #if defined(LCD_SDSS) && (LCD_SDSS != SDSS)
       && !card.init(SPI_SPEED, LCD_SDSS)
     #endif
@@ -278,15 +278,15 @@ void CardReader::openLogFile(char* name) {
 }
 
 void CardReader::getAbsFilename(char *t) {
-  uint8_t cnt = 0;
-  *t = '/'; t++; cnt++;
-  for (uint8_t i = 0; i < workDirDepth; i++) {
-    workDirParents[i].getFilename(t); //SDBaseFile.getfilename!
-    while (*t && cnt < MAXPATHNAMELENGTH) { t++; cnt++; } //crawl counter forward.
-  }
-  if (cnt < MAXPATHNAMELENGTH - (FILENAME_LENGTH))
-    file.getFilename(t);
-  else
+  // uint8_t cnt = 0;
+  // *t = '/'; t++; cnt++;
+  // for (uint8_t i = 0; i < workDirDepth; i++) {
+  //   workDirParents[i].getFilename(t); //SDBaseFile.getfilename!
+  //   while (*t && cnt < MAXPATHNAMELENGTH) { t++; cnt++; } //crawl counter forward.
+  // }
+  // if (cnt < MAXPATHNAMELENGTH - (FILENAME_LENGTH))
+  //   file.getFilename(t);
+  // else
     t[0] = 0;
 }
 
@@ -479,26 +479,6 @@ void CardReader::printStatus() {
 
 bool CardReader::is_inserted() {
   return cardOK;
-}
-
-void CardReader::write_command(char *buf) {
-  char* begin = buf;
-  char* npos = 0;
-  char* end = buf + strlen(buf) - 1;
-
-  file.writeError = false;
-  if ((npos = strchr(buf, 'N')) != NULL) {
-    begin = strchr(npos, ' ') + 1;
-    end = strchr(npos, '*') - 1;
-  }
-  end[1] = '\r';
-  end[2] = '\n';
-  end[3] = '\0';
-  file.write(begin);
-  if (file.writeError) {
-    SERIAL_ERROR_START;
-    SERIAL_ERRORLNPGM(MSG_SD_ERR_WRITE_TO_FILE);
-  }
 }
 
 void CardReader::closefile(bool store_location) {

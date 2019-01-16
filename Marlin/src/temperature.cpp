@@ -32,6 +32,7 @@
 #if ENABLED(USE_WATCHDOG)
   #include "watchdog.h"
 #endif
+#include "HAL_timers_Teensy.h"
 
 Temperature thermalManager;
 
@@ -56,8 +57,8 @@ void Temperature::manage_heater() {
 void Temperature::init() {
   // Use timer0 for temperature measurement
   // Interleave temperature interrupt with millies interrupt
-  OCR0B = 128;
-  SBI(TIMSK0, OCIE0B);
+  HAL_timer_start(TEMP_TIMER_NUM, TEMP_TIMER_FREQUENCY);
+  ENABLE_TEMPERATURE_INTERRUPT();
 
   // Wait for temperature measurement to settle
   delay(250);
@@ -69,7 +70,11 @@ void Temperature::init() {
  *  - Check new temperature values for MIN/MAX errors
  *  - Step the babysteps value for each axis towards 0
  */
-ISR(TIMER0_COMPB_vect) { Temperature::isr(); }
+HAL_TEMP_TIMER_ISR {
+  HAL_timer_isr_prologue(TEMP_TIMER_NUM);
+  Temperature::isr();
+  HAL_timer_isr_epilogue(TEMP_TIMER_NUM);
+}
 void Temperature::isr() {
   PlasmaState plasma_state = plasmaManager.update();
   torchHeightController.update(plasma_state);

@@ -1,8 +1,7 @@
 #ifndef MACHINE_STATE_H
 #define MACHINE_STATE_H
 
-//TODO Marlin.h not necessary but enum.h doesn't include its own dependencies...
-#include "Marlin.h"
+#include "MarlinConfig.h"
 #include "enum.h"
 
 #define IS_WAITING_FILE  (stateManager.get_state() == waiting_file)

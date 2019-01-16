@@ -314,27 +314,7 @@ inline void sync_plan_position() {
   planner.set_position_mm(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS]);
 }
 
-  #define SYNC_PLAN_POSITION_KINEMATIC() sync_plan_position()
-
-#if ENABLED(SDSUPPORT)
-  #include "SdFatUtil.h"
-  int freeMemory() { return SdFatUtil::FreeRam(); }
-#else
-extern "C" {
-  extern unsigned int __bss_end;
-  extern unsigned int __heap_start;
-  extern void* __brkval;
-
-  int freeMemory() {
-    int free_memory;
-    if ((int)__brkval == 0)
-      free_memory = ((int)&free_memory) - ((int)&__bss_end);
-    else
-      free_memory = ((int)&free_memory) - ((int)__brkval);
-    return free_memory;
-  }
-}
-#endif //!SDSUPPORT
+#define SYNC_PLAN_POSITION_KINEMATIC() sync_plan_position()
 
 #if ENABLED(DIGIPOT_I2C)
   extern void digipot_i2c_set_current(int16_t channel, float current);
@@ -542,13 +522,13 @@ void setup() {
   SERIAL_ECHO_START;
 
   // Check startup - does nothing if bootloader sets MCUSR to 0
-  byte mcu = MCUSR;
-  if (mcu & 1) SERIAL_ECHOLNPGM(MSG_POWERUP);
-  if (mcu & 2) SERIAL_ECHOLNPGM(MSG_EXTERNAL_RESET);
-  if (mcu & 4) SERIAL_ECHOLNPGM(MSG_BROWNOUT_RESET);
-  if (mcu & 8) SERIAL_ECHOLNPGM(MSG_WATCHDOG_RESET);
-  if (mcu & 32) SERIAL_ECHOLNPGM(MSG_SOFTWARE_RESET);
-  MCUSR = 0;
+  // byte mcu = MCUSR;
+  // if (mcu & 1) SERIAL_ECHOLNPGM(MSG_POWERUP);
+  // if (mcu & 2) SERIAL_ECHOLNPGM(MSG_EXTERNAL_RESET);
+  // if (mcu & 4) SERIAL_ECHOLNPGM(MSG_BROWNOUT_RESET);
+  // if (mcu & 8) SERIAL_ECHOLNPGM(MSG_WATCHDOG_RESET);
+  // if (mcu & 32) SERIAL_ECHOLNPGM(MSG_SOFTWARE_RESET);
+  // MCUSR = 0;
 
   SERIAL_ECHOPGM(MSG_MARLIN);
   SERIAL_ECHOLNPGM(" " SHORT_BUILD_VERSION);
@@ -566,8 +546,6 @@ void setup() {
   #endif // STRING_DISTRIBUTION_DATE
 
   SERIAL_ECHO_START;
-  SERIAL_ECHOPGM(MSG_FREE_MEMORY);
-  SERIAL_ECHO(freeMemory());
   SERIAL_ECHOPGM(MSG_PLANNER_BUFFER_BYTES);
   SERIAL_ECHOLN((int16_t)sizeof(block_t)*BLOCK_BUFFER_SIZE);
 
@@ -631,6 +609,7 @@ void setup() {
     #endif
   #endif
 
+  card.initsd();
 }
 
 /**
@@ -1580,7 +1559,6 @@ inline void gcode_M5() {
 
   while (IS_SUSPENDED) idle();
   plasmaManager.stop();
-  lcd_setstatus("Running...");
 
   feedrate_mm_m = saved_feedrate_mm_m;
 }
@@ -2189,7 +2167,7 @@ void kill(const char* lcd_msg) {
     delay(50);
   }
 
-  software_reset();
+  SOFTWARE_RESET
 }
 
 void stop() {

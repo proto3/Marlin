@@ -29,7 +29,10 @@
 
 #define MAX_DIR_DEPTH 10          // Maximum folder depth
 
-#include "SdFile.h"
+#define FILENAME_LENGTH 32
+#define LONG_FILENAME_LENGTH 64
+
+#include "SdFat.h"
 
 #include "types.h"
 #include "enum.h"
@@ -37,12 +40,7 @@
 class CardReader {
 public:
   CardReader();
-
   void initsd();
-  void write_command(char *buf);
-  //files auto[0-9].g on the sd card are performed in a row
-  //this is to delay autostart and hence the initialisaiton of the sd card to some seconds after the normal init, so the device is available quick after a reset
-
   bool openFile(const char* name, bool read, bool push_current=false);
   void openLogFile(char* name);
   void removeFile(char* name);
@@ -72,7 +70,7 @@ public:
   FORCE_INLINE int16_t get() { sdpos = file.curPosition(); return (int16_t)file.read(); }
   FORCE_INLINE void setIndex(int32_t index) { sdpos = index; file.seekSet(index); }
   FORCE_INLINE uint8_t percentDone() { return (isFileOpen() && filesize) ? sdpos / ((filesize + 99) / 100) : 0; }
-  FORCE_INLINE char* getWorkDirName() { workDir.getFilename(filename); return filename; }
+  FORCE_INLINE char* getWorkDirName() {/* workDir.getFilename(filename); */ return filename; }
 
 public:
   bool saving, logging, cardOK, filenameIsDir;

@@ -119,6 +119,8 @@
   #include "pins_SAV_MKI.h"
 #elif MB(TEENSY2)
   #include "pins_TEENSY2.h"
+#elif MB(TEENSY36)
+  #include "pins_TEENSY36.h"
 #elif MB(GEN3_PLUS)
   #include "pins_GEN3_PLUS.h"
 #elif MB(GEN3_MONOLITHIC)

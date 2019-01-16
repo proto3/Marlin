@@ -12,8 +12,7 @@ class TorchHeightController {
     static void set_max_acc_step_s2(uint32_t);
 
     static void update(PlasmaState);
-    static void ovf_isr();
-    static void capt_isr();
+    static void isr();
 
     static int16_t _target_voltage;
     static float _voltage;
@@ -22,7 +21,6 @@ class TorchHeightController {
     static void _reset_PID();
     static void _step_to_safe_pos();
 
-    static bool _counting_up;
     static int32_t _target_speed;
     static int16_t _speed;
     static int16_t _max_acc;
@@ -32,6 +30,8 @@ class TorchHeightController {
     static int32_t _z_top_pos;
     static int32_t _z_bottom_pos;
     static int32_t _safe_pos;
+    static uint16_t target_modulus;
+    static bool pending_modulus_update;
 
     static int16_t _new_target_speed;
     static int16_t _counter;

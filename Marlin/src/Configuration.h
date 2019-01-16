@@ -106,7 +106,7 @@
 // The following define selects which electronics board you have.
 // Please choose the name from boards.h that matches your setup
 #ifndef MOTHERBOARD
-  #define MOTHERBOARD BOARD_RAMPS_14_EFB
+  #define MOTHERBOARD BOARD_TEENSY36
 #endif
 
 // Optional custom name for your RepStrap or other custom machine
@@ -659,16 +659,11 @@
 //=================================== Plasma ==================================
 //=============================================================================
 
-#define PLASMA_CONTROL_PIN  40
-#define PLASMA_TRANSFER_PIN 42
-
 #define PLASMA_CONTROL_INVERTING  true  // set to true to invert the plasma logic.
 #define PLASMA_TRANSFER_INVERTING true  // set to true to invert the transfer logic.
 #define PLASMA_TRANSFER_PULLUP    false // set internal pullup on transfer pin.
 
 #define PLASMA_TRANSFER_TIMEOUT_MS 1000
-
-#define PLASMA_VOLTAGE_PROBE_PIN 13
 
 #define PLASMA_MAX_THC_STEP_S 7000 // set the maximal step frequency for THC module (it's all about CPU capabilities)
 #define PLASMA_THC_RETRACT_MM 30   // set the distance to retract in millimeters when THC is turned off.

@@ -1,6 +1,9 @@
+#include "Marlin.h"
 #include "state.h"
 #include "plasma.h"
 #include "cardreader.h"
+
+State stateManager;
 
 MachineState State::state = waiting_file;
 
@@ -14,7 +17,7 @@ bool State::start(const char *name)
     return false;
   }
 
-  print_job_timer.start();
+  // print_job_timer.start();
   plasmaManager.unlock();
   state = running;
 
@@ -33,7 +36,7 @@ bool State::stop()
 
   plasmaManager.lock();
   quickstop_stepper();
-  print_job_timer.stop();
+  // print_job_timer.stop();
   card.closefile(false);
   state = waiting_file;
 
@@ -51,7 +54,7 @@ bool State::suspend()
   }
 
   plasmaManager.lock();
-  print_job_timer.pause();
+  // print_job_timer.pause();
   state = suspended;
 
   CRITICAL_SECTION_END
@@ -68,7 +71,7 @@ bool State::resume()
   }
 
   plasmaManager.unlock();
-  print_job_timer.start();
+  // print_job_timer.start();
   state = running;
 
   CRITICAL_SECTION_END

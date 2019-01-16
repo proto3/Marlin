@@ -50,8 +50,6 @@
 #include "planner.h"
 #include "ultralcd.h"
 #include "language.h"
-#include "cardreader.h"
-#include "speed_lookuptable.h"
 
 #if HAS_DIGIPOTSS
   #include <SPI.h>
@@ -98,7 +96,7 @@ bool Stepper::axis_locked[NUM_AXIS] = {false, false, false};
 
 uint16_t Stepper::acc_step_rate; // needed for deceleration start point
 uint8_t Stepper::step_loops, Stepper::step_loops_nominal;
-uint16_t Stepper::OCR1A_nominal;
+uint16_t Stepper::timer_nominal;
 
 volatile int32_t Stepper::endstops_trigsteps[3];
 
@@ -144,66 +142,7 @@ volatile int32_t Stepper::endstops_trigsteps[3];
   #define Z_APPLY_STEP(v,Q) Z_STEP_WRITE(v)
 #endif
 
-// intRes = longIn1 * longIn2 >> 24
-// uses:
-// r26 to store 0
-// r27 to store bits 16-23 of the 48bit result. The top bit is used to round the two byte result.
-// note that the lower two bytes and the upper byte of the 48bit result are not calculated.
-// this can cause the result to be out by one as the lower bytes may cause carries into the upper ones.
-// B0 A0 are bits 24-39 and are the returned value
-// C1 B1 A1 is longIn1
-// D2 C2 B2 A2 is longIn2
-//
-#define MultiU24X32toH16(intRes, longIn1, longIn2) \
-  asm volatile ( \
-                 "clr r26 \n\t" \
-                 "mul %A1, %B2 \n\t" \
-                 "mov r27, r1 \n\t" \
-                 "mul %B1, %C2 \n\t" \
-                 "movw %A0, r0 \n\t" \
-                 "mul %C1, %C2 \n\t" \
-                 "add %B0, r0 \n\t" \
-                 "mul %C1, %B2 \n\t" \
-                 "add %A0, r0 \n\t" \
-                 "adc %B0, r1 \n\t" \
-                 "mul %A1, %C2 \n\t" \
-                 "add r27, r0 \n\t" \
-                 "adc %A0, r1 \n\t" \
-                 "adc %B0, r26 \n\t" \
-                 "mul %B1, %B2 \n\t" \
-                 "add r27, r0 \n\t" \
-                 "adc %A0, r1 \n\t" \
-                 "adc %B0, r26 \n\t" \
-                 "mul %C1, %A2 \n\t" \
-                 "add r27, r0 \n\t" \
-                 "adc %A0, r1 \n\t" \
-                 "adc %B0, r26 \n\t" \
-                 "mul %B1, %A2 \n\t" \
-                 "add r27, r1 \n\t" \
-                 "adc %A0, r26 \n\t" \
-                 "adc %B0, r26 \n\t" \
-                 "lsr r27 \n\t" \
-                 "adc %A0, r26 \n\t" \
-                 "adc %B0, r26 \n\t" \
-                 "mul %D2, %A1 \n\t" \
-                 "add %A0, r0 \n\t" \
-                 "adc %B0, r1 \n\t" \
-                 "mul %D2, %B1 \n\t" \
-                 "add %B0, r0 \n\t" \
-                 "clr r1 \n\t" \
-                 : \
-                 "=&r" (intRes) \
-                 : \
-                 "d" (longIn1), \
-                 "d" (longIn2) \
-                 : \
-                 "r26" , "r27" \
-               )
-
-// Some useful constants
-
-#define ENABLE_STEPPER_DRIVER_INTERRUPT()  SBI(TIMSK1, OCIE1A)
-#define DISABLE_STEPPER_DRIVER_INTERRUPT() CBI(TIMSK1, OCIE1A)
+#define MultiU24X32toH16(intRes, longIn1, longIn2) intRes = ((uint64_t)longIn1 * longIn2) >> 24
 
 /**
  *         __________________________
@@ -223,7 +162,6 @@ volatile int32_t Stepper::endstops_trigsteps[3];
  *  The slope of acceleration is calculated using v = u + at where t is the accumulated timer values of the steps so far.
  */
 void Stepper::wake_up() {
-  //  TCNT1 = 0;
   ENABLE_STEPPER_DRIVER_INTERRUPT();
 }
 
@@ -255,8 +193,10 @@ void Stepper::set_directions() {
 
 // "The Stepper Driver Interrupt" - This timer interrupt is the workhorse.
 // It pops blocks from the block_buffer and executes them by pulsing the stepper pins appropriately.
-ISR(TIMER1_COMPA_vect) { Stepper::isr(); }
-
+HAL_STEP_TIMER_ISR {
+  HAL_timer_isr_prologue(STEP_TIMER_NUM);
+  Stepper::isr();
+}
 void Stepper::isr() {
   if (cleaning_buffer_counter) {
     current_block = NULL;
@@ -265,13 +205,14 @@ void Stepper::isr() {
       if ((cleaning_buffer_counter == 1) && (SD_FINISHED_STEPPERRELEASE)) enqueue_and_echo_commands_P(PSTR(SD_FINISHED_RELEASECOMMAND));
     #endif
     cleaning_buffer_counter--;
-    OCR1A = 200;
+    HAL_timer_set_compare(STEP_TIMER_NUM, 200);
     return;
   }
 
   // If there is no current block, attempt to pop one from the buffer
   if (!current_block) {
     // Anything in the buffer?
+
     current_block = planner.get_current_block();
     if (current_block) {
       current_block->busy = true;
@@ -285,13 +226,13 @@ void Stepper::isr() {
       #if ENABLED(Z_LATE_ENABLE)
         if (current_block->steps[Z_AXIS] > 0) {
           enable_z();
-          OCR1A = 2000; //1ms wait
+          HAL_timer_set_compare(STEP_TIMER_NUM, STEPPER_TIMER_RATE / 1000); //1ms wait
           return;
         }
       #endif
     }
     else {
-      OCR1A = 2000; // 1kHz.
+      HAL_timer_set_compare(STEP_TIMER_NUM, STEPPER_TIMER_RATE / 1000); // 1kHz.
     }
   }
 
@@ -320,6 +261,8 @@ void Stepper::isr() {
       STEP_ADD(X);
       STEP_ADD(Y);
       STEP_ADD(Z);
+
+      delayMicroseconds(3);
 
       #define STEP_IF_COUNTER(AXIS) \
         if (_COUNTER(AXIS) > 0) { \
@@ -351,7 +294,7 @@ void Stepper::isr() {
 
       // step_rate to timer interval
       timer = calc_timer(acc_step_rate);
-      OCR1A = timer;
+      HAL_timer_set_compare(STEP_TIMER_NUM, timer);
       acceleration_time += timer;
 
 
@@ -368,16 +311,16 @@ void Stepper::isr() {
 
       // step_rate to timer interval
       timer = calc_timer(step_rate);
-      OCR1A = timer;
+      HAL_timer_set_compare(STEP_TIMER_NUM, timer);
       deceleration_time += timer;
     }
     else {
-      OCR1A = OCR1A_nominal;
+      HAL_timer_set_compare(STEP_TIMER_NUM, timer_nominal);
       // ensure we're running at the correct step rate, even if we just came off an acceleration
       step_loops = step_loops_nominal;
     }
 
-    OCR1A = (OCR1A < (TCNT1 + 16)) ? (TCNT1 + 16) : OCR1A;
+    // OCR1A = (OCR1A < (TCNT1 + 16)) ? (TCNT1 + 16) : OCR1A;
 
     // If current block is finished, reset pointer
     if (step_events_completed >= current_block->step_event_count) {
@@ -484,24 +427,7 @@ void Stepper::init() {
     AXIS_INIT(z, Z, Z);
   #endif
 
-  // waveform generation = 0100 = CTC
-  CBI(TCCR1B, WGM13);
-  SBI(TCCR1B, WGM12);
-  CBI(TCCR1A, WGM11);
-  CBI(TCCR1A, WGM10);
-
-  // output mode = 00 (disconnected)
-  TCCR1A &= ~(3 << COM1A0);
-  TCCR1A &= ~(3 << COM1B0);
-  // Set the timer pre-scaler
-  // Generally we use a divider of 8, resulting in a 2MHz timer
-  // frequency on a 16MHz MCU. If you are going to change this, be
-  // sure to regenerate speed_lookuptable.h with
-  // create_speed_lookuptable.py
-  TCCR1B = (TCCR1B & ~(0x07 << CS10)) | (2 << CS10);
-
-  OCR1A = 0x4000;
-  TCNT1 = 0;
+  HAL_timer_start(STEP_TIMER_NUM, 100);
   ENABLE_STEPPER_DRIVER_INTERRUPT();
 
   endstops.enable(true); // Start with endstops active. After homing they can be disabled

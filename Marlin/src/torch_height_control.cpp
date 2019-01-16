@@ -2,10 +2,9 @@
 #include "ADS1015.h"
 #include "stepper.h"
 
-#define PAUSE_TIMER4  TCCR4B = _BV(WGM43);
-#define RESUME_TIMER4 TCCR4B = _BV(WGM43) | _BV(CS41) | _BV(CS40);
+#define PAUSE_TIMER   FTM2_SC = 0x00
+#define RESUME_TIMER  FTM2_SC = (FTM_SC_CLKS(0b1) & FTM_SC_CLKS_MASK) | (FTM_SC_PS(FTM2_TIMER_PRESCALE_BITS) & FTM_SC_PS_MASK) | FTM_SC_TOIE
 
-bool TorchHeightController::_counting_up = true;
 int16_t TorchHeightController::_target_voltage = 130;
 float TorchHeightController::_voltage = -1.0;
 int32_t TorchHeightController::_target_speed = 0;
@@ -17,6 +16,8 @@ uint32_t TorchHeightController::_retract_mm = PLASMA_THC_RETRACT_MM;
 int32_t TorchHeightController::_z_top_pos = 0;
 int32_t TorchHeightController::_z_bottom_pos = 0;
 int32_t TorchHeightController::_safe_pos = 0;
+uint16_t TorchHeightController::target_modulus = 0xFFFF;
+bool TorchHeightController::pending_modulus_update = false;
 
 int16_t TorchHeightController::_new_target_speed = 25000;
 int16_t TorchHeightController::_counter = 0;
@@ -29,18 +30,9 @@ void TorchHeightController::init()
   _z_top_pos = sw_endstop_max[Z_AXIS] * planner.axis_steps_per_mm[Z_AXIS];
   _z_bottom_pos = 0;
 
-  // Set maximal period (considered as speed = 0)
-  ICR4 = 0xFFFF;
-
-  // Phase correct PWM mode with ICR4 on TOP, prescaler 64
-  TCCR4A = _BV(WGM41);
-  TCCR4B = _BV(WGM43);
-
-  // Init counter to maxval to mean last Z step is at least this old
-  TCNT4 = 0xFFFF;
-
-  // allow interrupts
-  TIMSK4 = _BV(TOIE4) | _BV(ICF4);
+  HAL_timer_start(THC_TIMER_NUM, 0x1234);
+  HAL_timer_set_compare(THC_TIMER_NUM, 0xFFFF);
+  ENABLE_THC_INTERRUPT();
 }
 //----------------------------------------------------------------------------//
 void TorchHeightController::enable()
@@ -84,7 +76,7 @@ void TorchHeightController::_step_to_safe_pos()
       _dir = 1;
       Z_DIR_WRITE(INVERT_Z_DIR ^ (_dir > 0));
       Z_STEP_WRITE(!INVERT_Z_STEP_PIN);
-      delayMicroseconds(2);
+      delayMicroseconds(3);
       stepper.shift_z_position(_dir);
       Z_STEP_WRITE(INVERT_Z_STEP_PIN);
     }
@@ -172,15 +164,26 @@ void TorchHeightController::update(PlasmaState plasma_state)
   if(freq == 0)
     period = 0xFFFF;
   else
-    period = min(250000 / freq, 0xFFFF);
+    period = min(THC_TIMER_RATE / freq, 0xFFFF);
 
-  PAUSE_TIMER4;
+  PAUSE_TIMER;
   Z_DIR_WRITE(INVERT_Z_DIR ^ (_dir > 0));
-  uint16_t elapsed = _counting_up ? TCNT4 : ICR4 - TCNT4;
+  uint16_t elapsed = FTM2_CNT - 1;
   uint16_t rest = elapsed > period ? 0 : period - elapsed;
-  ICR4 = period;
-  TCNT4 = _counting_up ? period - rest : rest;
-  RESUME_TIMER4;
+
+  if(rest == 0)
+  {
+    target_modulus = period;
+    pending_modulus_update = true;
+    FTM2_MOD = FTM2_CNT;
+    FTM2_CNT = 0x1234;
+  }
+  else
+  {
+    FTM2_MOD = period;
+  }
+
+  RESUME_TIMER;
 }
 //----------------------------------------------------------------------------//
 void TorchHeightController::set_mm_to_retract(uint32_t mm)
@@ -201,36 +204,28 @@ void TorchHeightController::_reset_PID()
   _counter = 100;
 }
 //----------------------------------------------------------------------------//
-ISR(TIMER4_OVF_vect){ TorchHeightController::ovf_isr(); }
-void TorchHeightController::ovf_isr()
-{
-  if(ICR4 == 0xFFFF)
-  {
-    PAUSE_TIMER4;
-  }
-  else
-  {
-    Z_STEP_WRITE(!INVERT_Z_STEP_PIN);
-    _counting_up = true;
-    stepper.shift_z_position(_dir);
-    delayMicroseconds(2);
-    Z_STEP_WRITE(INVERT_Z_STEP_PIN);
-  }
+HAL_THC_TIMER_ISR {
+  HAL_timer_isr_prologue(THC_TIMER_NUM);
+  TorchHeightController::isr();
 }
-//----------------------------------------------------------------------------//
-ISR(TIMER4_CAPT_vect){ TorchHeightController::capt_isr(); }
-void TorchHeightController::capt_isr()
+void TorchHeightController::isr()
 {
-  if(ICR4 == 0xFFFF)
+  if(FTM2_MOD == 0xFFFF)
   {
-    PAUSE_TIMER4;
+      PAUSE_TIMER;
   }
   else
   {
+    if(pending_modulus_update)
+    {
+      PAUSE_TIMER;
+      FTM2_MOD = target_modulus;
+      pending_modulus_update = false;
+      RESUME_TIMER;
+    }
     Z_STEP_WRITE(!INVERT_Z_STEP_PIN);
-    _counting_up = false;
     stepper.shift_z_position(_dir);
-    delayMicroseconds(2);
+    delayMicroseconds(3);
     Z_STEP_WRITE(INVERT_Z_STEP_PIN);
   }
 }

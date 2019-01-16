@@ -43,39 +43,17 @@
 #ifndef STEPPER_H
 #define STEPPER_H
 
+#include "Marlin.h"
 #include "planner.h"
-#include "speed_lookuptable.h"
 #include "stepper_indirection.h"
 #include "language.h"
 #include "types.h"
+#include "HAL_timers_Teensy.h"
 
 class Stepper;
 extern Stepper stepper;
 
-// intRes = intIn1 * intIn2 >> 16
-// uses:
-// r26 to store 0
-// r27 to store the byte 1 of the 24 bit result
-#define MultiU16X8toH16(intRes, charIn1, intIn2) \
-  asm volatile ( \
-                 "clr r26 \n\t" \
-                 "mul %A1, %B2 \n\t" \
-                 "movw %A0, r0 \n\t" \
-                 "mul %A1, %A2 \n\t" \
-                 "add %A0, r1 \n\t" \
-                 "adc %B0, r26 \n\t" \
-                 "lsr r0 \n\t" \
-                 "adc %A0, r26 \n\t" \
-                 "adc %B0, r26 \n\t" \
-                 "clr r1 \n\t" \
-                 : \
-                 "=&r" (intRes) \
-                 : \
-                 "d" (charIn1), \
-                 "d" (intIn2) \
-                 : \
-                 "r26" \
-               )
+#define MultiU16X8toH16(intRes, charIn1, intIn2) intRes = ((uint32_t)charIn1 * intIn2) >> 16
 
 class Stepper {
 
@@ -108,7 +86,7 @@ class Stepper {
     //uint32_t accelerate_until, decelerate_after, acceleration_rate, initial_rate, final_rate, nominal_rate;
     static uint16_t acc_step_rate; // needed for deceleration start point
     static uint8_t step_loops, step_loops_nominal;
-    static unsigned short OCR1A_nominal;
+    static uint16_t timer_nominal;
 
     static volatile int32_t endstops_trigsteps[3];
     static volatile int32_t endstops_stepsTotal, endstops_stepsDone;
@@ -251,43 +229,51 @@ class Stepper {
 
   private:
 
-    static FORCE_INLINE unsigned short calc_timer(unsigned short step_rate) {
-      unsigned short timer;
+    static FORCE_INLINE uint16_t calc_timer(uint16_t step_rate) {
+      uint16_t timer;
 
       NOMORE(step_rate, MAX_STEP_FREQUENCY);
 
-      if (step_rate > 20000) { // If steprate > 20kHz >> step 4 times
-        step_rate >>= 2;
-        step_loops = 4;
-      }
-      else if (step_rate > 10000) { // If steprate > 10kHz >> step 2 times
-        step_rate >>= 1;
-        step_loops = 2;
-      }
-      else {
+      // if (step_rate > 20000) { // If steprate > 20kHz >> step 4 times
+      //   step_rate >>= 2;
+      //   step_loops = 4;
+      // }
+      // else if (step_rate > 10000) { // If steprate > 10kHz >> step 2 times
+      //   step_rate >>= 1;
+      //   step_loops = 2;
+      // }
+      // else {
         step_loops = 1;
-      }
+      // }
 
-      NOLESS(step_rate, F_CPU / 500000);
-      step_rate -= F_CPU / 500000; // Correct for minimal speed
-      if (step_rate >= (8 * 256)) { // higher step rate
-        unsigned short table_address = (unsigned short)&speed_lookuptable_fast[(unsigned char)(step_rate >> 8)][0];
-        unsigned char tmp_step_rate = (step_rate & 0x00ff);
-        unsigned short gain = (unsigned short)pgm_read_word_near(table_address + 2);
-        MultiU16X8toH16(timer, tmp_step_rate, gain);
-        timer = (unsigned short)pgm_read_word_near(table_address) - timer;
-      }
-      else { // lower step rates
-        unsigned short table_address = (unsigned short)&speed_lookuptable_slow[0][0];
-        table_address += ((step_rate) >> 1) & 0xfffc;
-        timer = (unsigned short)pgm_read_word_near(table_address);
-        timer -= (((unsigned short)pgm_read_word_near(table_address + 2) * (unsigned char)(step_rate & 0x0007)) >> 3);
-      }
+      // if(step_rate == 10000)
+      //   return 187;
+
+
+      step_rate *= 10000.0/9855;
+
+      NOLESS(step_rate, 60);
+      step_rate -= 60; // Correct for minimal speed
+      timer = round((float)STEPPER_TIMER_RATE / step_rate);
+      // if (step_rate >= (8 * 256)) { // higher step rate
+      //   uint32_t table_address = (uint32_t)&speed_lookuptable_fast[(uint8_t)(step_rate >> 8)][0];
+      //   uint8_t tmp_step_rate = (step_rate & 0x00ff);
+      //   uint16_t gain = (uint16_t)pgm_read_word_near(table_address + 2);
+      //   MultiU16X8toH16(timer, tmp_step_rate, gain);
+      //   timer = (uint16_t)pgm_read_word_near(table_address) - timer;
+      // }
+      // else { // lower step rates
+      //   uint32_t table_address = (uint32_t)&speed_lookuptable_slow[0][0];
+      //   table_address += ((step_rate) >> 1) & 0xfffc;
+      //   timer = (uint16_t)pgm_read_word_near(table_address);
+      //   timer -= (((uint16_t)pgm_read_word_near(table_address + 2) * (uint8_t)(step_rate & 0x0007)) >> 3);
+      // }
       if (timer < 100) { // (20kHz - this should never happen)
         timer = 100;
         MYSERIAL.print(MSG_STEPPER_TOO_HIGH);
         MYSERIAL.println(step_rate);
       }
+
       return timer;
     }
 
@@ -302,12 +288,12 @@ class Stepper {
 
       deceleration_time = 0;
       // step_rate to timer interval
-      OCR1A_nominal = calc_timer(current_block->nominal_rate);
+      timer_nominal = calc_timer(current_block->nominal_rate);
       // make a note of the number of step loops required at nominal speed
       step_loops_nominal = step_loops;
       acc_step_rate = current_block->initial_rate;
       acceleration_time = calc_timer(acc_step_rate);
-      OCR1A = acceleration_time;
+      HAL_timer_set_compare(STEP_TIMER_NUM, acceleration_time);
 
       // SERIAL_ECHO_START;
       // SERIAL_ECHOPGM("advance :");
