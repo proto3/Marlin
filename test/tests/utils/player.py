@@ -5,17 +5,13 @@ import saleae
 from enum import Enum
 
 class Port(Enum):
-    K = 1
-    F = 2
-    B = 3
+    B = 1
+    D = 2
 
 class Player:
     clock_period_ms = 10
-    portf = 255
-    portk = 255
-    joy_x = 0
-    joy_y = 0
-    thc = 0
+    portb = 255
+    portd = 255
 
     def __init__(self, output_basename, device='/dev/ttyUSB0', baudrate=115200, use_cache=False):
         self.output_basename = output_basename
@@ -76,18 +72,16 @@ class Player:
 
     def _set_pin(self, port, pin, val):
         if not val is None:
-            if(port == Port.K):
+            if(port == Port.B):
                 if(val):
-                    self.portk |= 1 << pin
+                    self.portb |= 1 << pin
                 else:
-                    self.portk &= ~(1 << pin)
-            elif(port == Port.F):
+                    self.portb &= ~(1 << pin)
+            elif(port == Port.D):
                 if(val):
-                    self.portf |= 1 << pin
+                    self.portd |= 1 << pin
                 else:
-                    self.portf &= ~(1 << pin)
-            # elif(port == Port.B):
-            #     pass
+                    self.portd &= ~(1 << pin)
 
     def _add_step(self, timestamp,
         rot_push = None,
@@ -100,41 +94,24 @@ class Player:
         end_z    = None,
         transfer = None,
         ohm_pr   = None,
-        t_mnt    = None,
-        joy_x    = None,
-        joy_y    = None,
-        thc      = None):
+        t_mnt    = None):
         self.nb_step_loaded += 1
 
-        self._set_pin(Port.K, 0, rot_push)
-        self._set_pin(Port.K, 1, rot_a)
-        self._set_pin(Port.K, 2, rot_b)
-        self._set_pin(Port.K, 3, kill)
-        self._set_pin(Port.K, 4, reset)
+        self._set_pin(Port.B, 0, rot_push)
+        self._set_pin(Port.B, 2, rot_a)
+        self._set_pin(Port.B, 1, rot_b)
+        self._set_pin(Port.B, 3, kill)
+        self._set_pin(Port.B, 4, reset)
 
-        self._set_pin(Port.F, 0, end_x)
-        self._set_pin(Port.F, 1, end_y)
-        self._set_pin(Port.F, 2, end_z)
-
-        self._set_pin(Port.F, 3, transfer)
-        self._set_pin(Port.F, 4, ohm_pr)
-        self._set_pin(Port.F, 5, t_mnt)
-
-        # if not joy_x is None:
-        #     if joy_x : self._set_pin(Port.B, 0) else : self._unset_pin(Port.B, 0)
-        # if not joy_y is None:
-        #     if joy_y : self._set_pin(Port.B, 1) else : self._unset_pin(Port.B, 1)
-        # if not thc is None:
-        #     if thc : self._set_pin(Port.B, 2) else : self._unset_pin(Port.B, 2)
+        self._set_pin(Port.D, 2, ohm_pr)
+        self._set_pin(Port.D, 3, end_z)
+        self._set_pin(Port.D, 4, end_y)
+        self._set_pin(Port.D, 5, end_x)
+        self._set_pin(Port.D, 6, t_mnt)
+        self._set_pin(Port.D, 7, transfer)
 
         if(not self.use_cache):
-            self._send(str(timestamp)  + " " +
-                str(self.portf) + " " +
-                str(self.portk) + " " +
-                str(self.joy_x) + " " +
-                str(self.joy_y) + " " +
-                str(self.thc))
-
+            self._send(str(timestamp)  + " " + str(self.portb) + " " + str(self.portd))
             time.sleep(0.1)
 
     def run(self):
