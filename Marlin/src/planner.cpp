@@ -202,7 +202,7 @@ void Planner::reverse_pass_kernel(block_t* previous, block_t* current, block_t* 
  */
 void Planner::reverse_pass() {
 
-  if (movesplanned() > 3) {
+  if (movesplanned() > 0) {
 
     block_t* block[3] = { NULL, NULL, NULL };
 
@@ -211,7 +211,7 @@ void Planner::reverse_pass() {
       uint8_t tail = block_buffer_tail;
     CRITICAL_SECTION_END
 
-    uint8_t b = BLOCK_MOD(block_buffer_head - 3);
+    uint8_t b = BLOCK_MOD(block_buffer_head);
     while (b != tail) {
       b = prev_block_index(b);
       block[2] = block[1];
