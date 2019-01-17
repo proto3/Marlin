@@ -49,6 +49,8 @@ if __name__ == '__main__':
     test_name = os.path.splitext(sys.argv[1])[0]
 
     data = decoder.decode(test_name + '.bin')
+    # decoder.apply_autohome(data, 7200 + 2)
+    # data[3] += 10000
 
     # duplicate values to not interpolate value but draw stair-step curves instead
     a = np.delete(np.repeat(np.take(data, [0], axis=0), 2, axis=1),0, axis=1)
