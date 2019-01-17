@@ -23,7 +23,9 @@ class Test:
         assert decoder.move_cumul_up(slice, 3) == 0
 
         # z retract 3mm on probing
-        slice = decoder.from_to(self.timeline, self.events[21] + 2, self.events[22])
+        slice = decoder.from_to(self.timeline, self.events[21], self.events[21] + 2)
+        min_pos_time = decoder.when_is_lowest_position_reached(slice, 3)
+        slice = decoder.from_to(self.timeline, min_pos_time, self.events[22])
         assert decoder.move_cumul_up(slice, 3) == 300
         assert decoder.move_cumul_down(slice, 3) == 0
 
@@ -55,7 +57,9 @@ class Test:
         assert decoder.move_cumul_up(slice, 3) == 0
 
         # z retract 3mm on probing
-        slice = decoder.from_to(self.timeline, self.events[29] + 2, self.events[30])
+        slice = decoder.from_to(self.timeline, self.events[29], self.events[29] + 2)
+        min_pos_time = decoder.when_is_lowest_position_reached(slice, 3)
+        slice = decoder.from_to(self.timeline, min_pos_time, self.events[30])
         assert decoder.move_cumul_up(slice, 3) == 300
         assert decoder.move_cumul_down(slice, 3) == 0
 

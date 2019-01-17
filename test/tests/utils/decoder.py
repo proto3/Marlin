@@ -143,6 +143,12 @@ def min_pos(timeline, axis):
 def max_pos(timeline, axis):
     return np.max(timeline[axis])
 
+def when_is_highest_position_reached(timeline, axis):
+    return timeline[0][np.argmax(timeline[axis])] / 1000
+
+def when_is_lowest_position_reached(timeline, axis):
+    return timeline[0][np.argmin(timeline[axis])] / 1000
+
 def when_is_position_reached(timeline, x, y, z):
     x_valid = np.take(timeline, 1, axis=0) == x
     y_valid = np.take(timeline, 2, axis=0) == y

@@ -25,7 +25,9 @@ class Test:
         assert decoder.move_cumul_down(slice, 3) == 0
 
         # z move 3mm up
-        slice = decoder.from_to(self.timeline, self.events[17] + 2, self.events[17] + 200)
+        slice = decoder.from_to(self.timeline, self.events[17], self.events[17] + 2)
+        min_pos_time = decoder.when_is_lowest_position_reached(slice, 3)
+        slice = decoder.from_to(self.timeline, min_pos_time, self.events[17] + 200)
         assert decoder.move_cumul_up(slice, 3) == 300
 
         # z move down to 80mm and up to 100mm
