@@ -920,7 +920,7 @@
 #if ENABLED(AUTO_BED_LEVELING_LINEAR) || ENABLED(AUTO_BED_LEVELING_BILINEAR)
 
   // Set the number of grid points per dimension.
-  #define GRID_MAX_POINTS_X 5
+  #define GRID_MAX_POINTS_X 7
   #define GRID_MAX_POINTS_Y GRID_MAX_POINTS_X
 
   // Set the boundaries for probing (where the probe can reach).
@@ -1044,8 +1044,8 @@
 #define Z_SAFE_HOMING
 
 #if ENABLED(Z_SAFE_HOMING)
-  #define Z_SAFE_HOMING_X_POINT 10 // X point for Z homing when homing all axes (G28).
-  #define Z_SAFE_HOMING_Y_POINT 10 // Y point for Z homing when homing all axes (G28).
+  #define Z_SAFE_HOMING_X_POINT 30 // X point for Z homing when homing all axes (G28).
+  #define Z_SAFE_HOMING_Y_POINT 30 // Y point for Z homing when homing all axes (G28).
 #endif
 
 // Homing speeds (mm/m)
