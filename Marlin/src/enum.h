@@ -81,22 +81,12 @@ enum EndstopEnum {
  * Plasma states
  */
  enum PlasmaState {
-   Locked,
    Off,
    Ignition,
    Established,
-   Lost
+   Established_THC,
+   Slowdown_THC
  };
-
- /**
-  * THC states
-  */
-  enum THCState {
-    Enabled,
-    Disabled,
-    Disabling
-  };
-
 
 #if ENABLED(EMERGENCY_PARSER)
   enum e_parser_state {

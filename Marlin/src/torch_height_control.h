@@ -2,14 +2,12 @@
 #define TORCH_HEIGHT_CONTROL_H
 
 #include "Marlin.h"
-#include "enum.h"
 
 class TorchHeightController {
   public:
     static void init();
     static void enable();
-    static void disable();
-    static THCState get_state();
+    static bool disable();
     static void set_max_acc_step_s2(unsigned long);
 
     static void update(PlasmaState);
@@ -18,8 +16,8 @@ class TorchHeightController {
 
   private:
     static void _reset_PID();
+    static void _step_to_safe_pos();
 
-    static THCState _state;
     static bool _counting_up;
     static int32_t _target_speed;
     static int16_t _speed;

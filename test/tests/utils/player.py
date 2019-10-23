@@ -235,7 +235,7 @@ class Player:
     def ohmic_probe(self):
         self.add_event("ohmic probe")
         self._add_step(self.next_slot, ohm_pr=0)
-        self.next_slot += 10
+        self.next_slot += 1
         self._add_step(self.next_slot, ohm_pr=1)
         self.next_slot += 1
 

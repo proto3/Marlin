@@ -100,7 +100,6 @@
  * G21 - Set input units to millimeters
  * G28 - Home one or more axes
  * G29 - Detailed Z probe, probes the bed at 3 or more points.  Will fail if you haven't homed yet.
- * G30 - Do a Z ohmic probe at the current XY.
  * G31 - Dock sled (Z_PROBE_SLED only)
  * G32 - Undock sled (Z_PROBE_SLED only)
  * G90 - Use Absolute Coordinates
@@ -110,10 +109,8 @@
  * "M" Codes
  *
  * M0   - Unconditional stop - Wait for user to press a button on the LCD (Only if ULTRA_LCD is enabled)
- * M3   - Start plasma torch and wait for arc transfer
- * M5   - Stop plasma torch
- * M6   - Switch Torch Height Control on.
- * M7   - Switch Torch Height Control off.
+ * M3   - Plasma ignition sequence (probe, arc, pierce, THC on)
+ * M5   - Plasma stop sequence (stop and retract)
  * M75  - Start the print job timer
  * M76  - Pause the print job timer
  * M77  - Stop the print job timer
@@ -1192,7 +1189,7 @@ void unknown_command_error() {
  */
 inline void gcode_G0_G1() {
   if (IsRunning()) {
-    while(torchHeightController.get_state() == Disabling) { idle(); }
+    while(plasmaManager.get_state() == Slowdown_THC) { idle(); }
     ABORT_IF_UNHOMED;
 
     gcode_get_destination(); // For X Y Z E F
@@ -1335,17 +1332,17 @@ inline void gcode_G4() {
  *
  */
 inline void gcode_G28() {
-  THCState thc_state = torchHeightController.get_state();
+  while(plasmaManager.get_state() == Slowdown_THC) { idle(); }
 
-  if(thc_state == Enabled)
+  if(plasmaManager.get_state() != Off)
   {
-    lcd_setstatus("Stop: G28 while THC.");
+    lcd_setstatus("Stop: G28 while plasma activated.");
     stateManager.stop();
   }
-
-  while(thc_state == Disabling) { idle(); }
-
-  autohome(code_seen('X'), code_seen('Y'), code_seen('Z'));
+  else
+  {
+    autohome(code_seen('X'), code_seen('Y'), code_seen('Z'));
+  }
 }
 
 void autohome(bool homeX, bool homeY, bool homeZ)
@@ -1411,44 +1408,6 @@ void autohome(bool homeX, bool homeY, bool homeZ)
     SERIAL_PROTOCOLLNPGM(" position out of range.");
   }
 #endif
-
-/**
- * G30: Do a Z ohmic probe at the current XY
- */
-inline void gcode_G30() {
-  THCState thc_state = torchHeightController.get_state();
-
-  if(thc_state == Enabled)
-  {
-    lcd_setstatus("Stop: G30 while THC.");
-    stateManager.stop();
-  }
-
-  while(thc_state == Disabling) { idle(); }
-
-  ABORT_IF_UNHOMED;
-
-  stepper.synchronize();
-  endstops.enable(true);
-  line_to_axis_pos(Z_AXIS, 0, HOMING_FEEDRATE_Z);
-
-  stepper.synchronize();
-  if(TEST(endstops.endstop_hit_bits, Z_MIN))
-    current_position[Z_AXIS] = stepper.triggered_position_mm(Z_AXIS);
-  else
-    current_position[Z_AXIS] = 0;
-  sync_plan_position();
-
-  endstops.not_homing();
-  endstops.hit_on_purpose();
-
-  // retract
-  if(code_seen('R'))
-  {
-    destination[Z_AXIS] = code_value_float() + current_position[Z_AXIS];
-    prepare_move_to_destination();
-  }
-}
 
 /**
  * G92: Set current position to given X Y Z
@@ -1523,10 +1482,41 @@ inline void gcode_G92() {
   }
 #endif // ULTIPANEL
 
+void ohmic_probing() {
+  endstops.enable(true);
+  line_to_axis_pos(Z_AXIS, 0, HOMING_FEEDRATE_Z);
+
+  stepper.synchronize();
+  if(TEST(endstops.endstop_hit_bits, Z_MIN))
+    current_position[Z_AXIS] = stepper.triggered_position_mm(Z_AXIS);
+  else
+    current_position[Z_AXIS] = 0;
+  sync_plan_position();
+
+  endstops.not_homing();
+  endstops.hit_on_purpose();
+
+  // retract
+  if(code_seen('R'))
+  {
+    destination[Z_AXIS] = code_value_float() + current_position[Z_AXIS];
+    prepare_move_to_destination();
+  }
+}
+
 /**
  * M3: Start plasma torch and wait for arc transfer
  */
 inline void gcode_M3() {
+  stepper.synchronize();
+  ABORT_IF_UNHOMED;
+
+  while(plasmaManager.get_state() == Slowdown_THC)
+    idle();
+  if(plasmaManager.get_state() != Off)
+    return;
+
+  ohmic_probing();
   stepper.synchronize();
 
   while(true) {
@@ -1534,7 +1524,7 @@ inline void gcode_M3() {
       millis_t transfer_timeout = PLASMA_TRANSFER_TIMEOUT_MS;
       transfer_timeout += previous_cmd_ms;
 
-      if(!plasmaManager.start())
+      if(!plasmaManager.ignite())
         return;
 
       KEEPALIVE_STATE(PAUSED_FOR_INPUT);
@@ -1546,6 +1536,8 @@ inline void gcode_M3() {
         }
         if(plasma_state == Established)
         {
+          gcode_G4();
+          plasmaManager.activate_thc();
           lcd_setstatus("Running...");
           return;
         }
@@ -1573,7 +1565,7 @@ inline void gcode_M5() {
   plasmaManager.stop_after_move();
   stepper.synchronize();
 
-  if(plasmaManager.get_state() == Lost)
+  if(plasmaManager.is_lost())
   {
     lcd_setstatus("Paused, plasma stopped.");
     stateManager.suspend();
@@ -1587,23 +1579,6 @@ inline void gcode_M5() {
   while (IS_SUSPENDED) idle();
   plasmaManager.stop();
   lcd_setstatus("Running...");
-}
-
-/**
- * M6: Switch Torch Height Control on.
- */
-inline void gcode_M6() {
-  ABORT_IF_UNHOMED;
-  stepper.synchronize();
-  torchHeightController.enable();
-}
-
-/**
- * M7: Switch Torch Height Control off.
- */
-inline void gcode_M7() {
-  stepper.synchronize();
-  torchHeightController.disable();
 }
 
 /**
@@ -1759,10 +1734,6 @@ void process_command(char* cmd) {
         gcode_G28();
         break;
 
-      case 30: // G30 Do a ohmic probe
-        gcode_G30();
-        break;
-
       case 90: // G90
         relative_mode = false;
         break;
@@ -1788,14 +1759,6 @@ void process_command(char* cmd) {
 
       case 5: //Stop plasma torch
         gcode_M5();
-        break;
-
-      case 6: //Torch Heigth control on
-        gcode_M6();
-        break;
-
-      case 7: //Torch Heigth control off
-        gcode_M7();
         break;
 
       case 75: // Start print timer

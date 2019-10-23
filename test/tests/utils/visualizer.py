@@ -9,9 +9,9 @@ import decoder
 class MainWidget(QtGui.QWidget):
     def __init__(self):
         super().__init__()
-        plot = pg.PlotWidget()
+        self.plot = pg.PlotWidget()
 
-        plot.addLegend(size=(80,50))
+        self.plot.addLegend(size=(80,50))
         self.curve_x = pg.PlotCurveItem(data[0], data[1], pen=pg.mkPen(color=(0x2E, 0x86, 0xAB), width=2), name='X')
         self.curve_y = pg.PlotCurveItem(data[0], data[2], pen=pg.mkPen(color=(0xF0, 0x87, 0x00), width=2), name='Y')
         self.curve_z = pg.PlotCurveItem(data[0], data[3], pen=pg.mkPen(color=(0x8A, 0xC9, 0x26), width=2), name='Z')
@@ -20,26 +20,26 @@ class MainWidget(QtGui.QWidget):
         self.fillLevel = pg.PlotCurveItem([0, data[0][-1]], [0, 0])
         self.cut = pg.FillBetweenItem(curve1=self.curve_p, curve2=self.fillLevel, brush=pg.mkBrush(color=(0xFF, 0x64, 0x16, 80)))
 
-        plot.addItem(self.curve_x)
-        plot.addItem(self.curve_y)
-        plot.addItem(self.curve_z)
-        plot.addItem(self.cut)
+        self.plot.addItem(self.curve_x)
+        self.plot.addItem(self.curve_y)
+        self.plot.addItem(self.curve_z)
+        self.plot.addItem(self.cut)
 
         for event in events:
             self.marker = pg.InfiniteLine(pos=int(event[0])*10000, pen=pg.mkPen(color=(0xF0, 0x57, 0x00), width=1), label=event[1])
-            plot.addItem(self.marker)
+            self.plot.addItem(self.marker)
 
         self.marker = pg.InfiniteLine(pos=data[0][-1], pen=pg.mkPen(color=(0xF0, 0x57, 0x00), width=1), movable=True, label='t : {value:.0f}')
-        plot.addItem(self.marker)
+        self.plot.addItem(self.marker)
 
         grid_alpha = 70
-        x = plot.getAxis("bottom")
-        y = plot.getAxis("left")
+        x = self.plot.getAxis("bottom")
+        y = self.plot.getAxis("left")
         x.setGrid(grid_alpha)
         y.setGrid(grid_alpha)
 
         layout = QtGui.QVBoxLayout()
-        layout.addWidget(plot)
+        layout.addWidget(self.plot)
         self.setLayout(layout)
 
 if __name__ == '__main__':
@@ -49,7 +49,7 @@ if __name__ == '__main__':
     test_name = os.path.splitext(sys.argv[1])[0]
 
     data = decoder.decode(test_name + '.bin')
-    # decoder.apply_autohome(data, 7200 + 2)
+    # decoder.apply_autohome(data, 5400 + 2)
     # data[3] += 10000
 
     # duplicate values to not interpolate value but draw stair-step curves instead

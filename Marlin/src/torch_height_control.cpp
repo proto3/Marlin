@@ -5,7 +5,6 @@
 #define PAUSE_TIMER4  TCCR4B = _BV(WGM43);
 #define RESUME_TIMER4 TCCR4B = _BV(WGM43) | _BV(CS41) | _BV(CS40);
 
-THCState TorchHeightController::_state = Disabled;
 bool TorchHeightController::_counting_up = true;
 int32_t TorchHeightController::_target_speed = 0;
 int16_t TorchHeightController::_speed = 0;
@@ -46,90 +45,87 @@ void TorchHeightController::enable()
   Z_ENABLE_WRITE(Z_ENABLE_ON);
 
   _reset_PID();
-
-  _state = Enabled;
 }
 //----------------------------------------------------------------------------//
-void TorchHeightController::disable()
+bool TorchHeightController::disable()
 {
-  _target_speed = 0;
-  if(_state == Enabled)
-    _state = Disabling;
+  if(stepper.position(Z_AXIS) == _z_top_pos)
+  {
+    // Z have stopped, give back Z control to stepper class
+    current_position[Z_AXIS] = sw_endstop_max[Z_AXIS];
+    planner.set_z_position_step(_z_top_pos);
+    stepper.take_control_on(Z_AXIS);
+    return true;
+  }
+  else
+  {
+    return false;
+  }
 }
 //----------------------------------------------------------------------------//
-THCState TorchHeightController::get_state()
+void TorchHeightController::_step_to_safe_pos()
 {
-  return _state;
+  long z_pos = stepper.position(Z_AXIS);
+  // Z is far enough from top, use max speed
+  if(_z_top_pos - z_pos > _max_stopping_distance)
+  {
+    _target_speed = PLASMA_MAX_THC_STEP_S;
+  }
+  else // Z approch top, move one step per update()
+  {
+    _target_speed = 0;
+    // do a step if Z below top
+    if(_speed == 0 && z_pos < _z_top_pos)
+    {
+      _dir = 1;
+      Z_DIR_WRITE(INVERT_Z_DIR ^ (_dir > 0));
+      Z_STEP_WRITE(!INVERT_Z_STEP_PIN);
+      delayMicroseconds(2);
+      stepper.shift_z_position(_dir);
+      Z_STEP_WRITE(INVERT_Z_STEP_PIN);
+    }
+  }
 }
 //----------------------------------------------------------------------------//
 void TorchHeightController::update(PlasmaState plasma_state)
 {
   int32_t voltage_mv = ADS1015_device.read();
-  if(_state == Enabled)
-  {
-    //PID--------------//
-    if(_counter == 200)
-    {
-      _counter = 0;
-      _new_target_speed = -_new_target_speed;
-    }
-    else
-    {
-      _counter++;
-    }
-    _target_speed = _new_target_speed;
-    //--------------//
-  }
+  long z_pos = stepper.position(Z_AXIS);
 
-  //THC is disabled or disabling
-  if(_state != Enabled)
+  switch(plasma_state)
   {
-    _target_speed = 0;
-    if(_state == Disabling && _speed == 0)
-    {
-      // Z have stopped, give back Z control to stepper class
-      planner.set_z_position_step(stepper.position(Z_AXIS));
-      stepper.take_control_on(Z_AXIS);
-      _state = Disabled;
-    }
-  }
-  else // THC is enabled
-  {
-    // check for software endstop overrun
-    long z_pos = stepper.position(Z_AXIS);
-    if(z_pos > _z_top_pos || z_pos < _z_bottom_pos)
-    {
-      kill("Stop: Z overrun.");
-    }
+    case Off:
+    case Ignition:
+    case Established:
+      _target_speed = 0;
+      break;
+    case Established_THC:
+      // check for software endstop overrun
+      if(z_pos > _z_top_pos || z_pos < _z_bottom_pos)
+      {
+        kill("Stop: Z overrun.");
+      }
 
-    // plasma transfer is lost, move Z to safe position
-    if(plasma_state == Lost)
-    {
-      // Z is far enough from top, use max speed
-      if(_z_top_pos - z_pos > _max_stopping_distance)
+      //PID--------------//
+      if(_counter == 200)
       {
-        _target_speed = PLASMA_MAX_THC_STEP_S;
+        _counter = 0;
+        _new_target_speed = -_new_target_speed;
       }
-      else // Z approch top, move one step per update()
+      else
       {
-        _target_speed = 0;
-        // do a step if Z below top
-        if(_speed == 0 && z_pos < _z_top_pos)
-        {
-          _dir = 1;
-          Z_DIR_WRITE(INVERT_Z_DIR ^ (_dir > 0));
-          Z_STEP_WRITE(!INVERT_Z_STEP_PIN);
-          delayMicroseconds(2);
-          Z_STEP_WRITE(INVERT_Z_STEP_PIN);
-          stepper.shift_z_position(_dir);
-        }
+        _counter++;
       }
-    }
-    // plasma have been stopped voluntarily, just stop THC
-    else if(plasma_state != Established)
-    {
-      disable();
-    }
+      _target_speed = _new_target_speed;
+      //--------------//
+
+      break;
+    case Slowdown_THC:
+      if(z_pos < _z_top_pos)
+      {
+        _step_to_safe_pos();
+      }
+      break;
   }
 
   int32_t acc = _target_speed - _speed;
@@ -184,11 +180,9 @@ void TorchHeightController::update(PlasmaState plasma_state)
 //----------------------------------------------------------------------------//
 void TorchHeightController::set_max_acc_step_s2(unsigned long max_acc)
 {
-  // store acceleration is milliseconds as update will be called at 1kHz
+  // store acceleration in milliseconds as update will be called at 1kHz
   _max_acc = max_acc / 1000;
-
-  unsigned long max_freq = PLASMA_MAX_THC_STEP_S;
-  _max_stopping_distance = pow(max_freq, 2) / max_acc;
+  _max_stopping_distance = pow((uint32_t)PLASMA_MAX_THC_STEP_S, 2) / (2 * max_acc) + 10;
 }
 //----------------------------------------------------------------------------//
 void TorchHeightController::_reset_PID()
@@ -209,6 +203,7 @@ void TorchHeightController::ovf_isr()
     Z_STEP_WRITE(!INVERT_Z_STEP_PIN);
     _counting_up = true;
     stepper.shift_z_position(_dir);
+    delayMicroseconds(2);
     Z_STEP_WRITE(INVERT_Z_STEP_PIN);
   }
 }
@@ -225,6 +220,7 @@ void TorchHeightController::capt_isr()
     Z_STEP_WRITE(!INVERT_Z_STEP_PIN);
     _counting_up = false;
     stepper.shift_z_position(_dir);
+    delayMicroseconds(2);
     Z_STEP_WRITE(INVERT_Z_STEP_PIN);
   }
 }

@@ -512,7 +512,8 @@ void kill_screen(const char* lcd_msg) {
   #if ENABLED(SDSUPPORT)
 
     static void lcd_suspend() {
-      if(plasmaManager.get_state() == Established)
+      PlasmaState plasma_state = plasmaManager.get_state();
+      if(plasma_state == Established || plasma_state == Established_THC)
       {
         stateManager.set_pending_pause();
       }

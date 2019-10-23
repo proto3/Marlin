@@ -10,25 +10,18 @@ class Test:
         self.events = events
         self.timeline = timeline
 
-    def test_kill_switch(self):
+    def test_clamp_max(self):
         # shift positions according to autohome
-        decoder.apply_autohome(self.timeline, events[12] + 2)
+        decoder.apply_autohome(self.timeline, self.events[15] + 2)
+        self.timeline[3] += 10000
 
-        # motors reach firing position
-        self.plasma_start = decoder.when_is_position_reached(timeline, 500, 500, 0)
-        assert self.plasma_start != -1
+        # motors reach max pos
+        max_pos = decoder.when_is_position_reached(self.timeline, 20000, 20000, 10000)
+        assert max_pos != -1
 
-        # no plasma before cut
-        slice = decoder.from_to(self.timeline, 0, self.plasma_start)
-        assert decoder.plasma_is_always(slice, 'off')
-
-        # plasma fired all along
-        slice = decoder.from_to(self.timeline, self.plasma_start + 70, events[14])
-        assert decoder.plasma_is_always(slice, 'on')
-
-        # everything has stopped after kill
-        slice = decoder.from_to(self.timeline, events[14] + 1, decoder.end(timeline))
-        assert decoder.plasma_is_always(slice, 'off')
+        # no moves after clamp abort
+        slice = decoder.from_to(self.timeline, max_pos, decoder.end(self.timeline))
+        assert max_pos + 300 < (self.timeline[0][-1]/1000)
         assert decoder.move_cumul(slice, 1) == 0
         assert decoder.move_cumul(slice, 2) == 0
         assert decoder.move_cumul(slice, 3) == 0
@@ -37,11 +30,11 @@ export_basename = 'tmp/' + os.path.splitext(os.path.basename(__file__))[0]
 p = player.Player(export_basename)
 
 p.click()
-p.move_down()
-p.move_down()
-p.move_down()
+for i in range(3):
+    p.move_down()
 p.click()
-p.move_down()
+for i in range(4):
+    p.move_down()
 p.click()
 p.endstop_z()
 p.wait_ms(300)
@@ -54,10 +47,8 @@ p.wait_ms(100)
 p.endstop_y()
 p.wait_ms(300)
 p.endstop_y()
-p.wait_ms(200)
-p.transfer_on()
-p.wait_ms(150)
-p.kill()
+p.wait_ms(3000)
+p.transfer_off()
 
 events = p.run()
 

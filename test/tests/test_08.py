@@ -10,49 +10,25 @@ class Test:
         self.events = events
         self.timeline = timeline
 
-    def test_clamp_max(self):
-        # shift positions according to autohome
-        decoder.apply_autohome(self.timeline, events[17] + 2)
-        self.timeline[3] += 10000
-
-        # motors reach max pos
-        max_pos = decoder.when_is_position_reached(timeline, 20000, 20000, 10000)
-        assert max_pos != -1
-
+    def test_unhomed_move(self):
         # no moves after clamp abort
-        slice = decoder.from_to(self.timeline, max_pos, decoder.end(timeline))
-        assert max_pos + 300 < (timeline[0][-1]/1000)
-        assert decoder.move_cumul(slice, 1) == 0
-        assert decoder.move_cumul(slice, 2) == 0
-        assert decoder.move_cumul(slice, 3) == 0
+        assert events[12] + 300 < (self.timeline[0][-1]/1000)
+        assert decoder.move_cumul(self.timeline, 1) == 0
+        assert decoder.move_cumul(self.timeline, 2) == 0
+        assert decoder.move_cumul(self.timeline, 3) == 0
 
 export_basename = 'tmp/' + os.path.splitext(os.path.basename(__file__))[0]
 p = player.Player(export_basename)
 
 p.click()
-p.move_down()
-p.move_down()
-p.move_down()
+for i in range(3):
+    p.move_down()
 p.click()
-p.move_down()
-p.move_down()
-p.move_down()
-p.move_down()
-p.move_down()
-p.move_down()
+for i in range(6):
+    p.move_down()
 p.click()
-p.endstop_z()
+p.transfer_on()
 p.wait_ms(300)
-p.endstop_z()
-p.wait_ms(100)
-p.endstop_x()
-p.wait_ms(300)
-p.endstop_x()
-p.wait_ms(100)
-p.endstop_y()
-p.wait_ms(300)
-p.endstop_y()
-p.wait_ms(3000)
 p.transfer_off()
 
 events = p.run()

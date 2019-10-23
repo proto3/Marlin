@@ -108,7 +108,7 @@ def from_to(timeline, a, b):
     if(stop == 0):
         stop = len(timeline[0])
 
-    slice = np.split(timeline, [start, stop], axis=1)[1]
+    slice = np.copy(np.split(timeline, [start, stop], axis=1)[1])
     slice[0][0] = a
 
     slice = np.pad(slice, ((0, 0), (0, 1)), 'edge')
@@ -150,9 +150,18 @@ def when_is_lowest_position_reached(timeline, axis):
     return timeline[0][np.argmin(timeline[axis])] / 1000
 
 def when_is_position_reached(timeline, x, y, z):
-    x_valid = np.take(timeline, 1, axis=0) == x
-    y_valid = np.take(timeline, 2, axis=0) == y
-    z_valid = np.take(timeline, 3, axis=0) == z
+    if(x is None):
+        x_valid = np.ones_like(timeline[0])
+    else:
+        x_valid = np.take(timeline, 1, axis=0) == x
+    if(y is None):
+        y_valid = np.ones_like(timeline[0])
+    else:
+        y_valid = np.take(timeline, 2, axis=0) == y
+    if(z is None):
+        z_valid = np.ones_like(timeline[0])
+    else:
+        z_valid = np.take(timeline, 3, axis=0) == z
     valid = np.logical_and(np.logical_and(x_valid, y_valid), z_valid)
     if(not np.any(valid)):
         return -1

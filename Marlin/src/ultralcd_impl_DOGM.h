@@ -327,7 +327,7 @@ static void lcd_implementation_status_screen() {
 
   // Symbols menu graphics
   PlasmaState plasma_state = plasmaManager.get_state();
-  if(plasma_state == Ignition || plasma_state == Established)
+  if(plasma_state == Ignition || plasma_state == Established || plasma_state == Established_THC)
     u8g.drawBitmapP(5, 3, STATUS_SCREENBYTEWIDTH, STATUS_SCREENHEIGHT, status_screen0_bmp);
   else
     u8g.drawBitmapP(5, 3, STATUS_SCREENBYTEWIDTH, STATUS_SCREENHEIGHT, status_screen1_bmp);
