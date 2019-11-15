@@ -237,7 +237,7 @@
   #define MSG_INIT_SDCARD                     "Init. SD card"
 #endif
 #ifndef MSG_CNG_SDCARD
-  #define MSG_CNG_SDCARD                      "Change SD card"
+  #define MSG_CNG_SDCARD                      "Refresh SD card"
 #endif
 #ifndef MSG_HOME
   #define MSG_HOME                            "Home"  // Used as MSG_HOME " " MSG_X MSG_Y MSG_Z " " MSG_FIRST
