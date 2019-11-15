@@ -671,5 +671,6 @@
 #define PLASMA_VOLTAGE_PROBE_PIN 13
 
 #define PLASMA_MAX_THC_STEP_S 7000 // set the maximal step frequency for THC module (it's all about CPU capabilities)
+#define PLASMA_THC_RETRACT_MM 30   // set the distance to retract in millimeters when THC is turned off.
 
 #endif // CONFIGURATION_H

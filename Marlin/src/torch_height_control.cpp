@@ -11,8 +11,10 @@ int16_t TorchHeightController::_speed = 0;
 int16_t TorchHeightController::_max_acc = 0;
 int8_t TorchHeightController::_dir = 1;
 uint16_t TorchHeightController::_max_stopping_distance = 0xFFFF;
+unsigned long TorchHeightController::_retract_mm = PLASMA_THC_RETRACT_MM;
 long TorchHeightController::_z_top_pos = 0;
 long TorchHeightController::_z_bottom_pos = 0;
+long TorchHeightController::_safe_pos = 0;
 
 int16_t TorchHeightController::_new_target_speed = 25000;
 int16_t TorchHeightController::_counter = 0;
@@ -49,11 +51,11 @@ void TorchHeightController::enable()
 //----------------------------------------------------------------------------//
 bool TorchHeightController::disable()
 {
-  if(stepper.position(Z_AXIS) == _z_top_pos)
+  if(stepper.position(Z_AXIS) == _safe_pos)
   {
     // Z have stopped, give back Z control to stepper class
-    current_position[Z_AXIS] = sw_endstop_max[Z_AXIS];
-    planner.set_z_position_step(_z_top_pos);
+    current_position[Z_AXIS] = _safe_pos / planner.axis_steps_per_mm[Z_AXIS];
+    planner.set_z_position_step(_safe_pos);
     stepper.take_control_on(Z_AXIS);
     return true;
   }
@@ -67,15 +69,15 @@ void TorchHeightController::_step_to_safe_pos()
 {
   long z_pos = stepper.position(Z_AXIS);
   // Z is far enough from top, use max speed
-  if(_z_top_pos - z_pos > _max_stopping_distance)
+  if(_safe_pos - z_pos > _max_stopping_distance)
   {
     _target_speed = PLASMA_MAX_THC_STEP_S;
   }
-  else // Z approch top, move one step per update()
+  else // Z approch safe pos, move one step per update()
   {
     _target_speed = 0;
     // do a step if Z below top
-    if(_speed == 0 && z_pos < _z_top_pos)
+    if(_speed == 0 && z_pos < _safe_pos)
     {
       _dir = 1;
       Z_DIR_WRITE(INVERT_Z_DIR ^ (_dir > 0));
@@ -119,9 +121,10 @@ void TorchHeightController::update(PlasmaState plasma_state)
       _target_speed = _new_target_speed;
       //--------------//
 
+      _safe_pos = min(_z_top_pos, z_pos + _retract_mm * planner.axis_steps_per_mm[Z_AXIS]);
       break;
     case Slowdown_THC:
-      if(z_pos < _z_top_pos)
+      if(z_pos < _safe_pos)
       {
         _step_to_safe_pos();
       }
@@ -176,6 +179,11 @@ void TorchHeightController::update(PlasmaState plasma_state)
   ICR4 = period;
   TCNT4 = _counting_up ? period - rest : rest;
   RESUME_TIMER4;
+}
+//----------------------------------------------------------------------------//
+void TorchHeightController::set_mm_to_retract(unsigned long mm)
+{
+  _retract_mm = mm;
 }
 //----------------------------------------------------------------------------//
 void TorchHeightController::set_max_acc_step_s2(unsigned long max_acc)
