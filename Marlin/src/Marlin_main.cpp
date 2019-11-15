@@ -587,11 +587,11 @@ void setup() {
   // Vital to init stepper/planner equivalent for current_position
   SYNC_PLAN_POSITION_KINEMATIC();
 
-  thermalManager.init();    // Initialize temperature loop
-
   plasmaManager.init();
 
   torchHeightController.init();
+
+  thermalManager.init();    // Initialize temperature loop
 
   #if ENABLED(USE_WATCHDOG)
     watchdog_init();
@@ -1511,8 +1511,7 @@ inline void gcode_M3() {
   stepper.synchronize();
   ABORT_IF_UNHOMED;
 
-  while(plasmaManager.get_state() == Slowdown_THC)
-    idle();
+  while(plasmaManager.get_state() == Slowdown_THC) { idle(); }
   if(plasmaManager.get_state() != Off)
     return;
 
