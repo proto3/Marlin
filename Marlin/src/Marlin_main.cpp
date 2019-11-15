@@ -421,7 +421,7 @@ void setup_killpin() {
     SET_INPUT(KILL_PIN);
     WRITE(KILL_PIN, HIGH);
     #if (digitalPinToInterrupt(KILL_PIN) != NOT_AN_INTERRUPT)
-      attachInterrupt(digitalPinToInterrupt(KILL_PIN), kill_pin_handler, FALLING);
+      attachInterrupt(digitalPinToInterrupt(KILL_PIN), kill_pin_handler, KILL_PRESSED_ON);
     #endif
   #endif
 }
@@ -2169,11 +2169,23 @@ void kill(const char* lcd_msg) {
   #endif
 
   suicide();
-  while (1) {
+
+  uint8_t rearm = 0;
+  while(rearm != 2)
+  {
+    if(KILL_PRESSED)
+      rearm = 1;
+    if(rearm == 1 && !KILL_PRESSED)
+      rearm = 2;
+
     #if ENABLED(USE_WATCHDOG)
       watchdog_reset();
     #endif
-  } // Wait for reset
+
+    delay(50);
+  }
+
+  software_reset();
 }
 
 void stop() {

@@ -109,6 +109,10 @@
 #define TEMP_1_PIN         15   // ANALOG NUMBERING
 #define TEMP_BED_PIN       14   // ANALOG NUMBERING
 
+static void software_reset()
+{
+  asm volatile ("  jmp 0");
+}
 
 // Augmentation for auto-assigning RAMPS plugs
 #if DISABLED(IS_RAMPS_EEB) && DISABLED(IS_RAMPS_EEF) && DISABLED(IS_RAMPS_EFB) && DISABLED(IS_RAMPS_EFF) && DISABLED(IS_RAMPS_SF) && !PIN_EXISTS(MOSFET_D)

@@ -164,6 +164,9 @@ void FlushSerialRequestResend();
 void ok_to_send();
 
 void reset_bed_level();
+
+#define KILL_PRESSED (READ(KILL_PIN) == (KILL_PRESSED_ON ? HIGH : LOW))
+
 void kill_pin_handler();
 void kill(const char*);
 

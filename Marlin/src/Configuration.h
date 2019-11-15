@@ -126,6 +126,11 @@
 // Define this to have the electronics keep the power supply off on startup. If you don't know what this is leave it.
 //#define PS_DEFAULT_OFF
 
+// Specify level on which kill is active, if 0, system will be killed with pin on ground.
+#define KILL_PRESSED_ON 0
+// Set kill pin internal pullup if true
+#define KILL_PIN_PULLUP false
+
 //===========================================================================
 //============================= Mechanical Settings =========================
 //===========================================================================
