@@ -1,5 +1,5 @@
 #include "ADS1015.h"
-#include "twi.h"
+#include "i2c_t3.h"
 
 /*=========================================================================
     I2C ADDRESS/BITS
@@ -98,8 +98,9 @@ bool ADS1015::requested = false;
 //----------------------------------------------------------------------------//
 void ADS1015::init()
 {
-  // init TWI hardware
-  twi_init();
+  // configure I2C hardware
+  Wire.begin(I2C_MASTER, 0x00, I2C_PINS_18_19, I2C_PULLUP_EXT, 400000);
+  Wire.setDefaultTimeout(200); // 200us
 
   // configure ADS1015
   uint16_t config = ADS1015_REG_CONFIG_CQUE_NONE    | // Disable the comparator (default val)
@@ -108,14 +109,16 @@ void ADS1015::init()
                     ADS1015_REG_CONFIG_CMODE_TRAD   | // Traditional comparator (default val)
                     ADS1015_REG_CONFIG_DR_920SPS    | // 920 samples per second
                     ADS1015_REG_CONFIG_MODE_CONTIN  | // Continuous mode
-                    GAIN_TWOTHIRDS                  | // 2/3x gain +/- 6.144V  unit = 3mV
+                    GAIN_ONE                        | // 1x gain +/- 4.096V  unit = 2mV
                     ADS1015_REG_CONFIG_MUX_SINGLE_0;  // Channel 0 only
 
   uint8_t config_buffer[] = { ADS1015_REG_POINTER_CONFIG,
                               (uint8_t)(config >> 8),
                               (uint8_t)(config & 0xFF) };
 
-  twi_writeTo(ADS1015_ADDRESS, config_buffer, 3, true, true);
+  Wire.beginTransmission(ADS1015_ADDRESS);
+  Wire.write(config_buffer, 3);
+  Wire.endTransmission(); // blocking
 }
 //----------------------------------------------------------------------------//
 int32_t ADS1015::read()
@@ -128,10 +131,10 @@ int32_t ADS1015::read()
       // pick up ADC data from RX buffer
       uint8_t len = 2;
       uint8_t buffer[len];
-      if(twi_readBufferedData(buffer, len) == len)
+      if(Wire.read(buffer, len) == len)
       {
         voltage_mv = ((buffer[0] << 8) | buffer[1]) >> 4; // shift because 12bits res
-        voltage_mv *= 3; // apply gain
+        voltage_mv *= 2; // apply gain
       }
       // Note there is no break here, we can request conversion in the same cycle.
     }
@@ -139,14 +142,17 @@ int32_t ADS1015::read()
     {
       // send conversion request to ADC
       uint8_t convert = ADS1015_REG_POINTER_CONVERT;
-      twi_writeTo(ADS1015_ADDRESS, &convert, 1, false, true);
+      Wire.beginTransmission(ADS1015_ADDRESS);
+      Wire.write(&convert, 1);
+      Wire.sendTransmission(); // non-blocking
 
       adc_state = READ_REQ;
       break;
     }
     case(READ_REQ):
     {
-      if(twi_requestReadFrom(ADS1015_ADDRESS, 2, true))
+      Wire.sendRequest(ADS1015_ADDRESS, 2); // non-blocking
+      if(!Wire.getError())
       {
         requested = true;
         adc_state = READ_BUF;
