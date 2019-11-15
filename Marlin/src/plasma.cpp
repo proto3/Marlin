@@ -13,7 +13,11 @@ bool Plasma::lost_flag = false;
 //----------------------------------------------------------------------------//
 void Plasma::init() {
   pinMode(PLASMA_CONTROL_PIN, OUTPUT);
-  pinMode(PLASMA_TRANSFER_PIN, INPUT);
+  #if PLASMA_TRANSFER_PULLUP
+    pinMode(PLASMA_TRANSFER_PIN, INPUT_PULLUP);
+  #else
+    pinMode(PLASMA_TRANSFER_PIN, INPUT);
+  #endif
   TURN_PLASMA_OFF
 }
 //----------------------------------------------------------------------------//
