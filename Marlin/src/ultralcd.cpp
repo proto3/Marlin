@@ -30,6 +30,7 @@
 #include "configuration_store.h"
 #include "state.h"
 #include "plasma.h"
+#include "torch_height_control.h"
 
 #if ENABLED(PRINTCOUNTER)
   #include "printcounter.h"
@@ -126,6 +127,7 @@ uint8_t lcdDrawUpdate = LCDVIEW_CLEAR_CALL_REDRAW; // Set when the LCD needs to 
   static void menu_action_setting_edit_float51(const char* pstr, float* ptr, float minValue, float maxValue);
   static void menu_action_setting_edit_float52(const char* pstr, float* ptr, float minValue, float maxValue);
   static void menu_action_setting_edit_long5(const char* pstr, unsigned long* ptr, unsigned long minValue, unsigned long maxValue);
+  static void menu_action_setting_edit_long50(const char* pstr, unsigned long* ptr, unsigned long minValue, unsigned long maxValue);
   static void menu_action_setting_edit_callback_bool(const char* pstr, bool* ptr, screenFunc_t callbackFunc);
   static void menu_action_setting_edit_callback_int3(const char* pstr, int* ptr, int minValue, int maxValue, screenFunc_t callbackFunc);
   static void menu_action_setting_edit_callback_float3(const char* pstr, float* ptr, float minValue, float maxValue, screenFunc_t callbackFunc);
@@ -135,6 +137,7 @@ uint8_t lcdDrawUpdate = LCDVIEW_CLEAR_CALL_REDRAW; // Set when the LCD needs to 
   static void menu_action_setting_edit_callback_float51(const char* pstr, float* ptr, float minValue, float maxValue, screenFunc_t callbackFunc);
   static void menu_action_setting_edit_callback_float52(const char* pstr, float* ptr, float minValue, float maxValue, screenFunc_t callbackFunc);
   static void menu_action_setting_edit_callback_long5(const char* pstr, unsigned long* ptr, unsigned long minValue, unsigned long maxValue, screenFunc_t callbackFunc);
+  static void menu_action_setting_edit_callback_long50(const char* pstr, unsigned long* ptr, unsigned long minValue, unsigned long maxValue, screenFunc_t callbackFunc);
 
   #if ENABLED(SDSUPPORT)
     static void lcd_sdcard_menu();
@@ -760,6 +763,12 @@ void kill_screen(const char* lcd_msg) {
   static void _reset_acceleration_rates() { planner.reset_acceleration_rates(); }
   static void _planner_refresh_positioning() { planner.refresh_positioning(); }
 
+
+  static void back_and_save()
+  {
+    Config_StoreSettings();
+    lcd_goto_previous_menu();
+  }
   /**
    *
    * "Control" > "Motion" submenu
@@ -767,24 +776,28 @@ void kill_screen(const char* lcd_msg) {
    */
   static void lcd_control_motion_menu() {
     START_MENU();
-    MENU_ITEM(back, "Return");
-    // Manual bed leveling, Bed Z:
-    MENU_ITEM_EDIT(float5, MSG_ACC, &planner.acceleration, 10, 99000);
-    MENU_ITEM_EDIT(float3, MSG_VXY_JERK, &planner.max_xy_jerk, 1, 990);
-      MENU_ITEM_EDIT(float52, MSG_VZ_JERK, &planner.max_z_jerk, 0.1, 990);
-    MENU_ITEM_EDIT(float3, MSG_VMAX MSG_X, &planner.max_feedrate_mm_s[X_AXIS], 1, 999);
-    MENU_ITEM_EDIT(float3, MSG_VMAX MSG_Y, &planner.max_feedrate_mm_s[Y_AXIS], 1, 999);
-    MENU_ITEM_EDIT(float3, MSG_VMAX MSG_Z, &planner.max_feedrate_mm_s[Z_AXIS], 1, 999);
-    MENU_ITEM_EDIT(float3, MSG_VMIN, &planner.min_feedrate_mm_s, 0, 999);
-    MENU_ITEM_EDIT_CALLBACK(long5, MSG_AMAX MSG_X, &planner.max_acceleration_mm_per_s2[X_AXIS], 100, 99000, _reset_acceleration_rates);
-    MENU_ITEM_EDIT_CALLBACK(long5, MSG_AMAX MSG_Y, &planner.max_acceleration_mm_per_s2[Y_AXIS], 100, 99000, _reset_acceleration_rates);
-    MENU_ITEM_EDIT_CALLBACK(long5, MSG_AMAX MSG_Z, &planner.max_acceleration_mm_per_s2[Z_AXIS], 10, 99000, _reset_acceleration_rates);
-    MENU_ITEM_EDIT_CALLBACK(float52, MSG_XSTEPS, &planner.axis_steps_per_mm[X_AXIS], 5, 9999, _planner_refresh_positioning);
-    MENU_ITEM_EDIT_CALLBACK(float52, MSG_YSTEPS, &planner.axis_steps_per_mm[Y_AXIS], 5, 9999, _planner_refresh_positioning);
-      MENU_ITEM_EDIT_CALLBACK(float51, MSG_ZSTEPS, &planner.axis_steps_per_mm[Z_AXIS], 5, 9999, _planner_refresh_positioning);
-    #if ENABLED(ABORT_ON_ENDSTOP_HIT_FEATURE_ENABLED)
-      MENU_ITEM_EDIT(bool, MSG_ENDSTOP_ABORT, &stepper.abort_on_endstop_hit);
-    #endif
+    // MENU_ITEM(back, "Return");
+    MENU_ITEM(function, "Return              \x04", back_and_save);
+
+    MENU_ITEM_EDIT(long50, MSG_PIERCE_TIME, &plasmaManager._pierce_time_ms, 0, 2000); // int 50
+    MENU_ITEM_EDIT(int3, MSG_ARC_VOLTAGE, &torchHeightController._target_voltage, 50, 200); //int 1
+    MENU_ITEM_EDIT(long50, MSG_FEEDRATE, &plasmaManager._cutting_feedrate_mm_m, 10, 20000); // int 50
+    // MENU_ITEM_EDIT(float5, MSG_ACC, &planner.acceleration, 10, 99000);
+    // MENU_ITEM_EDIT(float3, MSG_VXY_JERK, &planner.max_xy_jerk, 1, 990);
+    // MENU_ITEM_EDIT(float52, MSG_VZ_JERK, &planner.max_z_jerk, 0.1, 990);
+    // MENU_ITEM_EDIT(float3, MSG_VMAX MSG_X, &planner.max_feedrate_mm_s[X_AXIS], 1, 999);
+    // MENU_ITEM_EDIT(float3, MSG_VMAX MSG_Y, &planner.max_feedrate_mm_s[Y_AXIS], 1, 999);
+    // MENU_ITEM_EDIT(float3, MSG_VMAX MSG_Z, &planner.max_feedrate_mm_s[Z_AXIS], 1, 999);
+    // MENU_ITEM_EDIT(float3, MSG_VMIN, &planner.min_feedrate_mm_s, 0, 999);
+    // MENU_ITEM_EDIT_CALLBACK(long5, MSG_AMAX MSG_X, &planner.max_acceleration_mm_per_s2[X_AXIS], 100, 99000, _reset_acceleration_rates);
+    // MENU_ITEM_EDIT_CALLBACK(long5, MSG_AMAX MSG_Y, &planner.max_acceleration_mm_per_s2[Y_AXIS], 100, 99000, _reset_acceleration_rates);
+    // MENU_ITEM_EDIT_CALLBACK(long5, MSG_AMAX MSG_Z, &planner.max_acceleration_mm_per_s2[Z_AXIS], 10, 99000, _reset_acceleration_rates);
+    // MENU_ITEM_EDIT_CALLBACK(float52, MSG_XSTEPS, &planner.axis_steps_per_mm[X_AXIS], 5, 9999, _planner_refresh_positioning);
+    // MENU_ITEM_EDIT_CALLBACK(float52, MSG_YSTEPS, &planner.axis_steps_per_mm[Y_AXIS], 5, 9999, _planner_refresh_positioning);
+    // MENU_ITEM_EDIT_CALLBACK(float51, MSG_ZSTEPS, &planner.axis_steps_per_mm[Z_AXIS], 5, 9999, _planner_refresh_positioning);
+    // #if ENABLED(ABORT_ON_ENDSTOP_HIT_FEATURE_ENABLED)
+    //   MENU_ITEM_EDIT(bool, MSG_ENDSTOP_ABORT, &stepper.abort_on_endstop_hit);
+    // #endif
     END_MENU();
   }
 
@@ -1042,6 +1055,7 @@ void kill_screen(const char* lcd_msg) {
   menu_edit_type(float, float51, ftostr51sign, 10);
   menu_edit_type(float, float52, ftostr52sign, 100);
   menu_edit_type(unsigned long, long5, ftostr5rj, 0.01);
+  menu_edit_type(unsigned long, long50, ftostr5rj, 0.02);
 
   /**
    *
@@ -1702,6 +1716,23 @@ char* ftostr41sign(const float& x) {
   return conv;
 }
 
+// Convert signed float to string with 123.4 / -23.4 format
+char *ftostr3e(const float& x) {
+  int32_t xx = abs(x * 100);
+  if(x >= 0)
+  {
+    conv[0] = DIGIMOD(xx / 10000);
+    conv[1] = DIGIMOD(xx / 1000);
+    conv[2] = DIGIMOD(xx / 100);
+    conv[3] = '.';
+    conv[4] = DIGIMOD(xx / 10);
+    conv[5] = '\0';
+  }
+  else
+    strcpy(conv, "noADC");
+  return conv;
+}
+
 // Convert signed float to string with 023.45 / -23.45 format
 char *ftostr32(const float& x) {
   long xx = abs(x * 100);
@@ -1803,6 +1834,23 @@ char* itostr3left(const int& xx) {
   return conv;
 }
 
+// Convert signed int to rj string with 1234 or -123 format
+char* itostr4(const int& x) {
+  int xx = x;
+  if (xx < 0) {
+    conv[0] = '-';
+    xx = -xx;
+  }
+  else
+    conv[0] = xx >= 1000 ? DIGIMOD(xx / 1000) : ' ';
+
+  conv[1] = xx >= 100 ? DIGIMOD(xx / 100) : ' ';
+  conv[2] = xx >= 10 ? DIGIMOD(xx / 10) : ' ';
+  conv[3] = DIGIMOD(xx);
+  conv[4] = '\0';
+  return conv;
+}
+
 // Convert signed int to rj string with _123, -123, _-12, or __-1 format
 char *itostr4sign(const int& x) {
   int xx = abs(x);
@@ -1824,6 +1872,24 @@ char *itostr4sign(const int& x) {
   conv[sign] = x < 0 ? '-' : ' ';
   conv[3] = DIGIMOD(xx);
   conv[4] = '\0';
+  return conv;
+}
+
+// Convert signed int16_t to rj string with 12345 or -1234 format
+char* itostr5(const int16_t& x) {
+  int16_t xx = x;
+  if (xx < 0) {
+    conv[0] = '-';
+    xx = -xx;
+  }
+  else
+    conv[0] = xx >= 10000 ? DIGIMOD(xx / 10000) : ' ';
+
+  conv[1] = xx >= 1000 ? DIGIMOD(xx / 1000) : ' ';
+  conv[2] = xx >= 100 ? DIGIMOD(xx / 100) : ' ';
+  conv[3] = xx >= 10 ? DIGIMOD(xx / 10) : ' ';
+  conv[4] = DIGIMOD(xx);
+  conv[5] = '\0';
   return conv;
 }
 

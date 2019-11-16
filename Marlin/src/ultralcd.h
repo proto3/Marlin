@@ -157,11 +157,14 @@ char* itostr2(const uint8_t& x);
 char* itostr3sign(const int& x);
 char* itostr3(const int& x);
 char* itostr3left(const int& x);
+char* itostr4(const int& x);
 char* itostr4sign(const int& x);
+char* itostr5(const int& x);
 
 char* ftostr3(const float& x);
 char* ftostr4sign(const float& x);
 char* ftostr41sign(const float& x);
+char* ftostr3e(const float& x);
 char* ftostr32(const float& x);
 char* ftostr43sign(const float& x, char plus=' ');
 char* ftostr12ns(const float& x);

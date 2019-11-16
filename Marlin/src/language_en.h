@@ -131,6 +131,15 @@
 #ifndef MSG_SELECT
   #define MSG_SELECT                          "Select"
 #endif
+#ifndef MSG_PIERCE_TIME
+  #define MSG_PIERCE_TIME                     "Pierce time ms"
+#endif
+#ifndef MSG_ARC_VOLTAGE
+  #define MSG_ARC_VOLTAGE                     "Arc voltage v"
+#endif
+#ifndef MSG_FEEDRATE
+  #define MSG_FEEDRATE                        "Feedrate mm/min"
+#endif
 #ifndef MSG_ACC
   #define MSG_ACC                             "Accel"
 #endif

@@ -337,21 +337,21 @@ static void lcd_implementation_status_screen() {
 
   #if ENABLED(SDSUPPORT)
     // SD Card Symbol
-    u8g.drawBox(42, 42 - (TALL_FONT_CORRECTION), 8, 7);
-    u8g.drawBox(50, 44 - (TALL_FONT_CORRECTION), 2, 5);
-    u8g.drawFrame(42, 49 - (TALL_FONT_CORRECTION), 10, 4);
-    u8g.drawPixel(50, 43 - (TALL_FONT_CORRECTION));
+    u8g.drawBox(42-19, 42 - (TALL_FONT_CORRECTION), 8, 7);
+    u8g.drawBox(50-19, 44 - (TALL_FONT_CORRECTION), 2, 5);
+    u8g.drawFrame(42-19, 49 - (TALL_FONT_CORRECTION), 10, 4);
+    u8g.drawPixel(50-19, 43 - (TALL_FONT_CORRECTION));
 
     // Progress bar frame
-    u8g.drawFrame(54, 49, 73, 4 - (TALL_FONT_CORRECTION));
+    u8g.drawFrame(54-19, 49, 73, 4 - (TALL_FONT_CORRECTION));
 
     // SD Card Progress bar and clock
     if (IS_RUNNING || IS_SUSPENDED) {
       // Progress bar solid part
-      u8g.drawBox(55, 50, (unsigned int)(71 * card.percentDone() * 0.01), 2 - (TALL_FONT_CORRECTION));
+      u8g.drawBox(55-19, 50, (unsigned int)(71 * card.percentDone() * 0.01), 2 - (TALL_FONT_CORRECTION));
     }
 
-    u8g.setPrintPos(67,48);
+    u8g.setPrintPos(67-19,48);
 
     char buffer[10];
     duration_t elapsed = print_job_timer.duration();
@@ -390,15 +390,19 @@ static void lcd_implementation_status_screen() {
 
   u8g.setColorIndex(1); // black on white
 
-  // Feedrate
-  lcd_setFont(FONT_MENU);
-  u8g.setPrintPos(3, 49);
-  lcd_print(LCD_STR_FEEDRATE[0]);
-
   lcd_setFont(FONT_STATUSMENU);
-  u8g.setPrintPos(12, 49);
-  lcd_print(itostr3(feedrate_percentage));
-  lcd_print('%');
+  u8g.setPrintPos(44, 8);
+  lcd_print(ftostr3e(torchHeightController._voltage));
+  lcd_print(" \x03");
+  u8g.setPrintPos(110-18, 8);
+  lcd_print(itostr3(torchHeightController._target_voltage));
+  lcd_print(" v");
+  u8g.setPrintPos(98-42, 18);
+  lcd_print(itostr5(plasmaManager._cutting_feedrate_mm_m));
+  lcd_print(" mm/min");
+  u8g.setPrintPos(104-42, 28);
+  lcd_print(itostr4(plasmaManager._pierce_time_ms));
+  lcd_print(" ms");
 
   // Status line
   #if ENABLED(USE_SMALL_INFOFONT)
@@ -489,6 +493,7 @@ static void _drawmenu_setting_edit_generic(bool isSelected, uint8_t row, const c
 #define lcd_implementation_drawmenu_setting_edit_float52(sel, row, pstr, pstr2, data, minValue, maxValue) lcd_implementation_drawmenu_setting_edit_generic(sel, row, pstr, ftostr52sign(*(data)))
 #define lcd_implementation_drawmenu_setting_edit_float51(sel, row, pstr, pstr2, data, minValue, maxValue) lcd_implementation_drawmenu_setting_edit_generic(sel, row, pstr, ftostr51sign(*(data)))
 #define lcd_implementation_drawmenu_setting_edit_long5(sel, row, pstr, pstr2, data, minValue, maxValue) lcd_implementation_drawmenu_setting_edit_generic(sel, row, pstr, ftostr5rj(*(data)))
+#define lcd_implementation_drawmenu_setting_edit_long50(sel, row, pstr, pstr2, data, minValue, maxValue) lcd_implementation_drawmenu_setting_edit_generic(sel, row, pstr, ftostr5rj(*(data)))
 #define lcd_implementation_drawmenu_setting_edit_bool(sel, row, pstr, pstr2, data) lcd_implementation_drawmenu_setting_edit_generic_P(sel, row, pstr, (*(data))?PSTR(MSG_ON):PSTR(MSG_OFF))
 
 //Add version for callback functions
@@ -500,6 +505,7 @@ static void _drawmenu_setting_edit_generic(bool isSelected, uint8_t row, const c
 #define lcd_implementation_drawmenu_setting_edit_callback_float52(sel, row, pstr, pstr2, data, minValue, maxValue, callback) lcd_implementation_drawmenu_setting_edit_generic(sel, row, pstr, ftostr52sign(*(data)))
 #define lcd_implementation_drawmenu_setting_edit_callback_float51(sel, row, pstr, pstr2, data, minValue, maxValue, callback) lcd_implementation_drawmenu_setting_edit_generic(sel, row, pstr, ftostr51sign(*(data)))
 #define lcd_implementation_drawmenu_setting_edit_callback_long5(sel, row, pstr, pstr2, data, minValue, maxValue, callback) lcd_implementation_drawmenu_setting_edit_generic(sel, row, pstr, ftostr5rj(*(data)))
+#define lcd_implementation_drawmenu_setting_edit_callback_long50(sel, row, pstr, pstr2, data, minValue, maxValue, callback) lcd_implementation_drawmenu_setting_edit_generic(sel, row, pstr, ftostr5rj(*(data)))
 #define lcd_implementation_drawmenu_setting_edit_callback_bool(sel, row, pstr, pstr2, data, callback) lcd_implementation_drawmenu_setting_edit_generic_P(sel, row, pstr, (*(data))?PSTR(MSG_ON):PSTR(MSG_OFF))
 
 void lcd_implementation_drawedit(const char* pstr, const char* value=NULL) {
