@@ -6,6 +6,8 @@
 #define RESUME_TIMER4 TCCR4B = _BV(WGM43) | _BV(CS41) | _BV(CS40);
 
 bool TorchHeightController::_counting_up = true;
+int16_t TorchHeightController::_target_voltage = 130;
+float TorchHeightController::_voltage = -1.0;
 int32_t TorchHeightController::_target_speed = 0;
 int16_t TorchHeightController::_speed = 0;
 int16_t TorchHeightController::_max_acc = 0;

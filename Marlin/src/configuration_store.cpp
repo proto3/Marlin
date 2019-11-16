@@ -72,6 +72,8 @@
 #include "planner.h"
 #include "ultralcd.h"
 #include "configuration_store.h"
+#include "plasma.h"
+#include "torch_height_control.h"
 
 uint16_t eeprom_checksum;
 const char version[4] = EEPROM_VERSION;
@@ -134,15 +136,19 @@ void Config_StoreSettings()  {
 
   eeprom_checksum = 0; // clear before first "real data"
 
-  EEPROM_WRITE(planner.axis_steps_per_mm);
-  EEPROM_WRITE(planner.max_feedrate_mm_s);
-  EEPROM_WRITE(planner.max_acceleration_mm_per_s2);
-  EEPROM_WRITE(planner.acceleration);
-  EEPROM_WRITE(planner.min_feedrate_mm_s);
-  EEPROM_WRITE(planner.min_segment_time);
-  EEPROM_WRITE(planner.max_xy_jerk);
-  EEPROM_WRITE(planner.max_z_jerk);
-  EEPROM_WRITE(home_offset);
+  EEPROM_WRITE(plasmaManager._pierce_time_ms);
+  EEPROM_WRITE(torchHeightController._target_voltage);
+  EEPROM_WRITE(plasmaManager._cutting_feedrate_mm_m);
+
+  // EEPROM_WRITE(planner.axis_steps_per_mm);
+  // EEPROM_WRITE(planner.max_feedrate_mm_s);
+  // EEPROM_WRITE(planner.max_acceleration_mm_per_s2);
+  // EEPROM_WRITE(planner.acceleration);
+  // EEPROM_WRITE(planner.min_feedrate_mm_s);
+  // EEPROM_WRITE(planner.min_segment_time);
+  // EEPROM_WRITE(planner.max_xy_jerk);
+  // EEPROM_WRITE(planner.max_z_jerk);
+  // EEPROM_WRITE(home_offset);
 
   #if ENABLED(Z_DUAL_ENDSTOPS)
     EEPROM_WRITE(z_endstop_adj);
@@ -173,6 +179,8 @@ void Config_StoreSettings()  {
  */
 void Config_RetrieveSettings() {
 
+  Config_ResetDefault();
+
   EEPROM_START();
 
   char stored_ver[4];
@@ -189,16 +197,20 @@ void Config_RetrieveSettings() {
 
     eeprom_checksum = 0; // clear before reading first "real data"
 
+    EEPROM_READ(plasmaManager._pierce_time_ms);
+    EEPROM_READ(torchHeightController._target_voltage);
+    EEPROM_READ(plasmaManager._cutting_feedrate_mm_m);
+
     // version number match
-    EEPROM_READ(planner.axis_steps_per_mm);
-    EEPROM_READ(planner.max_feedrate_mm_s);
-    EEPROM_READ(planner.max_acceleration_mm_per_s2);
-    EEPROM_READ(planner.acceleration);
-    EEPROM_READ(planner.min_feedrate_mm_s);
-    EEPROM_READ(planner.min_segment_time);
-    EEPROM_READ(planner.max_xy_jerk);
-    EEPROM_READ(planner.max_z_jerk);
-    EEPROM_READ(home_offset);
+    // EEPROM_READ(planner.axis_steps_per_mm);
+    // EEPROM_READ(planner.max_feedrate_mm_s);
+    // EEPROM_READ(planner.max_acceleration_mm_per_s2);
+    // EEPROM_READ(planner.acceleration);
+    // EEPROM_READ(planner.min_feedrate_mm_s);
+    // EEPROM_READ(planner.min_segment_time);
+    // EEPROM_READ(planner.max_xy_jerk);
+    // EEPROM_READ(planner.max_z_jerk);
+    // EEPROM_READ(home_offset);
 
     #if ENABLED(Z_DUAL_ENDSTOPS)
       EEPROM_READ(z_endstop_adj);

@@ -15,6 +15,9 @@ class TorchHeightController {
     static void ovf_isr();
     static void capt_isr();
 
+    static int16_t _target_voltage;
+    static float _voltage;
+
   private:
     static void _reset_PID();
     static void _step_to_safe_pos();

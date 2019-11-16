@@ -1142,7 +1142,7 @@ void gcode_get_destination() {
       destination[i] = current_position[i];
   }
 
-  if (code_seen('F') && code_value_linear_units() > 0.0)
+  if (code_seen('F') && code_value_linear_units() > 0.0 && plasmaManager.get_state() == Off)
     feedrate_mm_m = code_value_linear_units();
 }
 
@@ -1231,6 +1231,18 @@ inline void gcode_G0_G1() {
   }
 #endif
 
+
+inline void dwell(millis_t dwell_ms) {
+  refresh_cmd_timeout();
+  dwell_ms += previous_cmd_ms;  // keep track of when we started waiting
+
+  while (PENDING(millis(), dwell_ms))
+  {
+    // idle fast (no screen refresh) when pause approaches the end.
+    idle(!PENDING(millis(), dwell_ms - 80));
+  }
+}
+
 /**
  * G4: Dwell S<seconds> or P<milliseconds>
  */
@@ -1243,14 +1255,11 @@ inline void gcode_G4() {
     dwell_ms = code_value_millis_from_seconds(); // seconds to wait
 
   stepper.synchronize();
-  refresh_cmd_timeout();
-  dwell_ms += previous_cmd_ms;  // keep track of when we started waiting
 
   if (!lcd_hasstatus())
     LCD_MESSAGEPGM(MSG_DWELL);
 
-  while (PENDING(millis(), dwell_ms))
-    idle(!PENDING(millis(), dwell_ms - 80));
+  dwell(dwell_ms);
 }
 
 #if ENABLED(BEZIER_CURVE_SUPPORT)
@@ -1497,11 +1506,8 @@ void ohmic_probing() {
   endstops.hit_on_purpose();
 
   // retract
-  if(code_seen('R'))
-  {
-    destination[Z_AXIS] = code_value_float() + current_position[Z_AXIS];
-    prepare_move_to_destination();
-  }
+  destination[Z_AXIS] = current_position[Z_AXIS] + 3.8;
+  prepare_move_to_destination();
 }
 
 /**
@@ -1535,7 +1541,9 @@ inline void gcode_M3() {
         }
         if(plasma_state == Established)
         {
-          gcode_G4();
+          dwell((millis_t)plasmaManager._pierce_time_ms);
+          saved_feedrate_mm_m = feedrate_mm_m;
+          feedrate_mm_m = plasmaManager._cutting_feedrate_mm_m;
           plasmaManager.activate_thc();
           lcd_setstatus("Running...");
           return;
@@ -1578,6 +1586,8 @@ inline void gcode_M5() {
   while (IS_SUSPENDED) idle();
   plasmaManager.stop();
   lcd_setstatus("Running...");
+
+  feedrate_mm_m = saved_feedrate_mm_m;
 }
 
 /**

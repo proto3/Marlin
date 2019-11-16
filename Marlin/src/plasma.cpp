@@ -10,6 +10,10 @@ PlasmaState Plasma::state = Off;
 bool Plasma::stop_pending = false;
 bool Plasma::locked_flag = true;
 bool Plasma::lost_flag = false;
+
+uint32_t Plasma::_pierce_time_ms = 500;
+uint32_t Plasma::_cutting_feedrate_mm_m = 5000;
+
 //----------------------------------------------------------------------------//
 void Plasma::init() {
   pinMode(PLASMA_CONTROL_PIN, OUTPUT);

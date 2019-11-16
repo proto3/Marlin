@@ -17,6 +17,9 @@ class Plasma {
     PlasmaState get_state();
     bool is_lost();
 
+    static uint32_t _pierce_time_ms;
+    static uint32_t _cutting_feedrate_mm_m;
+
   private:
     static PlasmaState state;
     static bool stop_pending;
