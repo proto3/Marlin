@@ -19,8 +19,12 @@ int32_t TorchHeightController::_safe_pos = 0;
 uint16_t TorchHeightController::target_modulus = 0xFFFF;
 bool TorchHeightController::pending_modulus_update = false;
 
-int16_t TorchHeightController::_new_target_speed = 25000;
-int16_t TorchHeightController::_counter = 0;
+float TorchHeightController::Kp = 2000.0;
+float TorchHeightController::Ki = 10.0;
+
+float TorchHeightController::Rp = 0.0;
+float TorchHeightController::Ri = 0.0;
+
 
 //----------------------------------------------------------------------------//
 void TorchHeightController::init()
@@ -85,7 +89,13 @@ void TorchHeightController::_step_to_safe_pos()
 //----------------------------------------------------------------------------//
 void TorchHeightController::update(PlasmaState plasma_state)
 {
-  int32_t voltage_mv = ADS1015_device.read();
+  //I2C ADC reading
+  int32_t adc_mv = ADS1015_device.read();
+
+  // conversion to real arc voltage through calibration values
+  if(adc_mv >= 0)
+    _voltage = (1.58525311165134 * adc_mv + 2428.27085745838) * 0.020;
+
   int32_t z_pos = stepper.position(Z_AXIS);
 
   switch(plasma_state)
@@ -96,33 +106,34 @@ void TorchHeightController::update(PlasmaState plasma_state)
       _target_speed = 0;
       break;
     case Established_THC:
+    {
       // check for software endstop overrun
       if(z_pos > _z_top_pos || z_pos < _z_bottom_pos)
       {
         kill("Stop: Z overrun.");
       }
 
-      //PID--------------//
-      if(_counter == 200)
+      // PID controller
+      if(adc_mv >= 0)
       {
-        _counter = 0;
-        _new_target_speed = -_new_target_speed;
+        float error = _voltage - _target_voltage;
+        Rp = Kp * error;
+        Ri = Ki * error + Ri;
+
+        _target_speed = -(Rp + Ri);
       }
-      else
-      {
-        _counter++;
-      }
-      _target_speed = _new_target_speed;
-      //--------------//
 
       _safe_pos = min(_z_top_pos, z_pos + _retract_mm * planner.axis_steps_per_mm[Z_AXIS]);
       break;
+    }
     case Slowdown_THC:
+    {
       if(z_pos < _safe_pos)
       {
         _step_to_safe_pos();
       }
       break;
+    }
   }
 
   int32_t acc = _target_speed - _speed;
@@ -200,8 +211,7 @@ void TorchHeightController::set_max_acc_step_s2(uint32_t max_acc)
 //----------------------------------------------------------------------------//
 void TorchHeightController::_reset_PID()
 {
-  _new_target_speed = 25000;
-  _counter = 100;
+  Ri = 0.0;
 }
 //----------------------------------------------------------------------------//
 HAL_THC_TIMER_ISR {

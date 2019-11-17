@@ -33,8 +33,10 @@ class TorchHeightController {
     static uint16_t target_modulus;
     static bool pending_modulus_update;
 
-    static int16_t _new_target_speed;
-    static int16_t _counter;
+    static float Kp;
+    static float Ki;
+    static float Rp;
+    static float Ri;
 };
 
 extern TorchHeightController torchHeightController;
