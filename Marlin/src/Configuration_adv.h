@@ -107,7 +107,7 @@
 #define Y_HOME_BUMP_MM 5
 #define Z_HOME_BUMP_MM 5
 #define HOMING_BUMP_DIVISOR {2, 2, 2}  // Re-Bump Speed Divisor (Divides the Homing Feedrate)
-//#define QUICK_HOME  //if this is defined, if both x and y are to be homed, a diagonal move will be performed initially.
+#define QUICK_HOME  //if this is defined, if both x and y are to be homed, a diagonal move will be performed initially.
 
 // When G28 is called, this option will make Y home before X
 //#define HOME_Y_BEFORE_X
@@ -134,8 +134,8 @@
 // @section lcd
 
 #if ENABLED(ULTIPANEL)
-  #define MANUAL_FEEDRATE {50*60, 50*60, 50*60} // Feedrates for manual moves along X, Y, Z from panel
-  #define ULTIPANEL_FEEDMULTIPLY  // Comment to disable setting feedrate multiplier via encoder
+  #define MANUAL_FEEDRATE {70*60, 70*60, 50*60} // Feedrates for manual moves along X, Y, Z from panel
+  // #define ULTIPANEL_FEEDMULTIPLY  // Comment to disable setting feedrate multiplier via encoder
 #endif
 
 // @section extras

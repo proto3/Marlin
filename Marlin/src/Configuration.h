@@ -127,9 +127,9 @@
 //#define PS_DEFAULT_OFF
 
 // Specify level on which kill is active, if 0, system will be killed with pin on ground.
-#define KILL_PRESSED_ON 0
+#define KILL_PRESSED_ON 1
 // Set kill pin internal pullup if true
-#define KILL_PIN_PULLUP false
+#define KILL_PIN_PULLUP true
 
 //===========================================================================
 //============================= Mechanical Settings =========================
@@ -162,7 +162,7 @@
 #define USE_ZMAX_PLUG
 
 // coarse Endstop Settings
-#define ENDSTOPPULLUPS // Comment this out (using // at the start of the line) to disable the endstop pullup resistors
+//#define ENDSTOPPULLUPS // Comment this out (using // at the start of the line) to disable the endstop pullup resistors
 
 #if DISABLED(ENDSTOPPULLUPS)
   // fine endstop settings: Individual pullups. will be ignored if ENDSTOPPULLUPS is defined
@@ -171,7 +171,7 @@
   //#define ENDSTOPPULLUP_ZMAX
   //#define ENDSTOPPULLUP_XMIN
   //#define ENDSTOPPULLUP_YMIN
-  //#define ENDSTOPPULLUP_ZMIN
+  #define ENDSTOPPULLUP_ZMIN
 #endif
 
 // Mechanical endstop with COM to ground and NC to Signal uses "false" here (most common setup).
@@ -199,9 +199,9 @@
 // @section machine
 
 // Invert the stepper direction. Change (or reverse the motor connector) if an axis goes the wrong way.
-#define INVERT_X_DIR false
+#define INVERT_X_DIR true
 #define INVERT_Y_DIR false
-#define INVERT_Z_DIR false
+#define INVERT_Z_DIR true
 
 // @section homing
 
@@ -224,13 +224,13 @@
 #define X_MIN_POS 0
 #define Y_MIN_POS 0
 #define Z_MIN_POS 0
-#define X_MAX_POS 200
-#define Y_MAX_POS 200
+#define X_MAX_POS 810
+#define Y_MAX_POS 1290
 #define Z_MAX_POS 100
 
-// Homing speeds (mm/m)
-#define HOMING_FEEDRATE_XY (50*60)
-#define HOMING_FEEDRATE_Z  (50*60)
+// Homing speeds (mm/min)
+#define HOMING_FEEDRATE_XY (60*60)
+#define HOMING_FEEDRATE_Z  (30*60)
 
 //
 // MOVEMENT SETTINGS
@@ -239,10 +239,10 @@
 
 // default settings
 
-#define DEFAULT_AXIS_STEPS_PER_UNIT   {100, 100, 100}      // default steps per unit for Ultimaker
-#define DEFAULT_MAX_FEEDRATE          {300, 300, 300}      // (mm/sec)
-#define DEFAULT_MAX_ACCELERATION      {3000, 3000, 3000}   // X, Y, Z maximum start speed for accelerated moves.
-#define DEFAULT_ACCELERATION          3000                 // X, Y, Z acceleration in mm/s^2
+#define DEFAULT_AXIS_STEPS_PER_UNIT   {3200.0/60, 3200.0/60, 800.0/2}
+#define DEFAULT_MAX_FEEDRATE          {300, 300, 300}       // (mm/sec)
+#define DEFAULT_MAX_ACCELERATION      {1000, 1000, 1000}    // X, Y, Z maximum start speed for accelerated moves.
+#define DEFAULT_ACCELERATION          600                   // X, Y, Z acceleration in mm/s^2
 
 // The speed change that does not require acceleration (i.e. the software might assume it can be done instantaneously)
 #define DEFAULT_XYJERK                20.0    // (mm/sec)
@@ -262,7 +262,7 @@
 // M501 - reads parameters from EEPROM (if you need reset them after you changed them temporarily).
 // M502 - reverts to the default "factory settings".  You still need to store them in EEPROM afterwards if you want to.
 //define this to enable EEPROM support
-//#define EEPROM_SETTINGS
+#define EEPROM_SETTINGS
 
 #if ENABLED(EEPROM_SETTINGS)
   // To disable EEPROM Serial responses and decrease program space by ~1700 byte: comment this out:
@@ -659,13 +659,13 @@
 //=================================== Plasma ==================================
 //=============================================================================
 
-#define PLASMA_CONTROL_INVERTING  true  // set to true to invert the plasma logic.
+#define PLASMA_CONTROL_INVERTING  false  // set to true to invert the plasma logic.
 #define PLASMA_TRANSFER_INVERTING true  // set to true to invert the transfer logic.
-#define PLASMA_TRANSFER_PULLUP    false // set internal pullup on transfer pin.
+#define PLASMA_TRANSFER_PULLUP    true // set internal pullup on transfer pin.
 
 #define PLASMA_TRANSFER_TIMEOUT_MS 1000
 
-#define PLASMA_MAX_THC_STEP_S 7000 // set the maximal step frequency for THC module (it's all about CPU capabilities)
-#define PLASMA_THC_RETRACT_MM 30   // set the distance to retract in millimeters when THC is turned off.
+#define PLASMA_MAX_THC_STEP_S 24000 // set the maximal step frequency for THC module (it's all about CPU capabilities)
+#define PLASMA_THC_RETRACT_MM 30    // set the distance to retract in millimeters when THC is turned off.
 
 #endif // CONFIGURATION_H
