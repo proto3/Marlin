@@ -2112,7 +2112,7 @@ void manage_inactivity(bool ignore_stepper_queue/*=false*/) {
   if (max_inactive_time && ELAPSED(ms, previous_cmd_ms + max_inactive_time)) kill(PSTR(MSG_KILLED));
 
   if (stepper_inactive_time && ELAPSED(ms, previous_cmd_ms + stepper_inactive_time)
-      && !ignore_stepper_queue && !planner.blocks_queued()) {
+      && !ignore_stepper_queue && !planner.blocks_queued() && IS_WAITING_FILE) {
     #if ENABLED(DISABLE_INACTIVE_X)
       disable_x();
     #endif
