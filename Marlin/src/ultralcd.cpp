@@ -867,14 +867,14 @@ void kill_screen(const char* lcd_msg) {
       if(card.cardOK) {
         uint16_t fileCnt = card.getnrfilenames();
         card.getWorkDirName();
-        // if (card.filename[0] == '/') {
-        //   #if !PIN_EXISTS(SD_DETECT)
-        //     MENU_ITEM(function, LCD_STR_REFRESH MSG_REFRESH, lcd_sd_refresh);
-        //   #endif
-        // }
-        // else {
-        //   MENU_ITEM(function, LCD_STR_FOLDER "..", lcd_sd_updir);
-        // }
+        if (card.filename[0] == '/') {
+          #if !PIN_EXISTS(SD_DETECT)
+            MENU_ITEM(function, LCD_STR_REFRESH MSG_REFRESH, lcd_sd_refresh);
+          #endif
+        }
+        else {
+          MENU_ITEM(function, LCD_STR_FOLDER "..", lcd_sd_updir);
+        }
 
         for (uint16_t i = 0; i < fileCnt; i++) {
           if (_menuLineNr == _thisItemNr) {

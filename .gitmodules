@@ -1,0 +1,3 @@
+[submodule "Marlin/lib/SdFat"]
+	path = Marlin/lib/SdFat
+	url = git@github.com:proto3/SdFat.git

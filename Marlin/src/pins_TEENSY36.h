@@ -55,7 +55,8 @@
 #define BTN_EN2             3
 #define BTN_ENC             5
 
-#define SD_DETECT_PIN      -1
+#define SD_SS_PIN          31
+#define SD_DETECT_PIN      16
 #define KILL_PIN            2
 
 #define PLASMA_CONTROL_PIN 33

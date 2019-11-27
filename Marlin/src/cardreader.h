@@ -70,17 +70,18 @@ public:
   FORCE_INLINE int16_t get() { sdpos = file.curPosition(); return (int16_t)file.read(); }
   FORCE_INLINE void setIndex(int32_t index) { sdpos = index; file.seekSet(index); }
   FORCE_INLINE uint8_t percentDone() { return (isFileOpen() && filesize) ? sdpos / ((filesize + 99) / 100) : 0; }
-  FORCE_INLINE char* getWorkDirName() {/* workDir.getFilename(filename); */ return filename; }
+  FORCE_INLINE char* getWorkDirName() { workDir.getName(filename, LONG_FILENAME_LENGTH); return filename; }
 
 public:
   bool saving, logging, cardOK, filenameIsDir;
-  char filename[FILENAME_LENGTH], longFilename[LONG_FILENAME_LENGTH];
+  char filename[LONG_FILENAME_LENGTH], longFilename[LONG_FILENAME_LENGTH];
   int16_t autostart_index;
 private:
   SdFile root, *curDir, workDir, workDirParents[MAX_DIR_DEPTH];
   uint8_t workDirDepth;
-  Sd2Card card;
-  SdVolume volume;
+  // Sd2Card card;
+  SdFat sd;
+  // SdVolume volume;
   SdFile file;
 
   #define SD_PROCEDURE_DEPTH 1
@@ -104,9 +105,9 @@ extern CardReader card;
 
 #if PIN_EXISTS(SD_DETECT)
   #if ENABLED(SD_DETECT_INVERTED)
-    #define IS_SD_INSERTED (READ(SD_DETECT_PIN) != 0)
+    #define IS_SD_INSERTED (READ(SD_DETECT_PIN) == HIGH)
   #else
-    #define IS_SD_INSERTED (READ(SD_DETECT_PIN) == 0)
+    #define IS_SD_INSERTED (READ(SD_DETECT_PIN) == LOW)
   #endif
 #else
   //No card detect line? Assume the card is inserted.
