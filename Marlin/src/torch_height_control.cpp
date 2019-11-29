@@ -20,7 +20,7 @@ uint16_t TorchHeightController::target_modulus = 0xFFFF;
 bool TorchHeightController::pending_modulus_update = false;
 
 float TorchHeightController::Kp = 2000.0;
-float TorchHeightController::Ki = 10.0;
+float TorchHeightController::Ki = 0.0;
 
 float TorchHeightController::Rp = 0.0;
 float TorchHeightController::Ri = 0.0;
