@@ -1,5 +1,7 @@
-### IMPORTANT : This software is currently being finalised. You should not use it on your machine unless you are a developer and know what you are doing, otherwise it has great chances to damage something or even hurt you !
+**27/05/2020 UPDATE : I've changed my mind about having a fully standalone CNC controller (no PC, only SD card). While it simplify a lot safety issues, it is not well suited for a subtractive manufacturing process as you often get to adapt your gcode to what you have on your table.
+"Thanks to" the coronavirus epidemic, I've took time to port my work to [Klipper](https://github.com/proto3/klipper-plasma) which is specifically designed to take advantage of a PC resources. Finally it is simpler, faster and have a smoother interface named [Sheetah](https://github.com/proto3/sheetah). Sheetah also brings basic augmented reality through a webcam and real-time THC display.**
 
+**IMPORTANT : There is no stable release for the moment, it works but please be careful if using it.**
 # PlasMarlin plasma CNC Firmware
 
 PlasMarlin is a fork of Marlin for plasma CNC machines.
